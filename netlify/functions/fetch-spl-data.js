@@ -38,22 +38,12 @@ exports.handler = async function(event, context) {
     console.log('Page loaded.');
 
     // Wait for a specific selector to ensure content is rendered
-    // Adjust this selector if the main content area changes, but 'root' is usually safe.
-    // We'll wait for the span containing the rank, as it's a specific element we need.
     await page.waitForSelector('span.Entry__BoldText-sc-3fiqhf-9', { timeout: 10000 });
     console.log('Required selector found.');
 
-    // Get the full HTML content of the page after JavaScript has rendered it
-    const renderedHtml = await page.content();
-    // console.log('Rendered HTML snippet:', renderedHtml.substring(0, 500)); // Log a snippet for debugging
-
-    // Use DOMParser on the rendered HTML to extract data
-    const parser = new DOMParser(); // DOMParser is available in Node.js via 'jsdom' if you were not running in a browser context.
-                                   // However, in this serverless function context, we need to correctly import it or use Puppeteer's page.evaluate.
-                                   // Let's use page.evaluate for robustness as it runs in the browser context.
-
+    // Use page.evaluate to run JavaScript directly in the browser context
     const outcomes = await page.evaluate(() => {
-        // This code runs in the context of the browser page (Puppeteer)
+        // This code runs INSIDE the browser page managed by Puppeteer
         const overallRankElement = document.querySelector('span.Entry__BoldText-sc-3fiqhf-9');
         const overallRank = overallRankElement ? overallRankElement.textContent.trim() : 'Not found';
 
