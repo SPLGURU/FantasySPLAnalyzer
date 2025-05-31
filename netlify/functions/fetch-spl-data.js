@@ -4,7 +4,6 @@ const puppeteer = require('puppeteer-core');
 
 exports.handler = async function(event, context) {
   const managerId = event.queryStringParameters.id;
-  const dataType = event.queryStringParameters.type; // We'll mainly focus on 'history' as it's the only working URL
 
   if (!managerId) {
     return {
@@ -16,9 +15,11 @@ exports.handler = async function(event, context) {
 
   let browser = null;
   let page = null;
+  const startTime = Date.now(); // Start timing for the entire function
 
   try {
-    // Launch the headless browser
+    console.log(`Function started for ID: ${managerId}`);
+
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
@@ -26,23 +27,23 @@ exports.handler = async function(event, context) {
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
     });
+    console.log(`Browser launched in ${Date.now() - startTime} ms.`);
 
     page = await browser.newPage();
     const url = `https://en.fantasy.spl.com.sa/entry/${managerId}/history`;
 
     console.log(`Navigating to ${url}`);
-    // --- CHANGE HERE: Changed waitUntil to 'domcontentloaded' ---
     await page.goto(url, {
-      waitUntil: 'domcontentloaded', // Wait until the initial HTML and DOM are loaded
-      timeout: 60000 // 60 seconds timeout for page load (still generous)
+      waitUntil: 'domcontentloaded', // Keep 'domcontentloaded'
+      timeout: 20000 // Give page.goto up to 20 seconds, though function still times out at 10s
     });
-    console.log('Page loaded.');
+    console.log(`Page loaded (domcontentloaded) in ${Date.now() - startTime} ms.`);
 
     // Wait for the specific element containing the rank to ensure dynamic content is rendered
-    await page.waitForSelector('span.Entry__BoldText-sc-3fiqhf-9', { timeout: 10000 }); // Still wait for the content itself
-    console.log('Required selector found.');
+    // Reduced this timeout to be aggressive and ensure it finishes within the 10s window.
+    await page.waitForSelector('span.Entry__BoldText-sc-3fiqhf-9', { timeout: 5000 }); // Try a 5-second timeout
+    console.log(`Required selector found in ${Date.now() - startTime} ms (total).`);
 
-    // Use page.evaluate to run JavaScript directly in the browser context
     const outcomes = await page.evaluate(() => {
         const overallRankElement = document.querySelector('span.Entry__BoldText-sc-3fiqhf-9');
         const overallRank = overallRankElement ? overallRankElement.textContent.trim() : 'Not found';
@@ -53,6 +54,8 @@ exports.handler = async function(event, context) {
         return { overallRank, mostCaptainedPlayer };
     });
 
+    console.log(`Data extracted in ${Date.now() - startTime} ms (total).`);
+
     return {
       statusCode: 200,
       body: JSON.stringify(outcomes),
@@ -60,16 +63,24 @@ exports.handler = async function(event, context) {
     };
 
   } catch (error) {
-    console.error(`Puppeteer function error:`, error);
+    console.error(`Puppeteer function error (total time: ${Date.now() - startTime} ms):`, error);
+    // Be more specific with error message if timeout occurs
+    if (error.name === 'TimeoutError') {
+         return {
+            statusCode: 504, // Gateway Timeout
+            body: JSON.stringify({ error: `Function timed out before data could be extracted. The SPL website may be slow or the request limit for the free tier is exceeded. (Total time: ${Date.now() - startTime} ms)` }),
+            headers: { "Content-Type": "application/json" }
+         };
+    }
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: `Failed to fetch data: ${error.message}. This might be due to a timeout, an invalid Manager ID, or changes on the SPL website.` }),
+      body: JSON.stringify({ error: `Failed to fetch data: ${error.message}. This might be due to an invalid Manager ID, or changes on the SPL website. (Total time: ${Date.now() - startTime} ms)` }),
       headers: { "Content-Type": "application/json" }
     };
   } finally {
     if (browser !== null) {
       await browser.close();
-      console.log('Browser closed.');
+      console.log(`Browser closed after ${Date.now() - startTime} ms (total).`);
     }
   }
 };
