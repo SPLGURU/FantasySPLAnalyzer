@@ -2,26 +2,29 @@
 const fetch = require('node-fetch'); // Import node-fetch
 
 exports.handler = async function(event, context) {
+  // Ensure the ID is correctly extracted from event.queryStringParameters.id
+  // The client-side (index.html) should send '?id=4'
   const managerId = event.queryStringParameters.id;
 
-  if (!managerId) {
+  if (!managerId || typeof managerId !== 'string' || !/^\d+$/.test(managerId)) {
+    console.error('Invalid managerId received:', managerId);
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: 'Manager ID is required.' }),
+      body: JSON.stringify({ error: 'Manager ID is required and must be a valid number.' }),
       headers: { "Content-Type": "application/json" }
     };
   }
 
+  // --- CORRECTED API URL ---
   const apiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/`;
-  console.log(`Fetching data from API: ${apiUrl}`);
+  console.log(`Fetching data from CORRECTED API URL: ${apiUrl}`);
 
   try {
     const response = await fetch(apiUrl);
 
     if (!response.ok) {
-      // If the response is not OK (e.g., 404, 500), throw an error
       const errorText = await response.text();
-      console.error(`API response not OK: ${response.status} - ${errorText}`);
+      console.error(`API response not OK: ${response.status} - ${errorText.substring(0, 500)}`); // Log more of the error text
       return {
         statusCode: response.status,
         body: JSON.stringify({ error: `Failed to fetch data from API. Status: ${response.status}. Message: ${errorText.substring(0, 200)}` }),
@@ -29,15 +32,16 @@ exports.handler = async function(event, context) {
       };
     }
 
-    const data = await response.json(); // Parse the JSON response
+    const data = await response.json(); // This should now successfully parse JSON
     console.log('API data fetched successfully. Full JSON data:', JSON.stringify(data, null, 2)); // Log the full JSON for inspection
 
-    // --- Data Extraction from API Response ---
-    // The overall rank is located at data.summary_overall_rank.
-    const overallRank = data.summary_overall_rank;
+    // --- Data Extraction from API Response (PLACEHOLDERS STILL) ---
+    // You MUST adjust these selectors based on the actual JSON structure
+    // that you will see in the Netlify logs (from the console.log above).
+    // For now, using placeholders until you provide the full JSON.
+    const overallRank = 'Adjust this based on actual JSON path'; 
+    const mostCaptainedPlayer = 'Adjust this based on actual JSON path for captained player';
 
-    // 'mostCaptainedPlayer' is not present in the provided JSON data.
-    const mostCaptainedPlayer = 'Most Captained Player data not available in this API response.';
 
     return {
       statusCode: 200,

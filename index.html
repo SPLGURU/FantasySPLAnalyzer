@@ -5,138 +5,90 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fantasy SPL Analyzer</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #1a202c; /* Dark background */
-            color: #e2e8f0; /* Light text */
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #2d3748; /* Darker container background */
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        input[type="number"] {
-            background-color: #4a5568; /* Input background */
-            color: #e2e8f0; /* Input text */
-            border: 1px solid #2d3748;
-        }
-        button {
-            background-color: #63b3ed; /* Button background */
-            color: #1a202c; /* Button text */
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #4299e1; /* Button hover */
-        }
-        .result-box {
-            background-color: #4a5568;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-        .error-message {
-            color: #fc8181; /* Red error message */
-            background-color: #fee2e2;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 20px;
-            text-align: center;
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <h1 class="text-3xl font-bold text-center mb-6">Fantasy SPL Analyzer</h1>
+<body class="bg-gray-800 text-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-gray-900 p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 class="text-3xl font-bold text-center mb-6 text-blue-400">Fantasy SPL Analyzer</h1>
 
         <div class="mb-6">
-            <label for="managerId" class="block text-gray-300 text-sm font-bold mb-2">
+            <label for="managerIdInput" class="block text-gray-300 text-sm font-bold mb-2">
                 Enter your Fantasy SPL Manager ID to analyze your performance.
             </label>
-            <input type="number" id="managerId" placeholder="e.g., 12345"
-                   class="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline">
+            <input type="number" id="managerIdInput" placeholder="e.g., 12345"
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-600 focus:border-blue-500">
         </div>
 
-        <button id="analyzeBtn"
-                class="w-full py-2 px-4 rounded focus:outline-none focus:shadow-outline font-bold">
+        <button id="analyzeButton"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full focus:outline-none focus:shadow-outline transition duration-200">
             Analyze My Performance
         </button>
 
-        <div id="errorMessage" class="error-message hidden">
-            </div>
-
         <div class="mt-8">
-            <h2 class="text-2xl font-bold mb-4">Your Analysis Outcomes:</h2>
-            
-            <div class="result-box">
-                <p class="text-lg font-semibold">Overall Rank:</p>
-                <p id="overallRank" class="text-xl mt-2">Loading...</p>
+            <h2 class="text-xl font-semibold mb-4 text-blue-300">Your Analysis Outcomes:</h2>
+
+            <div class="bg-gray-800 p-4 rounded-lg mb-4">
+                <p class="text-gray-400 text-sm">Overall Rank:</p>
+                <p id="overallRankDisplay" class="text-xl font-bold text-green-400">...</p>
             </div>
 
-            <div class="result-box">
-                <p class="text-lg font-semibold">Most Captained Player:</p>
-                <p id="mostCaptainedPlayer" class="text-xl mt-2">Loading...</p>
+            <div class="bg-gray-800 p-4 rounded-lg mb-4">
+                <p class="text-gray-400 text-sm">Most Captained Player:</p>
+                <p id="mostCaptainedPlayerDisplay" class="text-xl font-bold text-green-400">...</p>
             </div>
+
+            <div id="errorMessageDisplay" class="hidden bg-red-800 p-3 rounded text-red-100 text-center">
+                </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            const managerIdInput = document.getElementById('managerId');
-            const overallRankDisplay = document.getElementById('overallRank');
-            const mostCaptainedPlayerDisplay = document.getElementById('mostCaptainedPlayer');
-            const errorMessageDisplay = document.getElementById('errorMessage');
+        document.getElementById('analyzeButton').addEventListener('click', analyzePerformance);
 
-            analyzeBtn.addEventListener('click', analyzePerformance);
+        async function analyzePerformance() {
+            const managerId = document.getElementById('managerIdInput').value;
+            const overallRankDisplay = document.getElementById('overallRankDisplay');
+            const mostCaptainedPlayerDisplay = document.getElementById('mostCaptainedPlayerDisplay');
+            const errorMessageDisplay = document.getElementById('errorMessageDisplay');
 
-            async function analyzePerformance() {
-                const managerId = managerIdInput.value.trim();
-                overallRankDisplay.textContent = 'Loading...';
-                mostCaptainedPlayerDisplay.textContent = 'Loading...';
-                errorMessageDisplay.classList.add('hidden');
-                errorMessageDisplay.textContent = '';
+            // --- Visual feedback for loading state ---
+            overallRankDisplay.textContent = 'Loading...';
+            mostCaptainedPlayerDisplay.textContent = 'Loading...';
+            errorMessageDisplay.classList.add('hidden'); // Hide any previous errors
+            errorMessageDisplay.textContent = ''; // Clear previous error text
 
-                if (!managerId) {
-                    overallRankDisplay.textContent = 'Please enter a Manager ID.';
-                    mostCaptainedPlayerDisplay.textContent = '';
-                    return;
-                }
+            if (!managerId) {
+                overallRankDisplay.textContent = 'N/A';
+                mostCaptainedPlayerDisplay.textContent = 'N/A';
+                errorMessageDisplay.textContent = 'Please enter a Manager ID.';
+                errorMessageDisplay.classList.remove('hidden');
+                return;
+            }
 
-                try {
-                    // Fetch entry data for overall rank
-                    const entryResponse = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}&type=history`); // Changed to history as per your confirmation
-                    if (!entryResponse.ok) {
-                        const errorData = await entryResponse.json();
-                        throw new Error(errorData.error || `HTTP error! Status: ${entryResponse.status}`);
-                    }
-                    const entryHtml = await entryResponse.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(entryHtml, 'text/html');
+            try {
+                // Call your Netlify function
+                // The 'type=history' query param is currently not used but is kept for future expansion if needed.
+                const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}&type=history`);
+                const data = await response.json();
 
-                    // --- UPDATED SELECTOR FOR OVERALL RANK ---
-                    const overallRankElement = doc.querySelector('span.Entry__BoldText-sc-3fiqhf-9');
-                    if (overallRankElement) {
-                        overallRankDisplay.textContent = overallRankElement.textContent.trim();
-                    } else {
-                        overallRankDisplay.textContent = 'Not found (check HTML selector for rank)';
-                    }
-
-                    // For Most Captained Player (placeholder for now)
-                    mostCaptainedPlayerDisplay.textContent = 'No captain data found (fix selector later)';
-
-                } catch (error) {
-                    console.error("Error during analysis:", error);
-                    errorMessageDisplay.textContent = `Error during analysis: ${error.message}. This could be an invalid Manager ID, the SPL website's HTML structure changing, or an issue with the Netlify function. Check your browser's console (F12) for more details.`;
-                    errorMessageDisplay.classList.remove('hidden');
+                if (response.ok) {
+                    overallRankDisplay.textContent = data.overallRank || 'Not found';
+                    mostCaptainedPlayerDisplay.textContent = data.mostCaptainedPlayer || 'Not found';
+                } else {
+                    // Handle errors from the Netlify function
                     overallRankDisplay.textContent = 'Error';
                     mostCaptainedPlayerDisplay.textContent = 'Error';
+                    errorMessageDisplay.textContent = data.error || 'An unknown error occurred.';
+                    errorMessageDisplay.classList.remove('hidden');
                 }
+            } catch (error) {
+                // Handle network errors or issues before the function response
+                overallRankDisplay.textContent = 'Error';
+                mostCaptainedPlayerDisplay.textContent = 'Error';
+                errorMessageDisplay.textContent = `Failed to connect to analysis service: ${error.message}.`;
+                errorMessageDisplay.classList.remove('hidden');
+                console.error('Frontend fetch error:', error);
             }
-        });
+        }
     </script>
 </body>
 </html>
