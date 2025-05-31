@@ -1,6 +1,5 @@
 // netlify/functions/fetch-spl-data.js
-const chromium = require('@sparticuz/chromium');
-const puppeteer = require('puppeteer-core');
+const fetch = require('node-fetch'); // Import node-fetch
 
 exports.handler = async function(event, context) {
   const managerId = event.queryStringParameters.id;
@@ -13,74 +12,56 @@ exports.handler = async function(event, context) {
     };
   }
 
-  let browser = null;
-  let page = null;
-  const startTime = Date.now(); // Start timing for the entire function
+  const apiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/`;
+  console.log(`Fetching data from API: ${apiUrl}`);
 
   try {
-    console.log(`Function started for ID: ${managerId}`);
+    const response = await fetch(apiUrl);
 
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-      ignoreHTTPSErrors: true,
-    });
-    console.log(`Browser launched in ${Date.now() - startTime} ms.`);
+    if (!response.ok) {
+      // If the response is not OK (e.g., 404, 500), throw an error
+      const errorText = await response.text();
+      console.error(`API response not OK: ${response.status} - ${errorText}`);
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({ error: `Failed to fetch data from API. Status: ${response.status}. Message: ${errorText.substring(0, 200)}` }),
+        headers: { "Content-Type": "application/json" }
+      };
+    }
 
-    page = await browser.newPage();
-    const url = `https://en.fantasy.spl.com.sa/entry/${managerId}/history`;
+    const data = await response.json(); // Parse the JSON response
+    console.log('API data fetched successfully. Full JSON data:', JSON.stringify(data, null, 2)); // Log the full JSON for inspection
 
-    console.log(`Navigating to ${url}`);
-    await page.goto(url, {
-      waitUntil: 'domcontentloaded', // Keep 'domcontentloaded'
-      timeout: 20000 // Give page.goto up to 20 seconds, though function still times out at 10s
-    });
-    console.log(`Page loaded (domcontentloaded) in ${Date.now() - startTime} ms.`);
+    // --- Data Extraction from API Response ---
+    // You found your rank in the response for /api/entry/4/.
+    // Now, you NEED TO ADJUST THESE SELECTORS based on the actual JSON response structure
+    // that you'll see in the Netlify logs (from the console.log above).
+    
+    // Example: If the JSON looks like { "entry": { "overall_rank": 487 } }
+    // const overallRank = data.entry.overall_rank;
+    // Example: If the JSON looks like { "rank": { "overall": 487 } }
+    // const overallRank = data.rank.overall;
+    // For now, using a placeholder, but you MUST replace this.
+    const overallRank = 'Adjust this based on actual JSON path'; 
+    
+    // For 'Most Captained Player', you'll need to inspect the full JSON response.
+    // It's likely in an array of gameweeks/rounds or a 'history' section.
+    // For now, using a placeholder, but you MUST replace this.
+    const mostCaptainedPlayer = 'Adjust this based on actual JSON path for captained player';
 
-    // Wait for the specific element containing the rank to ensure dynamic content is rendered
-    // Reduced this timeout to be aggressive and ensure it finishes within the 10s window.
-    await page.waitForSelector('span.Entry__BoldText-sc-3fiqhf-9', { timeout: 5000 }); // Try a 5-second timeout
-    console.log(`Required selector found in ${Date.now() - startTime} ms (total).`);
-
-    const outcomes = await page.evaluate(() => {
-        const overallRankElement = document.querySelector('span.Entry__BoldText-sc-3fiqhf-9');
-        const overallRank = overallRankElement ? overallRankElement.textContent.trim() : 'Not found';
-
-        // Placeholder for Most Captained Player - this logic will be more complex later
-        const mostCaptainedPlayer = 'Logic for Most Captained Player not yet implemented';
-
-        return { overallRank, mostCaptainedPlayer };
-    });
-
-    console.log(`Data extracted in ${Date.now() - startTime} ms (total).`);
 
     return {
       statusCode: 200,
-      body: JSON.stringify(outcomes),
+      body: JSON.stringify({ overallRank, mostCaptainedPlayer }),
       headers: { "Content-Type": "application/json" }
     };
 
   } catch (error) {
-    console.error(`Puppeteer function error (total time: ${Date.now() - startTime} ms):`, error);
-    // Be more specific with error message if timeout occurs
-    if (error.name === 'TimeoutError') {
-         return {
-            statusCode: 504, // Gateway Timeout
-            body: JSON.stringify({ error: `Function timed out before data could be extracted. The SPL website may be slow or the request limit for the free tier is exceeded. (Total time: ${Date.now() - startTime} ms)` }),
-            headers: { "Content-Type": "application/json" }
-         };
-    }
+    console.error(`Error fetching data from API:`, error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: `Failed to fetch data: ${error.message}. This might be due to an invalid Manager ID, or changes on the SPL website. (Total time: ${Date.now() - startTime} ms)` }),
+      body: JSON.stringify({ error: `Failed to fetch data: ${error.message}. Please check the Manager ID or if the SPL API has changed.` }),
       headers: { "Content-Type": "application/json" }
     };
-  } finally {
-    if (browser !== null) {
-      await browser.close();
-      console.log(`Browser closed after ${Date.now() - startTime} ms (total).`);
-    }
   }
 };
