@@ -141,6 +141,10 @@
             const rankValue = document.getElementById('rankValue');
             const captainedPlayerValue = document.getElementById('captainedPlayerValue');
 
+            // Initialize output values on page load
+            rankValue.textContent = 'N/A';
+            captainedPlayerValue.textContent = 'N/A';
+
             analyzeButton.addEventListener('click', analyzePerformance);
 
             async function analyzePerformance() {
@@ -154,25 +158,21 @@
                     return;
                 }
 
-                // Reset UI
+                // Reset UI and show loading
                 errorMessage.style.display = 'none';
                 loadingIndicator.style.display = 'block';
                 resultsContainer.classList.add('hidden');
-                rankValue.textContent = 'N/A';
-                captainedPlayerValue.textContent = 'N/A';
+                rankValue.textContent = 'Analyzing...';
+                captainedPlayerValue.textContent = 'Analyzing...';
 
                 try {
-                    // --- Calling the Netlify Function for Overall Rank ---
-                    // The function is named 'fetch-spl-data.js' so its URL is '/.netlify/functions/fetch-spl-data'
-                    // We pass 'id' and 'type=entry' as query parameters
+                    // --- Calling the Netlify Function for Overall Rank (type=entry) ---
                     const entryProxyUrl = `/.netlify/functions/fetch-spl-data?id=${managerId}&type=entry`;
                     const entryResponse = await fetch(entryProxyUrl);
 
-                    // Check if the proxy function returned an error (e.g., if SPL site gave 404)
                     if (!entryResponse.ok) {
-                        // If the response status is 4xx or 5xx, it's an error from the proxy or SPL
-                        const errorData = await entryResponse.json().catch(() => null); // Try to parse as JSON if it's an error from our function
-                        const errorMessageText = errorData && errorData.error ? errorData.error : `Failed to fetch data from proxy (${entryResponse.status}). Invalid ID or network issue.`;
+                        const errorData = await entryResponse.json().catch(() => ({}));
+                        const errorMessageText = errorData.error || `Failed to fetch entry data from proxy (${entryResponse.status}). Invalid ID or network issue.`;
                         throw new Error(errorMessageText);
                     }
                     
@@ -182,26 +182,23 @@
                     const entryParser = new DOMParser();
                     const entryDoc = entryParser.parseFromString(entryHtmlText, 'text/html');
                     
-                    // --- Extract Overall Rank ---
-                    // These selectors are guesses; you might need to adjust them by inspecting live SPL HTML.
-                    const overallRankElement = entryDoc.querySelector('.Entry__OverallRank .Entry__OverallRank__Value, .ism-overall-rank-value, .OverviewHeader__info > div:nth-child(2) > span:nth-child(2)'); 
-                    if (overallRankElement) {
-                        rankValue.textContent = overallRankElement.textContent.trim();
-                    } else {
-                        rankValue.textContent = 'Not found (check HTML selector for rank)';
-                        console.warn('Overall rank element not found. Selector might be incorrect.');
-                    }
+                    // --- Extract Overall Rank using the class you found ---
+                    let overallRank = 'Not found (check HTML selector for rank)';
+                    const overallRankElement = entryDoc.querySelector('td.bKRkDu'); // Using the class you identified
 
-                    // --- Calling the Netlify Function for Captain History ---
-                    // The function is named 'fetch-spl-data.js' so its URL is '/.netlify/functions/fetch-spl-data'
-                    // We pass 'id' and 'type=history' as query parameters
+                    if (overallRankElement) {
+                        overallRank = overallRankElement.textContent.trim();
+                    }
+                    rankValue.textContent = overallRank; // Update rank output
+
+
+                    // --- Calling the Netlify Function for Captain History (type=history) ---
                     const historyProxyUrl = `/.netlify/functions/fetch-spl-data?id=${managerId}&type=history`;
                     const historyResponse = await fetch(historyProxyUrl);
 
-                    // Check if the proxy function returned an error
                     if (!historyResponse.ok) {
-                        const errorData = await historyResponse.json().catch(() => null);
-                        const errorMessageText = errorData && errorData.error ? errorData.error : `Failed to fetch history from proxy (${historyResponse.status}). Invalid ID or network issue.`;
+                        const errorData = await historyResponse.json().catch(() => ({}));
+                        const errorMessageText = errorData.error || `Failed to fetch history data from proxy (${historyResponse.status}). Invalid ID or network issue.`;
                         throw new Error(errorMessageText);
                     }
 
@@ -212,36 +209,31 @@
                     const historyDoc = historyParser.parseFromString(historyHtmlText, 'text/html');
 
                     // --- Extract Most Captained Player ---
+                    // THIS PART IS PENDING - It will currently show a placeholder.
+                    // You will need to inspect the HTML of the history page to find the correct selectors.
+                    let mostCaptained = 'No captain data found (fix selector later)';
                     const captainCounts = {};
-                    // This selector is an educated guess for gameweek rows on the history page.
-                    // Look for the specific HTML elements that represent each gameweek's summary or detail.
-                    // Example:
-                    // A common structure might be a div for each gameweek history entry,
-                    // and inside that, a span or div containing the captain's name.
-                    const gameweekRows = historyDoc.querySelectorAll('.HistoryCard__item, .ism-history-gameweek-row'); // Try multiple common selectors
+                    // Placeholder selectors. These will need to be replaced after inspection.
+                    const gameweekRows = historyDoc.querySelectorAll('.HistoryCard__item, .ism-history-gameweek-row'); 
 
                     gameweekRows.forEach(row => {
-                        // Look for an element that contains the captain's name and has a clear indicator (like '(C)' or a class).
-                        const captainElement = row.querySelector('.MatchPlayer__name, .ism-player-name.is-captain, .HistoryCard__player--captain'); // Try multiple common selectors
+                        const captainElement = row.querySelector('.MatchPlayer__name, .ism-player-name.is-captain, .HistoryCard__player--captain'); 
                         if (captainElement) {
                             let captainName = captainElement.textContent.trim();
-                            // Clean up "(C)" if present
-                            const match = captainName.match(/(.*?)\s*\(C\)/i); // Added /i for case-insensitive (C)
+                            const match = captainName.match(/(.*?)\s*\(C\)/i);
                             if (match && match[1]) {
                                 captainName = match[1].trim();
                             } else {
-                                // If no (C) but it's clearly the captain element, use it as is
                                 captainName = captainName.trim();
                             }
-                            if (captainName) { // Ensure we have a non-empty name
+                            if (captainName) {
                                 captainCounts[captainName] = (captainCounts[captainName] || 0) + 1;
                             }
                         }
                     });
 
-                    let mostCaptained = 'N/A';
+                    // Determine the most captained player from the counts
                     let maxCount = 0;
-                    // If no captains found, ensure it remains N/A
                     if (Object.keys(captainCounts).length === 0) {
                         mostCaptained = 'No captain data found (check HTML selectors)';
                     } else {
@@ -252,20 +244,21 @@
                             }
                         }
                     }
-                    captainedPlayerValue.textContent = mostCaptained;
+                    captainedPlayerValue.textContent = mostCaptained; // Update captain output (placeholder for now)
 
-                    // Show results
+                    // Show results container
                     resultsContainer.classList.remove('hidden');
 
                 } catch (error) {
                     console.error('Analysis error:', error);
                     errorMessage.textContent = `Error during analysis: ${error.message}. This could be an invalid Manager ID, the SPL website's HTML structure changing, or an issue with the Netlify function. Check your browser's console (F12) for more details.`;
                     errorMessage.style.display = 'block';
+                    rankValue.textContent = 'Error';
+                    captainedPlayerValue.textContent = 'Error';
                 } finally {
-                    loadingIndicator.style.display = 'none';
+                    loadingIndicator.style.display = 'none'; // Always hide loading indicator
                 }
             }
-            // The simulated data block remains commented out as it's not needed for Netlify deployment
         });
     </script>
 </body>
