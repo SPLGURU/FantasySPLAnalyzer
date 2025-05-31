@@ -15,7 +15,7 @@ exports.handler = async function(event, context) {
   }
 
   let browser = null;
-  let page = null; // Initialize page outside try block
+  let page = null;
 
   try {
     // Launch the headless browser
@@ -24,26 +24,26 @@ exports.handler = async function(event, context) {
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
-      ignoreHTTPSErrors: true, // Be cautious with this in production, but often needed for scraping
+      ignoreHTTPSErrors: true,
     });
 
     page = await browser.newPage();
     const url = `https://en.fantasy.spl.com.sa/entry/${managerId}/history`;
 
     console.log(`Navigating to ${url}`);
+    // --- CHANGE HERE: Changed waitUntil to 'domcontentloaded' ---
     await page.goto(url, {
-      waitUntil: 'networkidle0', // Wait until no more than 0 network connections for at least 500ms
-      timeout: 60000 // 60 seconds timeout for page load
+      waitUntil: 'domcontentloaded', // Wait until the initial HTML and DOM are loaded
+      timeout: 60000 // 60 seconds timeout for page load (still generous)
     });
     console.log('Page loaded.');
 
-    // Wait for a specific selector to ensure content is rendered
-    await page.waitForSelector('span.Entry__BoldText-sc-3fiqhf-9', { timeout: 10000 });
+    // Wait for the specific element containing the rank to ensure dynamic content is rendered
+    await page.waitForSelector('span.Entry__BoldText-sc-3fiqhf-9', { timeout: 10000 }); // Still wait for the content itself
     console.log('Required selector found.');
 
     // Use page.evaluate to run JavaScript directly in the browser context
     const outcomes = await page.evaluate(() => {
-        // This code runs INSIDE the browser page managed by Puppeteer
         const overallRankElement = document.querySelector('span.Entry__BoldText-sc-3fiqhf-9');
         const overallRank = overallRankElement ? overallRankElement.textContent.trim() : 'Not found';
 
