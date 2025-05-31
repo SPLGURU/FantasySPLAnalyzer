@@ -1,14 +1,29 @@
 // netlify/functions/fetch-spl-data.js
 
 exports.handler = async function(event, context) {
-  // Dynamically import node-fetch (required for Netlify functions to use ES Modules)
-  const { default: fetch } = await import('node-fetch');
+  console.log('Function started.'); // Log 1
+
+  // Try a different way to import node-fetch, just in case
+  let fetch;
+  try {
+    fetch = (await import('node-fetch')).default;
+    console.log('node-fetch imported successfully.'); // Log 2
+  } catch (importError) {
+    console.error('Error importing node-fetch:', importError.message); // Log for import failure
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: `Failed to import node-fetch: ${importError.message}` }),
+      headers: { "Content-Type": "application/json" }
+    };
+  }
 
   const managerId = event.queryStringParameters.id;
-  const dataType = event.queryStringParameters.type; // Get the 'type' parameter (e.g., 'entry', 'history')
+  const dataType = event.queryStringParameters.type;
 
-  // Basic validation for managerId
+  console.log(`Received request: managerId=<span class="math-inline">\{managerId\}, dataType\=</span>{dataType}`); // Log 3
+
   if (!managerId) {
+    console.warn('Manager ID is missing.'); // Log 4
     return {
       statusCode: 400,
       body: JSON.stringify({ error: 'Manager ID is required.' }),
@@ -17,15 +32,12 @@ exports.handler = async function(event, context) {
   }
 
   let targetUrl;
-  // Determine the target URL based on the 'type' parameter from the frontend
   if (dataType === 'entry') {
-    // This URL is likely for the main manager entry page where overall rank is found
     targetUrl = `https://en.fantasy.spl.com.sa/entry/${managerId}`;
   } else if (dataType === 'history') {
-    // This URL is for the manager's history page where captain data is found
     targetUrl = `https://en.fantasy.spl.com.sa/entry/${managerId}/history`;
   } else {
-    // Return an error if an unknown type is requested
+    console.warn('Invalid data type requested.'); // Log 5
     return {
       statusCode: 400,
       body: JSON.stringify({ error: 'Invalid data type requested. Must be "entry" or "history".' }),
@@ -33,38 +45,36 @@ exports.handler = async function(event, context) {
     };
   }
 
-  try {
-    // Make the fetch request to the determined target URL
-    const response = await fetch(targetUrl);
+  console.log(`Fetching from targetUrl: ${targetUrl}`); // Log 6
 
-    // If the HTTP response was not OK (e.g., 404, 500 from SPL site)
+  try {
+    const response = await fetch(targetUrl);
+    console.log(`Fetch response status: ${response.status}`); // Log 7
+
     if (!response.ok) {
-      const errorText = await response.text(); // Get potential error message from SPL site
-      console.error(`HTTP error fetching ${dataType} data from SPL: status: ${response.status}, response: ${errorText}`);
+      const errorText = await response.text();
+      console.error(`HTTP error from SPL site: status: ${response.status}, response: ${errorText}`); // Log 8
       return {
-        statusCode: response.status, // Pass through the SPL site's status code
+        statusCode: response.status,
         body: JSON.stringify({
-          error: `Failed to fetch ${dataType} data from SPL. HTTP status: ${response.status}. Details: ${errorText.substring(0, Math.min(errorText.length, 200))}...` // Return partial error text
+          error: `Failed to fetch ${dataType} data from SPL. HTTP status: ${response.status}. Details: ${errorText.substring(0, Math.min(errorText.length, 200))}...`
         }),
         headers: { "Content-Type": "application/json" }
       };
     }
 
-    // Get the HTML content as text from the successful response
     const data = await response.text();
-
-    // Return the HTML content to the frontend
+    console.log('Data fetched successfully, returning HTML.'); // Log 9
     return {
       statusCode: 200,
-      body: data, // Sending back the raw HTML
-      headers: { "Content-Type": "text/html" } // Important: Tell the browser it's HTML
+      body: data,
+      headers: { "Content-Type": "text/html" }
     };
   } catch (error) {
-    // Catch any network errors or other unexpected issues during execution
-    console.error(`Error during function execution for ${dataType} data:`, error);
+    console.error(`Error during function execution:`, error); // Log 10
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: `An unexpected server error occurred while fetching ${dataType} data: ${error.message}` }),
+      body: JSON.stringify({ error: `An unexpected server error occurred: ${error.message}` }),
       headers: { "Content-Type": "application/json" }
     };
   }
