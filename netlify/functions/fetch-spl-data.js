@@ -33,22 +33,11 @@ exports.handler = async function(event, context) {
     console.log('API data fetched successfully. Full JSON data:', JSON.stringify(data, null, 2)); // Log the full JSON for inspection
 
     // --- Data Extraction from API Response ---
-    // You found your rank in the response for /api/entry/4/.
-    // Now, you NEED TO ADJUST THESE SELECTORS based on the actual JSON response structure
-    // that you'll see in the Netlify logs (from the console.log above).
-    
-    // Example: If the JSON looks like { "entry": { "overall_rank": 487 } }
-    // const overallRank = data.entry.overall_rank;
-    // Example: If the JSON looks like { "rank": { "overall": 487 } }
-    // const overallRank = data.rank.overall;
-    // For now, using a placeholder, but you MUST replace this.
-    const overallRank = 'Adjust this based on actual JSON path'; 
-    
-    // For 'Most Captained Player', you'll need to inspect the full JSON response.
-    // It's likely in an array of gameweeks/rounds or a 'history' section.
-    // For now, using a placeholder, but you MUST replace this.
-    const mostCaptainedPlayer = 'Adjust this based on actual JSON path for captained player';
+    // The overall rank is located at data.summary_overall_rank.
+    const overallRank = data.summary_overall_rank;
 
+    // 'mostCaptainedPlayer' is not present in the provided JSON data.
+    const mostCaptainedPlayer = 'Most Captained Player data not available in this API response.';
 
     return {
       statusCode: 200,
