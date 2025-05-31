@@ -3,7 +3,6 @@ const fetch = require('node-fetch'); // Import node-fetch
 
 exports.handler = async function(event, context) {
   // Ensure the ID is correctly extracted from event.queryStringParameters.id
-  // The client-side (index.html) should send '?id=4'
   const managerId = event.queryStringParameters.id;
 
   if (!managerId || typeof managerId !== 'string' || !/^\d+$/.test(managerId)) {
@@ -24,7 +23,7 @@ exports.handler = async function(event, context) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`API response not OK: ${response.status} - ${errorText.substring(0, 500)}`); // Log more of the error text
+      console.error(`API response not OK: ${response.status} - ${errorText.substring(0, 500)}`);
       return {
         statusCode: response.status,
         body: JSON.stringify({ error: `Failed to fetch data from API. Status: ${response.status}. Message: ${errorText.substring(0, 200)}` }),
@@ -32,11 +31,11 @@ exports.handler = async function(event, context) {
       };
     }
 
-    const data = await response.json(); // This should now successfully parse JSON
-    console.log('API data fetched successfully. Full JSON data:', JSON.stringify(data, null, 2)); // Log the full JSON for inspection
+    const data = await response.json();
+    console.log('API data fetched successfully. Full JSON data:', JSON.stringify(data, null, 2));
 
     // --- Data Extraction from API Response (PLACEHOLDERS STILL) ---
-    // You MUST adjust these selectors based on the actual JSON structure
+    // YOU MUST ADJUST THESE SELECTORS based on the actual JSON response structure
     // that you will see in the Netlify logs (from the console.log above).
     // For now, using placeholders until you provide the full JSON.
     const overallRank = 'Adjust this based on actual JSON path'; 

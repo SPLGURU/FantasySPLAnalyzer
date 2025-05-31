@@ -1,23 +1,16 @@
 {
   "name": "fantasysplanalyzer",
   "version": "1.0.0",
+  "description": "A web app to analyze Fantasy SPL manager performance.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/SPLGURU/FantasySPLAnalyzer.git"
+    "start": "netlify dev",
+    "deploy": "netlify deploy --prod"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/SPLGURU/FantasySPLAnalyzer/issues"
-  },
-  "homepage": "https://github.com/SPLGURU/FantasySPLAnalyzer#readme",
-  "description": "",
   "dependencies": {
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.6.1"
   }
 }
