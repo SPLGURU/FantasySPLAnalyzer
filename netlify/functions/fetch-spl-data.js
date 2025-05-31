@@ -1,3 +1,9 @@
+// TEMPORARY LINE FOR GIT DEBUG - PLEASE DELETE AFTER COMMIT
+exports.handler = async function(event, context) {
+  console.log('Function started.');
+  // ... rest of your function code ...
+};
+
 // netlify/functions/fetch-spl-data.js
 
 exports.handler = async function(event, context) {
