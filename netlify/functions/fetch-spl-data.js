@@ -34,12 +34,11 @@ exports.handler = async function(event, context) {
     const data = await response.json();
     console.log('API data fetched successfully. Full JSON data:', JSON.stringify(data, null, 2));
 
-    // --- Data Extraction from API Response (PLACEHOLDERS STILL) ---
-    // YOU MUST ADJUST THESE SELECTORS based on the actual JSON response structure
-    // that you will see in the Netlify logs (from the console.log above).
-    // For now, using placeholders until you provide the full JSON.
-    const overallRank = 'Adjust this based on actual JSON path'; 
-    const mostCaptainedPlayer = 'Adjust this based on actual JSON path for captained player';
+    // --- CORRECTED Data Extraction from API Response ---
+    const overallRank = data.summary_overall_rank;
+    // The 'Most Captained Player' data is not available in the /api/entry/{managerId}/ endpoint.
+    // It's typically found in a /picks/ or /event-data/ endpoint for a specific gameweek.
+    const mostCaptainedPlayer = 'Not available from this API endpoint.';
 
 
     return {
