@@ -1,59 +1,69 @@
 // netlify/functions/fetch-spl-data.js
 
-const fetch = require('node-fetch'); // Netlify Functions support node-fetch automatically
-
 exports.handler = async function(event, context) {
-  // Extract the manager ID and type (entry or history) from the path
-  // The path will look like /.netlify/functions/fetch-spl-data?id=4&type=entry
+  // Use dynamic import for node-fetch (ESM)
+  // This line replaces: const fetch = require('node-fetch');
+  const { default: fetch } = await import('node-fetch');
+
+  // Assuming the manager ID is passed as a query string parameter, e.g., /.netlify/functions/fetch-spl-data?id=4
   const managerId = event.queryStringParameters.id;
-  const dataType = event.queryStringParameters.type; // 'entry' or 'history'
 
-  if (!managerId || !dataType) {
+  // Basic validation for the manager ID
+  if (!managerId) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: 'Missing manager ID or data type.' }),
-    };
-  }
-
-  let apiUrl = '';
-  if (dataType === 'entry') {
-    apiUrl = `https://en.fantasy.spl.com.sa/entry/${managerId}`;
-  } else if (dataType === 'history') {
-    apiUrl = `https://en.fantasy.spl.com.sa/entry/${managerId}/history`;
-  } else {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'Invalid data type specified.' }),
+      body: JSON.stringify({ error: 'Manager ID is required.' }),
+      headers: {
+        "Content-Type": "application/json"
+      }
     };
   }
 
   try {
-    const response = await fetch(apiUrl);
+    // IMPORTANT: Replace 'YOUR_SPL_DATA_API_URL_HERE' with the actual URL
+    // of the SPL website or API endpoint you are trying to fetch data from.
+    // Make sure to correctly append the managerId to the URL if needed.
+    const response = await fetch(`YOUR_SPL_DATA_API_URL_HERE?id=${managerId}`);
 
+    // Check if the HTTP request itself was successful
     if (!response.ok) {
-      // If the external fetch failed, propagate the error status
+      const errorText = await response.text(); // Get raw text for better error debugging
+      console.error(`HTTP error! status: ${response.status}, response: ${errorText}`);
       return {
         statusCode: response.status,
-        body: JSON.stringify({ error: `Failed to fetch from external SPL API: ${response.statusText}` }),
+        body: JSON.stringify({
+          error: `Failed to fetch data from SPL. HTTP status: ${response.status}. Details: ${errorText.substring(0, 200)}...`
+        }),
+        headers: {
+          "Content-Type": "application/json"
+        }
       };
     }
 
-    const htmlContent = await response.text();
+    // Assuming the SPL website returns HTML, you'll likely process it as text
+    const data = await response.text();
+
+    // In a real scenario, you would parse the 'data' (e.g., using Cheerio for HTML, or JSON.parse if it's JSON)
+    // and extract the relevant information before sending it back to your frontend.
+    // For now, we're sending the raw fetched content back as a placeholder.
+    // You might also want to set Content-Type header to 'text/html' if you're returning HTML.
 
     return {
       statusCode: 200,
-      body: htmlContent, // Return the raw HTML content
+      body: data, // Sending back the raw text/HTML received from the SPL site
       headers: {
-        'Content-Type': 'text/html', // Indicate that we're returning HTML
-        'Access-Control-Allow-Origin': '*', // IMPORTANT: Allow your Netlify site to access this function
-        'Access-Control-Allow-Methods': 'GET',
-      },
+        "Content-Type": "text/plain" // Or "text/html" if you expect HTML, or "application/json" if you parse to JSON
+      }
     };
   } catch (error) {
-    console.error('Function error:', error);
+    // Catch any network errors or errors during data processing
+    console.error("Error during function execution:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Internal server error during fetch.', details: error.message }),
+      body: JSON.stringify({ error: "An unexpected server error occurred: " + error.message }),
+      headers: {
+        "Content-Type": "application/json"
+      }
     };
   }
 };
