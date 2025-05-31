@@ -1,35 +1,12 @@
-// TEMPORARY LINE FOR GIT DEBUG - PLEASE DELETE AFTER COMMIT
-exports.handler = async function(event, context) {
-  console.log('Function started.');
-  // ... rest of your function code ...
-};
-
 // netlify/functions/fetch-spl-data.js
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
 
 exports.handler = async function(event, context) {
-  console.log('Function started.'); // Log 1
-
-  // Try a different way to import node-fetch, just in case
-  let fetch;
-  try {
-    fetch = (await import('node-fetch')).default;
-    console.log('node-fetch imported successfully.'); // Log 2
-  } catch (importError) {
-    console.error('Error importing node-fetch:', importError.message); // Log for import failure
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: `Failed to import node-fetch: ${importError.message}` }),
-      headers: { "Content-Type": "application/json" }
-    };
-  }
-
   const managerId = event.queryStringParameters.id;
-  const dataType = event.queryStringParameters.type;
-
-  console.log(`Received request: managerId=<span class="math-inline">\{managerId\}, dataType\=</span>{dataType}`); // Log 3
+  const dataType = event.queryStringParameters.type; // We'll mainly focus on 'history' as it's the only working URL
 
   if (!managerId) {
-    console.warn('Manager ID is missing.'); // Log 4
     return {
       statusCode: 400,
       body: JSON.stringify({ error: 'Manager ID is required.' }),
@@ -37,51 +14,72 @@ exports.handler = async function(event, context) {
     };
   }
 
-  let targetUrl;
-  if (dataType === 'entry') {
-    targetUrl = `https://en.fantasy.spl.com.sa/entry/${managerId}`;
-  } else if (dataType === 'history') {
-    targetUrl = `https://en.fantasy.spl.com.sa/entry/${managerId}/history`;
-  } else {
-    console.warn('Invalid data type requested.'); // Log 5
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'Invalid data type requested. Must be "entry" or "history".' }),
-      headers: { "Content-Type": "application/json" }
-    };
-  }
-
-  console.log(`Fetching from targetUrl: ${targetUrl}`); // Log 6
+  let browser = null;
+  let page = null; // Initialize page outside try block
 
   try {
-    const response = await fetch(targetUrl);
-    console.log(`Fetch response status: ${response.status}`); // Log 7
+    // Launch the headless browser
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true, // Be cautious with this in production, but often needed for scraping
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`HTTP error from SPL site: status: ${response.status}, response: ${errorText}`); // Log 8
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({
-          error: `Failed to fetch ${dataType} data from SPL. HTTP status: ${response.status}. Details: ${errorText.substring(0, Math.min(errorText.length, 200))}...`
-        }),
-        headers: { "Content-Type": "application/json" }
-      };
-    }
+    page = await browser.newPage();
+    const url = `https://en.fantasy.spl.com.sa/entry/${managerId}/history`;
 
-    const data = await response.text();
-    console.log('Data fetched successfully, returning HTML.'); // Log 9
+    console.log(`Navigating to ${url}`);
+    await page.goto(url, {
+      waitUntil: 'networkidle0', // Wait until no more than 0 network connections for at least 500ms
+      timeout: 60000 // 60 seconds timeout for page load
+    });
+    console.log('Page loaded.');
+
+    // Wait for a specific selector to ensure content is rendered
+    // Adjust this selector if the main content area changes, but 'root' is usually safe.
+    // We'll wait for the span containing the rank, as it's a specific element we need.
+    await page.waitForSelector('span.Entry__BoldText-sc-3fiqhf-9', { timeout: 10000 });
+    console.log('Required selector found.');
+
+    // Get the full HTML content of the page after JavaScript has rendered it
+    const renderedHtml = await page.content();
+    // console.log('Rendered HTML snippet:', renderedHtml.substring(0, 500)); // Log a snippet for debugging
+
+    // Use DOMParser on the rendered HTML to extract data
+    const parser = new DOMParser(); // DOMParser is available in Node.js via 'jsdom' if you were not running in a browser context.
+                                   // However, in this serverless function context, we need to correctly import it or use Puppeteer's page.evaluate.
+                                   // Let's use page.evaluate for robustness as it runs in the browser context.
+
+    const outcomes = await page.evaluate(() => {
+        // This code runs in the context of the browser page (Puppeteer)
+        const overallRankElement = document.querySelector('span.Entry__BoldText-sc-3fiqhf-9');
+        const overallRank = overallRankElement ? overallRankElement.textContent.trim() : 'Not found';
+
+        // Placeholder for Most Captained Player - this logic will be more complex later
+        const mostCaptainedPlayer = 'Logic for Most Captained Player not yet implemented';
+
+        return { overallRank, mostCaptainedPlayer };
+    });
+
     return {
       statusCode: 200,
-      body: data,
-      headers: { "Content-Type": "text/html" }
-    };
-  } catch (error) {
-    console.error(`Error during function execution:`, error); // Log 10
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: `An unexpected server error occurred: ${error.message}` }),
+      body: JSON.stringify(outcomes),
       headers: { "Content-Type": "application/json" }
     };
+
+  } catch (error) {
+    console.error(`Puppeteer function error:`, error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: `Failed to fetch data: ${error.message}. This might be due to a timeout, an invalid Manager ID, or changes on the SPL website.` }),
+      headers: { "Content-Type": "application/json" }
+    };
+  } finally {
+    if (browser !== null) {
+      await browser.close();
+      console.log('Browser closed.');
+    }
   }
 };

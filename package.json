@@ -18,6 +18,8 @@
   "homepage": "https://github.com/SPLGURU/FantasySPLAnalyzer#readme",
   "description": "",
   "dependencies": {
-    "node-fetch": "^3.3.2"
+    "@sparticuz/chromium": "^133.0.0",
+    "node-fetch": "^3.3.2",
+    "puppeteer-core": "^24.9.0"
   }
 }
