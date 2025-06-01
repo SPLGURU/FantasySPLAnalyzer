@@ -2,12 +2,8 @@
 const fetch = require('node-fetch'); // Import node-fetch for Netlify Functions environment
 
 // --- GLOBAL VARIABLES FOR DIAGNOSTIC PURPOSES ---
-// Moved to module scope to eliminate any possibility of local scope issues.
-// Renamed for diagnostic purposes to rule out caching/naming conflicts.
 let captainCounts = {};
 let captainedRoundsTracker = {}; // Renamed from captaincyRoundsByPlayer
-
-console.log('Global captainedRoundsTracker declared. Type:', typeof captainedRoundsTracker, 'Value:', captainedRoundsTracker);
 // --- END GLOBAL VARIABLES ---
 
 // Helper function to introduce a delay to mitigate rate-limiting
@@ -40,9 +36,7 @@ async function getPlayerNameMap() {
 async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     // Reset global counters for each invocation
     captainCounts = {};
-    captainedRoundsTracker = {}; // Reset global variable
-
-    console.log('Inside getManagerHistoryAndCaptains: captainedRoundsTracker reset. Type:', typeof captainedRoundsTracker, 'Value:', captainedRoundsTracker);
+    captainedRoundsTracker = {};
 
     let minOverallRank = Infinity;
     let minOverallRankRound = 'N/A';
@@ -104,7 +98,9 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             }
 
             // --- Update for Captaincy Table ---
-            const captainPick = data.picks.find(p => p.is_captain);
+            // CORRECTED LOGIC: Find the player with a captain multiplier (2 for captain, 3 for Triple Captain)
+            const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3);
+
             if (captainPick) {
                 const captainId = captainPick.element;
                 captainCounts[captainId] = (captainCounts[captainId] || 0) + 1;
@@ -115,8 +111,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             }
         }
     }
-    console.log('After processing picks: captainedRoundsTracker has entries for', Object.keys(captainedRoundsTracker).length, 'players.');
-
 
     const averagePoints = roundsProcessed > 0 ? Math.round(totalPointsSum / roundsProcessed) : 'N/A';
 
@@ -157,16 +151,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         let failedCaptaincies = 0;
         let totalCaptainedPoints = 0;
 
-        console.log(`Before access for captainId ${captainId}: typeof captainedRoundsTracker is ${typeof captainedRoundsTracker}`);
-        if (typeof captainedRoundsTracker === 'object' && captainedRoundsTracker !== null) { // Added defensive check
-             console.log(`Before access for captainId ${captainId}: captainedRoundsTracker content for this ID:`, captainedRoundsTracker[captainId]);
-        }
-
-
-        // This is the line where the error was previously reported.
-        // With captainedRoundsTracker now in global scope and reset, this should be defined.
-        // Added defensive check `captainedRoundsTracker !== null` as typeof null is 'object'.
-        if (playerHistory && captainedRoundsTracker && captainedRoundsTracker[captainId]) {
+        if (playerHistory && captainedRoundsTracker[captainId]) {
             captainedRoundsTracker[captainId].forEach(captainedRound => {
                 const roundStats = playerHistory.find(h => h.round === captainedRound);
                 if (roundStats) {
