@@ -26,21 +26,52 @@
         <div class="mt-8">
             <h2 class="text-xl font-semibold mb-4 text-blue-300">Your Analysis Outcomes:</h2>
 
-            <div class="bg-gray-800 p-4 rounded-lg mb-4">
-                <p class="text-gray-400 text-sm">Overall Rank:</p>
-                <p id="overallRankDisplay" class="text-xl font-bold text-green-400">...</p>
+            <div class="outcome-section bg-gray-800 p-4 rounded-lg mb-4">
+                <h2 class="text-xl font-semibold mb-3 text-blue-300">Rank & Points</h2>
+                <table class="min-w-full bg-gray-700 rounded-lg overflow-hidden text-sm">
+                    <tbody class="divide-y divide-gray-600">
+                        <tr>
+                            <td class="py-2 px-4 text-gray-300">Overall Rank:</td>
+                            <td id="overallRankDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-4 text-gray-300">Best Overall:</td>
+                            <td id="bestOverallRankDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-4 text-gray-300">Worst Overall:</td>
+                            <td id="worstOverallRankDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-4 text-gray-300">Average Points:</td>
+                            <td id="averagePointsDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-4 text-gray-300">Average Points for 1st Place:</td>
+                            <td id="averagePointsFor1stPlaceDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
-            <div class="bg-gray-800 p-4 rounded-lg mb-4">
-                <p class="text-gray-400 text-sm">Most Captained Player:</p>
-                <p id="mostCaptainNameDisplay" class="text-xl font-bold text-green-400">...</p>
-
-                <p class="text-gray-400 text-sm mt-2">You Captained him:</p>
-                <p id="timesCaptainedDisplay" class="text-xl font-bold text-green-400">...</p>
-
-                <p class="text-gray-400 text-sm mt-2">He Earned You:</p>
-                <p id="captainedPointsDisplay" class="text-xl font-bold text-green-400">...</p>
+            <div class="outcome-section bg-gray-800 p-4 rounded-lg mb-4">
+                <h2 class="text-xl font-semibold mb-3 text-blue-300">Captaincy Table</h2>
+                <table class="min-w-full bg-gray-700 rounded-lg overflow-hidden text-left text-sm">
+                    <thead>
+                        <tr class="bg-gray-600 text-gray-200 uppercase tracking-wider">
+                            <th class="py-2 px-4">Captain</th>
+                            <th class="py-2 px-4">Times</th>
+                            <th class="py-2 px-4">Successful</th>
+                            <th class="py-2 px-4">Failed</th>
+                            <th class="py-2 px-4">Total Captaincy Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="captaincyTableBody" class="divide-y divide-gray-600">
+                        <tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Loading...</td></tr>
+                    </tbody>
+                </table>
             </div>
+
             <div id="errorMessageDisplay" class="hidden bg-red-800 p-3 rounded text-red-100 text-center">
                 </div>
         </div>
@@ -51,25 +82,34 @@
 
         async function analyzePerformance() {
             const managerId = document.getElementById('managerIdInput').value;
+            // Get references to all display elements
             const overallRankDisplay = document.getElementById('overallRankDisplay');
-            const mostCaptainNameDisplay = document.getElementById('mostCaptainNameDisplay'); // New
-            const timesCaptainedDisplay = document.getElementById('timesCaptainedDisplay');   // New
-            const captainedPointsDisplay = document.getElementById('captainedPointsDisplay'); // New
+            const bestOverallRankDisplay = document.getElementById('bestOverallRankDisplay');
+            const worstOverallRankDisplay = document.getElementById('worstOverallRankDisplay');
+            const averagePointsDisplay = document.getElementById('averagePointsDisplay');
+            const averagePointsFor1stPlaceDisplay = document.getElementById('averagePointsFor1stPlaceDisplay');
+            const captaincyTableBody = document.getElementById('captaincyTableBody');
             const errorMessageDisplay = document.getElementById('errorMessageDisplay');
 
             // --- Visual feedback for loading state ---
-            overallRankDisplay.textContent = 'Loading...';
-            mostCaptainNameDisplay.textContent = 'Loading...';
-            timesCaptainedDisplay.textContent = 'Loading...';
-            captainedPointsDisplay.textContent = 'Loading...';
+            const loadingText = 'Loading...';
+            overallRankDisplay.textContent = loadingText;
+            bestOverallRankDisplay.textContent = loadingText;
+            worstOverallRankDisplay.textContent = loadingText;
+            averagePointsDisplay.textContent = loadingText;
+            averagePointsFor1stPlaceDisplay.textContent = loadingText;
+            captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Loading Captains...</td></tr>'; // Clear and show loading for table
             errorMessageDisplay.classList.add('hidden'); // Hide any previous errors
             errorMessageDisplay.textContent = ''; // Clear previous error text
 
             if (!managerId) {
-                overallRankDisplay.textContent = 'N/A';
-                mostCaptainNameDisplay.textContent = 'N/A';
-                timesCaptainedDisplay.textContent = 'N/A';
-                captainedPointsDisplay.textContent = 'N/A';
+                const naText = 'N/A';
+                overallRankDisplay.textContent = naText;
+                bestOverallRankDisplay.textContent = naText;
+                worstOverallRankDisplay.textContent = naText;
+                averagePointsDisplay.textContent = naText;
+                averagePointsFor1stPlaceDisplay.textContent = naText;
+                captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Enter Manager ID to analyze.</td></tr>';
                 errorMessageDisplay.textContent = 'Please enter a Manager ID.';
                 errorMessageDisplay.classList.remove('hidden');
                 return;
@@ -77,30 +117,57 @@
 
             try {
                 // Call your Netlify function
-                const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`); // Removed type=history as it's not strictly needed here
+                const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`);
                 const data = await response.json();
 
                 if (response.ok) {
-                    overallRankDisplay.textContent = data.overallRank || 'Not found';
-                    mostCaptainNameDisplay.textContent = data.mostCaptainName || 'Not found';
-                    timesCaptainedDisplay.textContent = data.timesCaptained !== undefined ? data.timesCaptained : 'N/A';
-                    captainedPointsDisplay.textContent = data.totalCaptainedPoints !== undefined ? data.totalCaptainedPoints : 'N/A';
+                    overallRankDisplay.textContent = data.overallRank || 'N/A';
+                    bestOverallRankDisplay.textContent = data.bestOverallRank || 'N/A';
+                    worstOverallRankDisplay.textContent = data.worstOverallRank || 'N/A';
+                    averagePointsDisplay.textContent = data.averagePoints || 'N/A';
+                    averagePointsFor1stPlaceDisplay.textContent = data.averagePointsFor1stPlace || 'N/A';
+
+                    // Populate Captaincy Table
+                    captaincyTableBody.innerHTML = ''; // Clear loading message
+                    if (data.top3Captains && data.top3Captains.length > 0) {
+                        data.top3Captains.forEach(captain => {
+                            const row = `
+                                <tr>
+                                    <td class="py-2 px-4">${captain.name}</td>
+                                    <td class="py-2 px-4">${captain.times}</td>
+                                    <td class="py-2 px-4">${captain.successful}</td>
+                                    <td class="py-2 px-4">${captain.failed}</td>
+                                    <td class="py-2 px-4">${captain.totalCaptainedPoints}</td>
+                                </tr>
+                            `;
+                            captaincyTableBody.insertAdjacentHTML('beforeend', row);
+                        });
+                    } else {
+                        captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">No captaincy data found for this manager.</td></tr>';
+                    }
+
                 } else {
                     // Handle errors from the Netlify function
-                    overallRankDisplay.textContent = 'Error';
-                    mostCaptainNameDisplay.textContent = 'Error';
-                    timesCaptainedDisplay.textContent = 'Error';
-                    captainedPointsDisplay.textContent = 'Error';
-                    errorMessageDisplay.textContent = data.error || 'An unknown error occurred.';
+                    const errorText = 'Error';
+                    overallRankDisplay.textContent = errorText;
+                    bestOverallRankDisplay.textContent = errorText;
+                    worstOverallRankDisplay.textContent = errorText;
+                    averagePointsDisplay.textContent = errorText;
+                    averagePointsFor1stPlaceDisplay.textContent = errorText;
+                    captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-400">Error loading captains.</td></tr>';
+                    errorMessageDisplay.textContent = data.error || 'An unknown error occurred from the server.';
                     errorMessageDisplay.classList.remove('hidden');
                 }
             } catch (error) {
                 // Handle network errors or issues before the function response
-                overallRankDisplay.textContent = 'Error';
-                mostCaptainNameDisplay.textContent = 'Error';
-                timesCaptainedDisplay.textContent = 'Error';
-                captainedPointsDisplay.textContent = 'Error';
-                errorMessageDisplay.textContent = `Failed to connect to analysis service: ${error.message}.`;
+                const errorText = 'Network Error';
+                overallRankDisplay.textContent = errorText;
+                bestOverallRankDisplay.textContent = errorText;
+                worstOverallRankDisplay.textContent = errorText;
+                averagePointsDisplay.textContent = errorText;
+                averagePointsFor1stPlaceDisplay.textContent = errorText;
+                captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-400">Network error.</td></tr>';
+                errorMessageDisplay.textContent = `Failed to connect to analysis service: ${error.message}. Please check your internet connection.`;
                 errorMessageDisplay.classList.remove('hidden');
                 console.error('Frontend fetch error:', error);
             }
