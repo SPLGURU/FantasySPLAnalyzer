@@ -1,7 +1,7 @@
 // netlify/functions/fetch-spl-data.js
 const fetch = require('node-fetch'); // Import node-fetch for Netlify Functions environment
 
-// Helper function to introduce a delay
+// Helper function to introduce a delay to mitigate rate-limiting
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -19,10 +19,12 @@ async function getPlayerNameMap() {
         data.elements.forEach(player => {
             playerMap[player.id] = player.web_name;
         });
+        console.log("Player name map created successfully.");
         return playerMap;
     } catch (error) {
         console.error("Error in getPlayerNameMap:", error);
-        return {}; // Return empty map on error to allow other functions to proceed
+        // Return empty map on error to allow the main handler to proceed with partial data or N/A
+        return {};
     }
 }
 
@@ -30,14 +32,14 @@ async function getPlayerNameMap() {
 async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     let minOverallRank = Infinity;
     let minOverallRankRound = 'N/A';
-    let maxOverallRank = -Infinity; // Initialize with negative infinity for finding max
+    let maxOverallRank = -Infinity;
     let maxOverallRankRound = 'N/A';
-    let totalPointsSum = 0; // Sum of points for each round for the manager
+    let totalPointsSum = 0;
     let roundsProcessed = 0;
 
-    const captainCounts = {}; // {playerId: count}
-    // {playerId: [round1, round2, ...]} - used to identify which rounds a player was captained
-    const captaincyRoundsByPlayer = {}; // Stores the specific rounds
+    const captainCounts = {}; // Stores {playerId: count}
+    // Stores {playerId: [round1, round2, ...]} - used to identify which rounds a player was captained
+    const captaincyRoundsByPlayer = {};
 
     const maxRounds = 34; // Total number of rounds in the season
 
@@ -47,7 +49,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`;
         managerPicksPromises.push(
             (async () => { // Use an async IIFE to await sleep inside the map
-                await sleep(100); // Add a small delay before each fetch
+                await sleep(100); // Add a small delay before each fetch to mitigate rate limits
                 try {
                     const res = await fetch(picksUrl);
                     if (!res.ok) {
@@ -65,7 +67,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     const allManagerPicksData = await Promise.all(managerPicksPromises);
 
     // Process collected manager picks data
-    let latestOverallRank = 'N/A'; // To capture the overall rank from the last successfully processed round
+    let latestOverallRank = 'N/A';
     for (let round = 1; round <= maxRounds; round++) {
         const data = allManagerPicksData[round - 1]; // Array is 0-indexed
 
@@ -143,7 +145,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         let failedCaptaincies = 0;
         let totalCaptainedPoints = 0;
 
-        if (playerHistory && captaincyRoundsByPlayer[captainId]) {
+        if (playerHistory && captaincyRoundsByPlayer[captainId]) { // This line is where the error occurred
             captainedRoundsByPlayer[captainId].forEach(captainedRound => {
                 const roundStats = playerHistory.find(h => h.round === captainedRound);
                 if (roundStats) {
@@ -178,7 +180,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 }
 
 
-// --- Netlify Function Handler ---
+// --- Netlify Function Handler (Main entry point) ---
 exports.handler = async function(event, context) {
     const managerId = event.queryStringParameters.id;
 
