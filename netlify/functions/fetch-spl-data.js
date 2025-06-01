@@ -35,7 +35,6 @@ async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 200) {
             }
             const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100;
             console.warn(`Retrying in ${delay.toFixed(0)}ms...`);
-            await sleep(delay);
             retries++;
         }
     }
@@ -273,11 +272,11 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             benchedPoints: stats.benchedPoints
         }));
 
-    // NEW: Prepare Worst Players Table Data (opposite of Best Players)
+    // Prepare Worst Players Table Data (opposite of Best Players, but only if they started at least once)
     const worstPlayersList = Object.entries(playerSeasonStats)
-        .filter(([, stats]) => stats.pointsGained >= 0 || stats.benchedPoints >= 0) // Include all players with recorded points (even 0 or negative if that's possible)
+        .filter(([, stats]) => stats.started > 0) // IMPORTANT CHANGE: Only include players who started at least once
         .sort(([, statsA], [, statsB]) => statsA.pointsGained - statsB.pointsGained) // Sort by Points Gained ASC
-        .slice(0, 5) // Take bottom 5
+        .slice(0, 5) // Take bottom 5 from the filtered list
         .map(([playerId, stats]) => ({
             name: playerNameMap[parseInt(playerId)] || `Unknown (ID:${playerId})`,
             started: stats.started,
@@ -285,7 +284,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             pointsGained: stats.pointsGained,
             benchedPoints: stats.benchedPoints
         }));
-    // END NEW
+    // END IMPORTANT CHANGE
 
 
     return {
@@ -295,7 +294,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         averagePoints: averagePoints,
         top3Captains: top3CaptainsStats,
         bestPlayers: bestPlayersList,
-        worstPlayers: worstPlayersList // NEW: Add worstPlayers to the returned object
+        worstPlayers: worstPlayersList
     };
 }
 
@@ -317,7 +316,7 @@ exports.handler = async function(event, context) {
         const playerNameMap = await getPlayerNameMap();
         const managerStats = await getManagerHistoryAndCaptains(managerId, playerNameMap);
 
-        const averagePointsFor1stPlace = 75;
+        const averagePointsFor1stPlace = 75; // This is a static value, you might want to fetch this dynamically if possible
 
         return {
             statusCode: 200,
@@ -329,7 +328,7 @@ exports.handler = async function(event, context) {
                 averagePointsFor1stPlace: averagePointsFor1stPlace,
                 top3Captains: managerStats.top3Captains,
                 bestPlayers: managerStats.bestPlayers,
-                worstPlayers: managerStats.worstPlayers // NEW: Include worstPlayers in the response
+                worstPlayers: managerStats.worstPlayers
             }),
             headers: { "Content-Type": "application/json" }
         };
