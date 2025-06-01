@@ -123,7 +123,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             }
 
             // --- Update for Captaincy Table ---
-            const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3);
+            const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3); // Keep 3 for safety, though only 2 applies in SPL
 
             if (captainPick) {
                 const captainId = captainPick.element;
@@ -204,17 +204,20 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         for (const round of Object.keys(playerStats.roundsInfo)) {
             const roundNum = parseInt(round);
             const { position, multiplier, isSubbedOut, isSubbedIn } = playerStats.roundsInfo[roundNum];
-            const roundStats = playerHistory.find(h => h.round === roundNum);
-            const playerPointsForRound = roundStats ? roundStats.total_points : 0;
 
-            if (roundStats) { // Only count points if the player actually had stats for that round
-                // Points Gained: Player was in starting XI (1-11) and not subbed out, OR was subbed in
-                if ((position >= 1 && position <= 11 && !isSubbedOut) || isSubbedIn) {
-                    playerStats.pointsGained += (playerPointsForRound * multiplier);
-                } else {
-                    // Benched Points: Player was on bench (12-15) OR was subbed out
-                    playerStats.benchedPoints += playerPointsForRound; // Raw points from bench
-                }
+            // NEW LOGIC: Filter to get ALL history entries for this specific round number
+            const allRoundStatsEntries = playerHistory.filter(h => h.round === roundNum);
+
+            // Sum the total_points from all relevant entries for this round
+            // This handles double gameweeks where a player might have multiple entries for the same round number
+            const playerPointsForRound = allRoundStatsEntries.reduce((sum, entry) => sum + entry.total_points, 0);
+
+            // Points Gained: Player was in starting XI (1-11) and not subbed out, OR was subbed in
+            if ((position >= 1 && position <= 11 && !isSubbedOut) || isSubbedIn) {
+                playerStats.pointsGained += (playerPointsForRound * multiplier);
+            } else {
+                // Benched Points: Player was on bench (12-15) OR was subbed out
+                playerStats.benchedPoints += playerPointsForRound; // Raw points from bench
             }
         }
     }
@@ -236,16 +239,16 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
         if (playerHistory && captainedRoundsTracker[captainId]) {
             captainedRoundsTracker[captainId].forEach(captainedRound => {
-                const roundStats = playerHistory.find(h => h.round === captainedRound);
-                if (roundStats) {
-                    const points = roundStats.total_points;
-                    if (points >= 5) {
-                        successfulCaptaincies++;
-                    } else {
-                        failedCaptaincies++;
-                    }
-                    totalCaptainedPoints += points;
+                // NEW LOGIC for Captaincy Table: Sum points for captains in double gameweeks as well
+                const captainRoundStatsEntries = playerHistory.filter(h => h.round === captainedRound);
+                const captainPointsForRound = captainRoundStatsEntries.reduce((sum, entry) => sum + entry.total_points, 0);
+
+                if (captainPointsForRound >= 5) {
+                    successfulCaptaincies++;
+                } else {
+                    failedCaptaincies++;
                 }
+                totalCaptainedPoints += captainPointsForRound;
             });
         }
         top3CaptainsStats.push({
@@ -272,9 +275,9 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             benchedPoints: stats.benchedPoints
         }));
 
-    // Prepare Worst Players Table Data (opposite of Best Players, but only if they started at least once)
+    // Prepare Worst Players Table Data
     const worstPlayersList = Object.entries(playerSeasonStats)
-        .filter(([, stats]) => stats.started > 0) // IMPORTANT CHANGE: Only include players who started at least once
+        .filter(([, stats]) => stats.started > 0) // Only include players who started at least once
         .sort(([, statsA], [, statsB]) => statsA.pointsGained - statsB.pointsGained) // Sort by Points Gained ASC
         .slice(0, 5) // Take bottom 5 from the filtered list
         .map(([playerId, stats]) => ({
@@ -284,7 +287,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             pointsGained: stats.pointsGained,
             benchedPoints: stats.benchedPoints
         }));
-    // END IMPORTANT CHANGE
 
 
     return {
