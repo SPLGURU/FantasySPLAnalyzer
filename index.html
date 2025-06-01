@@ -3,181 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fantasy SPL Analyzer</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>Fantasy SPL Manager Analyzer</title>
+    <style>
+        /* Basic CSS for readability - you can adjust this */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2em;
+            color: #007bff;
+            display: none; /* Hidden by default */
+        }
+        #error {
+            color: red;
+            text-align: center;
+            padding: 10px;
+            display: none; /* Hidden by default */
+            border: 1px solid red;
+            background-color: #ffe6e6;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .results-section {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #ddd;
+        }
+        .summary-stats p {
+            font-size: 1.1em;
+            margin: 5px 0;
+        }
+    </style>
 </head>
-<body class="bg-gray-800 text-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-gray-900 p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h1 class="text-3xl font-bold text-center mb-6 text-blue-400">Fantasy SPL Analyzer</h1>
+<body>
+    <div class="container">
+        <h1>Fantasy SPL Manager Analyzer</h1>
 
-        <div class="mb-6">
-            <label for="managerIdInput" class="block text-gray-300 text-sm font-bold mb-2">
-                Enter your Fantasy SPL Manager ID to analyze your performance.
-            </label>
-            <input type="text" id="managerIdInput" placeholder="e.g., 12345"
-                   class="shadow appearance-none border rounded w-full py-2 px-3 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-600 focus:border-blue-500">
+        <div>
+            <label for="managerId">Enter Manager ID:</label>
+            <input type="text" id="managerId" placeholder="e.g., 4">
+            <button onclick="analyzeManager()">Analyze My Performance</button>
         </div>
 
-        <button id="analyzeButton"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full focus:outline-none focus:shadow-outline transition duration-200">
-            Analyze My Performance
-        </button>
+        <div id="loading">Loading data...</div>
+        <div id="error"></div>
 
-        <div class="mt-8">
-            <h2 class="text-xl font-semibold mb-4 text-blue-300">Your Analysis Outcomes:</h2>
+        <div id="results" class="results-section" style="display: none;">
+            <h2>Your Manager Stats</h2>
 
-            <div class="outcome-section bg-gray-800 p-4 rounded-lg mb-4">
-                <h2 class="text-xl font-semibold mb-3 text-blue-300">Rank & Points</h2>
-                <table class="min-w-full bg-gray-700 rounded-lg overflow-hidden text-sm">
-                    <tbody class="divide-y divide-gray-600">
-                        <tr>
-                            <td class="py-2 px-4 text-gray-300">Overall Rank:</td>
-                            <td id="overallRankDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 px-4 text-gray-300">Best Overall:</td>
-                            <td id="bestOverallRankDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 px-4 text-gray-300">Worst Overall:</td>
-                            <td id="worstOverallRankDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 px-4 text-gray-300">Average Points:</td>
-                            <td id="averagePointsDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 px-4 text-gray-300">Average Points for 1st Place:</td>
-                            <td id="averagePointsFor1stPlaceDisplay" class="py-2 px-4 text-green-400 font-bold">...</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="summary-stats">
+                <h3>Rank & Points Table</h3>
+                <p>Overall Rank: <span id="overallRank">N/A</span></p>
+                <p>Best Overall Rank: <span id="bestOverallRank">N/A</span></p>
+                <p>Worst Overall Rank: <span id="worstOverallRank">N/A</span></p>
+                <p>Average Points Per Round: <span id="averagePoints">N/A</span></p>
+                <p>Average Points for 1st Place (per round): <span id="averagePointsFor1stPlace">N/A</span></p>
             </div>
 
-            <div class="outcome-section bg-gray-800 p-4 rounded-lg mb-4">
-                <h2 class="text-xl font-semibold mb-3 text-blue-300">Captaincy Table</h2>
-                <table class="min-w-full bg-gray-700 rounded-lg overflow-hidden text-left text-sm">
+            <div class="captaincy-table">
+                <h3>Top 3 Captains</h3>
+                <table>
                     <thead>
-                        <tr class="bg-gray-600 text-gray-200 uppercase tracking-wider">
-                            <th class="py-2 px-4">Captain</th>
-                            <th class="py-2 px-4">Times</th>
-                            <th class="py-2 px-4">Successful</th>
-                            <th class="py-2 px-4">Failed</th>
-                            <th class="py-2 px-4">Total Captaincy Points</th>
+                        <tr>
+                            <th>Captain Name</th>
+                            <th>Times Captained</th>
+                            <th>Successful Captaincies (&ge; 5 Points)</th>
+                            <th>Failed Captaincies (&lt; 5 Points)</th>
+                            <th>Total Captained Points Gained</th>
+                            <th>Captained Rounds</th>
                         </tr>
                     </thead>
-                    <tbody id="captaincyTableBody" class="divide-y divide-gray-600">
-                        <tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Loading...</td></tr>
-                    </tbody>
+                    <tbody id="captaincyTableBody">
+                        </tbody>
                 </table>
             </div>
 
-            <div id="errorMessageDisplay" class="hidden bg-red-800 p-3 rounded text-red-100 text-center">
-                </div>
-        </div>
+            <div class="best-players-table">
+                <h3>Best Players</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Best Players</th>
+                            <th>Started</th>
+                            <th>Auto Subbed</th>
+                            <th>Points Gained</th>
+                            <th>Benched Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bestPlayersTableBody">
+                        </tbody>
+                </table>
+            </div>
+            </div>
     </div>
 
     <script>
-        document.getElementById('analyzeButton').addEventListener('click', analyzePerformance);
+        async function analyzeManager() {
+            const managerId = document.getElementById('managerId').value;
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            const resultsDiv = document.getElementById('results');
 
-        // NEW: Add event listener for 'keydown' on the input field
-        document.getElementById('managerIdInput').addEventListener('keydown', function(event) {
-            // Check if the pressed key is 'Enter'
-            if (event.key === 'Enter') {
-                analyzePerformance(); // Trigger the analysis function
-            }
-        });
-
-        async function analyzePerformance() {
-            const managerId = document.getElementById('managerIdInput').value;
-            // Get references to all display elements
-            const overallRankDisplay = document.getElementById('overallRankDisplay');
-            const bestOverallRankDisplay = document.getElementById('bestOverallRankDisplay');
-            const worstOverallRankDisplay = document.getElementById('worstOverallRankDisplay');
-            const averagePointsDisplay = document.getElementById('averagePointsDisplay');
-            const averagePointsFor1stPlaceDisplay = document.getElementById('averagePointsFor1stPlaceDisplay');
-            const captaincyTableBody = document.getElementById('captaincyTableBody');
-            const errorMessageDisplay = document.getElementById('errorMessageDisplay');
-
-            // --- Visual feedback for loading state ---
-            const loadingText = 'Loading...';
-            overallRankDisplay.textContent = loadingText;
-            bestOverallRankDisplay.textContent = loadingText;
-            worstOverallRankDisplay.textContent = loadingText;
-            averagePointsDisplay.textContent = loadingText;
-            averagePointsFor1stPlaceDisplay.textContent = loadingText;
-            captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Loading Captains...</td></tr>'; // Clear and show loading for table
-            errorMessageDisplay.classList.add('hidden'); // Hide any previous errors
-            errorMessageDisplay.textContent = ''; // Clear previous error text
+            // Clear previous results and error
+            errorDiv.style.display = 'none';
+            resultsDiv.style.display = 'none';
+            document.getElementById('captaincyTableBody').innerHTML = '';
+            document.getElementById('bestPlayersTableBody').innerHTML = ''; // NEW: Clear Best Players table
 
             if (!managerId) {
-                const naText = 'N/A';
-                overallRankDisplay.textContent = naText;
-                bestOverallRankDisplay.textContent = naText;
-                worstOverallRankDisplay.textContent = naText;
-                averagePointsDisplay.textContent = naText;
-                averagePointsFor1stPlaceDisplay.textContent = naText;
-                captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Enter Manager ID to analyze.</td></tr>';
-                errorMessageDisplay.textContent = 'Please enter a Manager ID.';
-                errorMessageDisplay.classList.remove('hidden');
+                errorDiv.textContent = 'Please enter a Manager ID.';
+                errorDiv.style.display = 'block';
                 return;
             }
 
+            loadingDiv.style.display = 'block'; // Show loading indicator
+
             try {
-                // Call your Netlify function
+                // Fetch data from your Netlify function
                 const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`);
                 const data = await response.json();
 
-                if (response.ok) {
-                    overallRankDisplay.textContent = data.overallRank || 'N/A';
-                    bestOverallRankDisplay.textContent = data.bestOverallRank || 'N/A';
-                    worstOverallRankDisplay.textContent = data.worstOverallRank || 'N/A';
-                    averagePointsDisplay.textContent = data.averagePoints || 'N/A';
-                    averagePointsFor1stPlaceDisplay.textContent = data.averagePointsFor1stPlace || 'N/A';
-
-                    // Populate Captaincy Table
-                    captaincyTableBody.innerHTML = ''; // Clear loading message
-                    if (data.top3Captains && data.top3Captains.length > 0) {
-                        data.top3Captains.forEach(captain => {
-                            const row = `
-                                <tr>
-                                    <td class="py-2 px-4">${captain.name}</td>
-                                    <td class="py-2 px-4">${captain.times}</td>
-                                    <td class="py-2 px-4">${captain.successful}</td>
-                                    <td class="py-2 px-4">${captain.failed}</td>
-                                    <td class="py-2 px-4">${captain.totalCaptainedPoints}</td>
-                                </tr>
-                            `;
-                            captaincyTableBody.insertAdjacentHTML('beforeend', row);
-                        });
-                    } else {
-                        captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">No captaincy data found for this manager.</td></tr>';
-                    }
-
-                } else {
-                    // Handle errors from the Netlify function
-                    const errorText = 'Error';
-                    overallRankDisplay.textContent = errorText;
-                    bestOverallRankDisplay.textContent = errorText;
-                    worstOverallRankDisplay.textContent = errorText;
-                    averagePointsDisplay.textContent = errorText;
-                    averagePointsFor1stPlaceDisplay.textContent = errorText;
-                    captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-400">Error loading captains.</td></tr>';
-                    errorMessageDisplay.textContent = data.error || 'An unknown error occurred from the server.';
-                    errorMessageDisplay.classList.remove('hidden');
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch data from server.');
                 }
-            } catch (error) {
-                // Handle network errors or issues before the function response
-                const errorText = 'Network Error';
-                overallRankDisplay.textContent = errorText;
-                bestOverallRankDisplay.textContent = errorText;
-                worstOverallRankDisplay.textContent = errorText;
-                averagePointsDisplay.textContent = errorText;
-                averagePointsFor1stPlaceDisplay.textContent = errorText;
-                captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-400">Network error.</td></tr>';
-                errorMessageDisplay.textContent = `Failed to connect to analysis service: ${error.message}. Please check your internet connection.`;
-                errorMessageDisplay.classList.remove('hidden');
-                console.error('Frontend fetch error:', error);
+
+                displayResults(data);
+
+            } catch (err) {
+                errorDiv.textContent = `Error: ${err.message}. Please check the Manager ID or try again later.`;
+                errorDiv.style.display = 'block';
+                resultsDiv.style.display = 'none';
+                console.error("Fetch error:", err);
+            } finally {
+                loadingDiv.style.display = 'none'; // Hide loading indicator
             }
         }
+
+        function displayResults(data) {
+            // Display Rank & Points Table
+            document.getElementById('overallRank').textContent = data.overallRank;
+            document.getElementById('bestOverallRank').textContent = data.bestOverallRank;
+            document.getElementById('worstOverallRank').textContent = data.worstOverallRank;
+            document.getElementById('averagePoints').textContent = data.averagePoints;
+            document.getElementById('averagePointsFor1stPlace').textContent = data.averagePointsFor1stPlace;
+
+            // Display Captaincy Table
+            const captaincyTableBody = document.getElementById('captaincyTableBody');
+            data.top3Captains.forEach(captain => {
+                const row = captaincyTableBody.insertRow();
+                row.insertCell().textContent = captain.name;
+                row.insertCell().textContent = captain.times;
+                row.insertCell().textContent = captain.successful;
+                row.insertCell().textContent = captain.failed;
+                row.insertCell().textContent = captain.totalCaptainedPoints;
+                row.insertCell().textContent = captain.captainedRounds ? captain.captainedRounds.join(', ') : 'N/A';
+            });
+
+            // NEW: Display Best Players Table
+            const bestPlayersTableBody = document.getElementById('bestPlayersTableBody');
+            data.bestPlayers.forEach(player => {
+                const row = bestPlayersTableBody.insertRow();
+                row.insertCell().textContent = player.name;
+                row.insertCell().textContent = player.started;
+                row.insertCell().textContent = player.autoSubbed;
+                row.insertCell().textContent = player.pointsGained;
+                row.insertCell().textContent = player.benchedPoints;
+            });
+            // END NEW
+
+            document.getElementById('results').style.display = 'block'; // Show results section
+        }
     </script>
+</body>
+</html>
