@@ -1,6 +1,11 @@
 // netlify/functions/fetch-spl-data.js
 const fetch = require('node-fetch'); // Import node-fetch for Netlify Functions environment
 
+// Helper function to introduce a delay
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Helper function to fetch player names and create a map (from bootstrap-static API)
 async function getPlayerNameMap() {
     const url = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
@@ -36,23 +41,25 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     const maxRounds = 34; // Total number of rounds in the season
 
-    // Fetch data for all rounds for the given manager concurrently
+    // Fetch data for all rounds for the given manager concurrently with delays
     const managerPicksPromises = [];
     for (let round = 1; round <= maxRounds; round++) {
         const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`;
         managerPicksPromises.push(
-            fetch(picksUrl)
-                .then(res => {
+            (async () => { // Use an async IIFE to await sleep inside the map
+                await sleep(100); // Add a small delay before each fetch
+                try {
+                    const res = await fetch(picksUrl);
                     if (!res.ok) {
                         console.warn(`Skipping round ${round} for manager ${managerId} due to fetch error: ${res.status}`);
                         return null; // Return null for failed fetches
                     }
                     return res.json();
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error(`Error fetching picks for manager ${managerId}, round ${round}:`, error);
                     return null; // Return null on network/parsing error
-                })
+                }
+            })()
         );
     }
     const allManagerPicksData = await Promise.all(managerPicksPromises);
@@ -99,9 +106,10 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     const averagePoints = roundsProcessed > 0 ? Math.round(totalPointsSum / roundsProcessed) : 'N/A';
 
-    // Fetch player summaries for all *unique* captains concurrently
+    // Fetch player summaries for all *unique* captains concurrently with delays
     const uniqueCaptains = Object.keys(captainCounts);
     const playerSummariesPromises = uniqueCaptains.map(async playerId => {
+        await sleep(100); // Add a small delay before each fetch
         try {
             const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${playerId}/`;
             const response = await fetch(playerSummaryUrl);
