@@ -1,24 +1,55 @@
 // netlify/functions/fetch-spl-data.js
 const fetch = require('node-fetch'); // Import node-fetch for Netlify Functions environment
 
-// --- GLOBAL VARIABLES FOR DIAGNOSTIC PURPOSES ---
+// --- GLOBAL VARIABLES ---
 let captainCounts = {};
-let captainedRoundsTracker = {}; // Renamed from captaincyRoundsByPlayer
+let captainedRoundsTracker = {};
 // --- END GLOBAL VARIABLES ---
 
-// Helper function to introduce a delay to mitigate rate-limiting
+// Helper function to introduce a delay
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+// NEW: Helper function to fetch data with retries and exponential backoff
+async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 200) {
+    let retries = 0;
+    while (retries < maxRetries) {
+        try {
+            const response = await fetch(url);
+
+            if (response.ok) { // Status 200-299
+                return response;
+            } else if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
+                // Retry for 429 (Too Many Requests) or server errors
+                const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100; // Exponential backoff + jitter
+                console.warn(`Attempt ${retries + 1}/${maxRetries} failed for ${url} with status ${response.status}. Retrying in ${delay.toFixed(0)}ms...`);
+                await sleep(delay);
+                retries++;
+            } else {
+                // For other non-retryable errors (e.g., 400, 404), throw immediately
+                throw new Error(`Failed to fetch ${url}: HTTP status ${response.status}`);
+            }
+        } catch (error) {
+            console.error(`Fetch error for ${url} (attempt ${retries + 1}/${maxRetries}):`, error.message);
+            if (retries === maxRetries - 1) {
+                throw error; // Re-throw if it's the last retry
+            }
+            const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100; // Exponential backoff + jitter
+            console.warn(`Retrying in ${delay.toFixed(0)}ms...`);
+            await sleep(delay);
+            retries++;
+        }
+    }
+    throw new Error(`Failed to fetch ${url} after ${maxRetries} retries.`);
+}
+
 
 // Helper function to fetch player names and create a map (from bootstrap-static API)
 async function getPlayerNameMap() {
     const url = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch player name map: HTTP status ${response.status}`);
-        }
+        const response = await fetchWithRetry(url); // Use fetchWithRetry
         const data = await response.json();
         const playerMap = {};
         data.elements.forEach(player => {
@@ -47,23 +78,18 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     const maxRounds = 34; // Total number of rounds in the season
 
-    // Fetch data for all rounds for the given manager concurrently with delays
+    // Fetch data for all rounds for the given manager concurrently with retries
     const managerPicksPromises = [];
     for (let round = 1; round <= maxRounds; round++) {
         const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`;
         managerPicksPromises.push(
             (async () => {
-                await sleep(100); // Add a small delay before each fetch to mitigate rate limits
                 try {
-                    const res = await fetch(picksUrl);
-                    if (!res.ok) {
-                        console.warn(`Skipping round ${round} for manager ${managerId} due to fetch error: ${res.status}`);
-                        return null;
-                    }
+                    const res = await fetchWithRetry(picksUrl); // Use fetchWithRetry
                     return res.json();
                 } catch (error) {
-                    console.error(`Error fetching picks for manager ${managerId}, round ${round}:`, error);
-                    return null;
+                    console.warn(`Skipping round ${round} for manager ${managerId} due to persistent fetch error: ${error.message}`);
+                    return null; // Return null for failed fetches after retries
                 }
             })()
         );
@@ -98,7 +124,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             }
 
             // --- Update for Captaincy Table ---
-            // CORRECTED LOGIC: Find the player with a captain multiplier (2 for captain, 3 for Triple Captain)
             const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3);
 
             if (captainPick) {
@@ -114,22 +139,15 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     const averagePoints = roundsProcessed > 0 ? Math.round(totalPointsSum / roundsProcessed) : 'N/A';
 
-    // Fetch player summaries for all *unique* captains concurrently with delays
+    // Fetch player summaries for all *unique* captains concurrently with retries
     const uniqueCaptains = Object.keys(captainCounts);
     const playerSummariesPromises = uniqueCaptains.map(async playerId => {
-        await sleep(100);
         try {
             const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${playerId}/`;
-            const response = await fetch(playerSummaryUrl);
-            if (response.ok) {
-                const data = await response.json();
-                return { playerId: parseInt(playerId), summary: data };
-            } else {
-                console.warn(`Could not fetch summary for player ${playerId}: ${response.status}`);
-                return { playerId: parseInt(playerId), summary: null };
-            }
+            const response = await fetchWithRetry(playerSummaryUrl); // Use fetchWithRetry
+            return { playerId: parseInt(playerId), summary: await response.json() };
         } catch (error) {
-            console.error(`Error fetching player summary for ${playerId}:`, error);
+            console.warn(`Could not fetch summary for player ${playerId} due to persistent error: ${error.message}`);
             return { playerId: parseInt(playerId), summary: null };
         }
     });
@@ -202,10 +220,9 @@ exports.handler = async function(event, context) {
     try {
         const playerNameMap = await getPlayerNameMap();
 
-        // Get manager's overall history and captaincy stats
         const managerStats = await getManagerHistoryAndCaptains(managerId, playerNameMap);
 
-        const averagePointsFor1stPlace = 75;
+        const averagePointsFor1stPlace = 75; // This value was hardcoded in your original `index.html`
 
         return {
             statusCode: 200,
