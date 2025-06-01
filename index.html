@@ -214,7 +214,8 @@
 
         let managerOverallRankHistory = []; // Global variable to store rank history
         let rankJourneyChartInstance = null; // To store the Chart.js instance
-        let currentAnimationFrameRound = 0; // NEW: Declared globally to be accessible by Chart.js callbacks
+        let currentAnimationFrameRound = 0; // Global to be accessible by Chart.js callbacks
+        let globalWorstOverallRank = 114000; // NEW: Global for worst rank, default to 114k
 
         async function analyzeManager() {
             const managerId = document.getElementById('managerId').value;
@@ -235,6 +236,7 @@
             // Clear global rank history and reset animation state
             managerOverallRankHistory = [];
             currentAnimationFrameRound = 0; // Reset animation counter
+            globalWorstOverallRank = 114000; // Reset worst rank to default
 
             if (!managerId) {
                 errorDiv.textContent = 'Please enter a Manager ID.';
@@ -268,6 +270,15 @@
         function displayResults(data) {
             // Store rank history for video generation
             managerOverallRankHistory = data.overallRankHistory || [];
+
+            // NEW: Extract numeric worst overall rank for Y-axis max
+            if (data.worstOverallRank && data.worstOverallRank !== 'N/A') {
+                const match = data.worstOverallRank.match(/^(\d+)/); // Extracts numbers at the beginning
+                if (match && match[1]) {
+                    globalWorstOverallRank = parseInt(match[1], 10);
+                }
+            }
+
 
             // Display Rank & Points Table
             const rankPointsTableBody = document.getElementById('rankPointsTableBody');
@@ -332,10 +343,6 @@
             document.getElementById('results').style.display = 'block'; // Show results section
         }
 
-        // Moved currentAnimationFrameRound to global scope
-        // let rankJourneyChartInstance = null; // Already global
-        // let currentAnimationFrameRound = 0; // Already global
-
         function createRankJourneyVideo() {
             const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
             const videoLoadingMessage = document.getElementById('videoLoadingMessage');
@@ -364,6 +371,9 @@
                     rankData[entry.round] = entry.rank;
                 }
             });
+
+            // Calculate dynamic Y-axis max
+            const yAxisMax = globalWorstOverallRank + 1000; // Add 1000 buffer
 
             // Chart.js configuration
             const ctx = rankJourneyChartCanvas.getContext('2d');
@@ -410,8 +420,8 @@
                                 callback: function(value, index, values) {
                                     return index === 0 ? 'Start' : `RD ${index}`;
                                 },
-                                autoSkip: true,
-                                maxTicksLimit: 15 // Limit number of ticks for readability
+                                autoSkip: false, // NEW: Show all X-axis ticks
+                                // Removed maxTicksLimit to ensure all are shown
                             }
                         },
                         y: {
@@ -420,13 +430,13 @@
                                 text: 'Overall Rank'
                             },
                             min: 1, // Top of the chart is rank 1
-                            max: 114000, // Bottom of the chart is 114,000
+                            max: yAxisMax, // NEW: Dynamic Y-axis max
                             reverse: true, // Rank 1 is at the top
                             ticks: {
                                 callback: function(value) {
                                     return value.toLocaleString(); // Format with commas
                                 },
-                                autoSkip: true,
+                                autoSkip: true, // Keep auto-skip for Y-axis for readability if many ticks
                                 maxTicksLimit: 10
                             }
                         }
@@ -435,7 +445,6 @@
             });
 
             // Animation Logic
-            // currentAnimationFrameRound is now globally declared
             const animationDuration = 50; // Milliseconds per frame/round
             const maxRounds = 34;
 
@@ -450,7 +459,6 @@
                     });
 
                     rankJourneyChartInstance.data.datasets[0].data = animatedData;
-                    // pointRadius callback will now correctly use the global currentAnimationFrameRound
                     rankJourneyChartInstance.update();
 
                     currentAnimationFrameRound++;
@@ -458,7 +466,6 @@
                 } else {
                     videoLoadingMessage.style.display = 'none'; // Hide loading message
                     // Reset point radius to show all points after animation
-                    // This will make all points with data visible, not just the last one
                     rankJourneyChartInstance.data.datasets[0].pointRadius = 3;
                     rankJourneyChartInstance.update();
                 }
