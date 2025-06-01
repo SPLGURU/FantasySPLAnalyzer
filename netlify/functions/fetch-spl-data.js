@@ -32,14 +32,14 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     const captainCounts = {}; // {playerId: count}
     // {playerId: [round1, round2, ...]} - used to identify which rounds a player was captained
-    const captaincyRoundsByPlayer = {}; // NEW: Stores the specific rounds
+    const captaincyRoundsByPlayer = {}; // Stores the specific rounds
 
     const maxRounds = 34; // Total number of rounds in the season
 
     // Fetch data for all rounds for the given manager concurrently
     const managerPicksPromises = [];
     for (let round = 1; round <= maxRounds; round++) {
-        const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/<span class="math-inline">\{managerId\}/event/</span>{round}/picks`;
+        const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`;
         managerPicksPromises.push(
             fetch(picksUrl)
                 .then(res => {
@@ -136,7 +136,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         let totalCaptainedPoints = 0;
 
         if (playerHistory && captaincyRoundsByPlayer[captainId]) {
-            captaincyRoundsByPlayer[captainId].forEach(captainedRound => {
+            captainedRoundsByPlayer[captainId].forEach(captainedRound => {
                 const roundStats = playerHistory.find(h => h.round === captainedRound);
                 if (roundStats) {
                     const points = roundStats.total_points;
@@ -156,14 +156,14 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             successful: successfulCaptaincies,
             failed: failedCaptaincies,
             totalCaptainedPoints: totalCaptainedPoints,
-            captainedRounds: captaincyRoundsByPlayer[captainId] // NEW: Add this for debugging
+            captainedRounds: captaincyRoundsByPlayer[captainId] // Add this for debugging
         });
     }
 
     return {
         overallRank: latestOverallRank, // The overall rank from the last processed round
-        bestOverallRank: minOverallRank !== Infinity ? `<span class="math-inline">\{minOverallRank\} \(R</span>{minOverallRankRound})` : 'N/A',
-        worstOverallRank: maxOverallRank !== -Infinity ? `<span class="math-inline">\{maxOverallRank\} \(R</span>{maxOverallRankRound})` : 'N/A',
+        bestOverallRank: minOverallRank !== Infinity ? `${minOverallRank} (R${minOverallRankRound})` : 'N/A',
+        worstOverallRank: maxOverallRank !== -Infinity ? `${maxOverallRank} (R${maxOverallRankRound})` : 'N/A',
         averagePoints: averagePoints,
         top3Captains: top3CaptainsStats
     };
