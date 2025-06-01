@@ -2,10 +2,12 @@
 const fetch = require('node-fetch'); // Import node-fetch for Netlify Functions environment
 
 // --- GLOBAL VARIABLES FOR DIAGNOSTIC PURPOSES ---
-// Moving these to module scope to eliminate any possibility of local scope issues.
-// If this fixes the ReferenceError, we can then try to re-encapsulate them more cleanly.
+// Moved to module scope to eliminate any possibility of local scope issues.
+// Renamed for diagnostic purposes to rule out caching/naming conflicts.
 let captainCounts = {};
-let captaincyRoundsByPlayer = {};
+let captainedRoundsTracker = {}; // Renamed from captaincyRoundsByPlayer
+
+console.log('Global captainedRoundsTracker declared. Type:', typeof captainedRoundsTracker, 'Value:', captainedRoundsTracker);
 // --- END GLOBAL VARIABLES ---
 
 // Helper function to introduce a delay to mitigate rate-limiting
@@ -30,7 +32,6 @@ async function getPlayerNameMap() {
         return playerMap;
     } catch (error) {
         console.error("Error in getPlayerNameMap:", error);
-        // Return empty map on error to allow the main handler to proceed with partial data or N/A
         return {};
     }
 }
@@ -39,7 +40,9 @@ async function getPlayerNameMap() {
 async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     // Reset global counters for each invocation
     captainCounts = {};
-    captaincyRoundsByPlayer = {};
+    captainedRoundsTracker = {}; // Reset global variable
+
+    console.log('Inside getManagerHistoryAndCaptains: captainedRoundsTracker reset. Type:', typeof captainedRoundsTracker, 'Value:', captainedRoundsTracker);
 
     let minOverallRank = Infinity;
     let minOverallRankRound = 'N/A';
@@ -55,18 +58,18 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     for (let round = 1; round <= maxRounds; round++) {
         const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`;
         managerPicksPromises.push(
-            (async () => { // Use an async IIFE to await sleep inside the map
+            (async () => {
                 await sleep(100); // Add a small delay before each fetch to mitigate rate limits
                 try {
                     const res = await fetch(picksUrl);
                     if (!res.ok) {
                         console.warn(`Skipping round ${round} for manager ${managerId} due to fetch error: ${res.status}`);
-                        return null; // Return null for failed fetches
+                        return null;
                     }
                     return res.json();
                 } catch (error) {
                     console.error(`Error fetching picks for manager ${managerId}, round ${round}:`, error);
-                    return null; // Return null on network/parsing error
+                    return null;
                 }
             })()
         );
@@ -78,7 +81,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     for (let round = 1; round <= maxRounds; round++) {
         const data = allManagerPicksData[round - 1];
 
-        if (data) { // Check if data for this round was successfully fetched
+        if (data) {
             roundsProcessed++;
 
             // --- Update for Rank & Points Table ---
@@ -105,20 +108,22 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             if (captainPick) {
                 const captainId = captainPick.element;
                 captainCounts[captainId] = (captainCounts[captainId] || 0) + 1;
-                if (!captaincyRoundsByPlayer[captainId]) {
-                    captaincyRoundsByPlayer[captainId] = [];
+                if (!captainedRoundsTracker[captainId]) {
+                    captainedRoundsTracker[captainId] = [];
                 }
-                captaincyRoundsByPlayer[captainId].push(round);
+                captainedRoundsTracker[captainId].push(round);
             }
         }
     }
+    console.log('After processing picks: captainedRoundsTracker has entries for', Object.keys(captainedRoundsTracker).length, 'players.');
+
 
     const averagePoints = roundsProcessed > 0 ? Math.round(totalPointsSum / roundsProcessed) : 'N/A';
 
     // Fetch player summaries for all *unique* captains concurrently with delays
     const uniqueCaptains = Object.keys(captainCounts);
     const playerSummariesPromises = uniqueCaptains.map(async playerId => {
-        await sleep(100); // Add a small delay before each fetch
+        await sleep(100);
         try {
             const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${playerId}/`;
             const response = await fetch(playerSummaryUrl);
@@ -152,10 +157,17 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         let failedCaptaincies = 0;
         let totalCaptainedPoints = 0;
 
+        console.log(`Before access for captainId ${captainId}: typeof captainedRoundsTracker is ${typeof captainedRoundsTracker}`);
+        if (typeof captainedRoundsTracker === 'object' && captainedRoundsTracker !== null) { // Added defensive check
+             console.log(`Before access for captainId ${captainId}: captainedRoundsTracker content for this ID:`, captainedRoundsTracker[captainId]);
+        }
+
+
         // This is the line where the error was previously reported.
-        // With captaincyRoundsByPlayer now in global scope and reset, this should be defined.
-        if (playerHistory && captaincyRoundsByPlayer[captainId]) {
-            captainedRoundsByPlayer[captainId].forEach(captainedRound => {
+        // With captainedRoundsTracker now in global scope and reset, this should be defined.
+        // Added defensive check `captainedRoundsTracker !== null` as typeof null is 'object'.
+        if (playerHistory && captainedRoundsTracker && captainedRoundsTracker[captainId]) {
+            captainedRoundsTracker[captainId].forEach(captainedRound => {
                 const roundStats = playerHistory.find(h => h.round === captainedRound);
                 if (roundStats) {
                     const points = roundStats.total_points;
@@ -175,7 +187,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             successful: successfulCaptaincies,
             failed: failedCaptaincies,
             totalCaptainedPoints: totalCaptainedPoints,
-            captainedRounds: captaincyRoundsByPlayer[captainId]
+            captainedRounds: captainedRoundsTracker[captainId]
         });
     }
 
