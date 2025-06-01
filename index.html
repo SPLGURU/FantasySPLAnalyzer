@@ -159,6 +159,23 @@
                         </tbody>
                 </table>
             </div>
+
+            <div class="worst-players-table">
+                <h3>Worst Players</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Worst Players</th>
+                            <th>Started</th>
+                            <th>Auto Subbed</th>
+                            <th>Points Gained</th>
+                            <th>Benched Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="worstPlayersTableBody">
+                        </tbody>
+                </table>
+            </div>
             </div>
     </div>
 
@@ -173,7 +190,8 @@
             errorDiv.style.display = 'none';
             resultsDiv.style.display = 'none';
             document.getElementById('captaincyTableBody').innerHTML = '';
-            document.getElementById('bestPlayersTableBody').innerHTML = ''; // NEW: Clear Best Players table
+            document.getElementById('bestPlayersTableBody').innerHTML = '';
+            document.getElementById('worstPlayersTableBody').innerHTML = ''; // NEW: Clear Worst Players table
 
             if (!managerId) {
                 errorDiv.textContent = 'Please enter a Manager ID.';
@@ -224,10 +242,21 @@
                 row.insertCell().textContent = captain.captainedRounds ? captain.captainedRounds.join(', ') : 'N/A';
             });
 
-            // NEW: Display Best Players Table
+            // Display Best Players Table
             const bestPlayersTableBody = document.getElementById('bestPlayersTableBody');
             data.bestPlayers.forEach(player => {
                 const row = bestPlayersTableBody.insertRow();
+                row.insertCell().textContent = player.name;
+                row.insertCell().textContent = player.started;
+                row.insertCell().textContent = player.autoSubbed;
+                row.insertCell().textContent = player.pointsGained;
+                row.insertCell().textContent = player.benchedPoints;
+            });
+
+            // NEW: Display Worst Players Table
+            const worstPlayersTableBody = document.getElementById('worstPlayersTableBody');
+            data.worstPlayers.forEach(player => {
+                const row = worstPlayersTableBody.insertRow();
                 row.insertCell().textContent = player.name;
                 row.insertCell().textContent = player.started;
                 row.insertCell().textContent = player.autoSubbed;
