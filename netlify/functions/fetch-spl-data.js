@@ -76,10 +76,9 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     const maxRounds = 34; // Total number of rounds in the season
 
-    // --- NEW: Object to store stats for all players owned by the manager ---
+    // Object to store stats for all players owned by the manager
     const playerSeasonStats = {}; // { playerId: { started: 0, autoSubbed: 0, pointsGained: 0, benchedPoints: 0, roundsInfo: {} } }
     const uniquePlayerIdsInSquad = new Set();
-    // --- END NEW ---
 
     // Fetch data for all rounds for the given manager concurrently with retries
     const managerPicksPromises = [];
@@ -101,7 +100,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     // Process collected manager picks data to populate overall stats and identify all unique players
     let latestOverallRank = 'N/A';
-    for (const { round, data } of allManagerPicksData) { // Iterate over objects containing round and data
+    for (const { round, data } of allManagerPicksData) {
         if (data) {
             roundsProcessed++;
 
@@ -136,7 +135,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
                 captainedRoundsTracker[captainId].push(round);
             }
 
-            // --- NEW: Process data for Best Players Table ---
+            // Process data for Best/Worst Players Table
             const automaticSubs = data.automatic_subs || [];
             const subbedOutPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_out));
             const subbedInPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_in));
@@ -149,8 +148,8 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
                     playerSeasonStats[playerId] = {
                         started: 0,
                         autoSubbed: 0,
-                        pointsGained: 0, // This will be calculated later with player history
-                        benchedPoints: 0, // This will be calculated later with player history
+                        pointsGained: 0,
+                        benchedPoints: 0,
                         roundsInfo: {} // To store position and multiplier for each round
                     };
                 }
@@ -175,13 +174,12 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
                     isSubbedIn: isSubbedIn
                 };
             });
-            // --- END NEW ---
         }
     }
 
     const averagePoints = roundsProcessed > 0 ? Math.round(totalPointsSum / roundsProcessed) : 'N/A';
 
-    // --- NEW: Fetch Player Summaries for ALL unique players in the squad ---
+    // Fetch Player Summaries for ALL unique players in the squad
     const allPlayerSummaryPromises = Array.from(uniquePlayerIdsInSquad).map(async playerId => {
         try {
             const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${playerId}/`;
@@ -194,9 +192,9 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     });
     const allPlayerSummariesResults = await Promise.all(allPlayerSummaryPromises);
     const allPlayerSummariesMap = new Map(allPlayerSummariesResults.filter(p => p.summary).map(p => [p.playerId, p.summary]));
-    // --- END NEW ---
 
-    // --- NEW: Calculate "Points Gained" and "Benched Points" for all players ---
+
+    // Calculate "Points Gained" and "Benched Points" for all players
     for (const playerId of uniquePlayerIdsInSquad) {
         const playerSummary = allPlayerSummariesMap.get(playerId);
         if (!playerSummary) continue; // Skip if player summary could not be fetched
@@ -221,7 +219,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             }
         }
     }
-    // --- END NEW ---
 
 
     const top3CaptainsStats = [];
@@ -263,10 +260,10 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         });
     }
 
-    // --- NEW: Prepare Best Players Table Data ---
+    // Prepare Best Players Table Data
     const bestPlayersList = Object.entries(playerSeasonStats)
         .filter(([, stats]) => stats.pointsGained > 0 || stats.benchedPoints > 0) // Only include players who gained points
-        .sort(([, statsA], [, statsB]) => statsB.pointsGained - statsA.pointsGained) // Sort by Points Gained
+        .sort(([, statsA], [, statsB]) => statsB.pointsGained - statsA.pointsGained) // Sort by Points Gained DESC
         .slice(0, 5) // Take top 5
         .map(([playerId, stats]) => ({
             name: playerNameMap[parseInt(playerId)] || `Unknown (ID:${playerId})`,
@@ -275,7 +272,20 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             pointsGained: stats.pointsGained,
             benchedPoints: stats.benchedPoints
         }));
-    // --- END NEW ---
+
+    // NEW: Prepare Worst Players Table Data (opposite of Best Players)
+    const worstPlayersList = Object.entries(playerSeasonStats)
+        .filter(([, stats]) => stats.pointsGained >= 0 || stats.benchedPoints >= 0) // Include all players with recorded points (even 0 or negative if that's possible)
+        .sort(([, statsA], [, statsB]) => statsA.pointsGained - statsB.pointsGained) // Sort by Points Gained ASC
+        .slice(0, 5) // Take bottom 5
+        .map(([playerId, stats]) => ({
+            name: playerNameMap[parseInt(playerId)] || `Unknown (ID:${playerId})`,
+            started: stats.started,
+            autoSubbed: stats.autoSubbed,
+            pointsGained: stats.pointsGained,
+            benchedPoints: stats.benchedPoints
+        }));
+    // END NEW
 
 
     return {
@@ -284,7 +294,8 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         worstOverallRank: maxOverallRank !== -Infinity ? `${maxOverallRank} (R${maxOverallRankRound})` : 'N/A',
         averagePoints: averagePoints,
         top3Captains: top3CaptainsStats,
-        bestPlayers: bestPlayersList // NEW: Add bestPlayers to the returned object
+        bestPlayers: bestPlayersList,
+        worstPlayers: worstPlayersList // NEW: Add worstPlayers to the returned object
     };
 }
 
@@ -317,7 +328,8 @@ exports.handler = async function(event, context) {
                 averagePoints: managerStats.averagePoints,
                 averagePointsFor1stPlace: averagePointsFor1stPlace,
                 top3Captains: managerStats.top3Captains,
-                bestPlayers: managerStats.bestPlayers // NEW: Include bestPlayers in the response
+                bestPlayers: managerStats.bestPlayers,
+                worstPlayers: managerStats.worstPlayers // NEW: Include worstPlayers in the response
             }),
             headers: { "Content-Type": "application/json" }
         };
