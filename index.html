@@ -213,6 +213,8 @@
         });
 
         let managerOverallRankHistory = []; // Global variable to store rank history
+        let rankJourneyChartInstance = null; // To store the Chart.js instance
+        let currentAnimationFrameRound = 0; // NEW: Declared globally to be accessible by Chart.js callbacks
 
         async function analyzeManager() {
             const managerId = document.getElementById('managerId').value;
@@ -230,8 +232,9 @@
             document.getElementById('bestPlayersTableBody').innerHTML = '';
             document.getElementById('worstPlayersTableBody').innerHTML = '';
             
-            // Clear global rank history
+            // Clear global rank history and reset animation state
             managerOverallRankHistory = [];
+            currentAnimationFrameRound = 0; // Reset animation counter
 
             if (!managerId) {
                 errorDiv.textContent = 'Please enter a Manager ID.';
@@ -329,7 +332,9 @@
             document.getElementById('results').style.display = 'block'; // Show results section
         }
 
-        let rankJourneyChartInstance = null; // To store the Chart.js instance
+        // Moved currentAnimationFrameRound to global scope
+        // let rankJourneyChartInstance = null; // Already global
+        // let currentAnimationFrameRound = 0; // Already global
 
         function createRankJourneyVideo() {
             const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
@@ -345,19 +350,20 @@
                 rankJourneyChartInstance.destroy();
             }
 
+            // Reset animation counter when the button is clicked
+            currentAnimationFrameRound = 0; 
+
             // Prepare data for Chart.js
             const labels = Array.from({ length: 35 }, (_, i) => `RD ${i}`); // Rounds 0 to 34
             const rankData = new Array(35).fill(null); // Initialize with nulls
 
             // Map overallRankHistory to the chart data array
             managerOverallRankHistory.forEach(entry => {
-                if (entry.round >= 1 && entry.round <= 34) {
+                // Ensure the rank is a number for plotting
+                if (entry.round >= 1 && entry.round <= 34 && typeof entry.rank === 'number' && !isNaN(entry.rank)) {
                     rankData[entry.round] = entry.rank;
                 }
             });
-
-            // Initial data for animation - only the first point visible
-            const initialData = rankData.map((val, idx) => (idx === 0 || val !== null ? val : NaN)); // Show initial value and points that exist
 
             // Chart.js configuration
             const ctx = rankJourneyChartCanvas.getContext('2d');
@@ -367,21 +373,22 @@
                     labels: labels,
                     datasets: [{
                         label: 'Your Overall Rank',
-                        data: initialData, // Will be updated during animation
+                        data: [], // Starts empty, will be populated by animation
                         borderColor: 'rgb(75, 192, 192)',
                         backgroundColor: 'rgba(75, 192, 192, 0.2)',
                         tension: 0.1,
                         spanGaps: true, // Connect gaps where data is null
                         pointRadius: (context) => {
                             // Make point visible only for the current animated round
-                            return context.dataIndex === currentAnimationFrameRound ? 5 : 0;
+                            // And only if there's actual data for that point
+                            return context.dataIndex === currentAnimationFrameRound && rankData[context.dataIndex] !== null ? 5 : 0;
                         },
                         pointBackgroundColor: 'red'
                     }]
                 },
                 options: {
                     responsive: true,
-                    animation: false, // Disable default animation
+                    animation: false, // Disable default Chart.js animation
                     plugins: {
                         legend: {
                             display: true
@@ -428,7 +435,7 @@
             });
 
             // Animation Logic
-            let currentAnimationFrameRound = 0; // Start at Round 0 (before RD1)
+            // currentAnimationFrameRound is now globally declared
             const animationDuration = 50; // Milliseconds per frame/round
             const maxRounds = 34;
 
@@ -443,10 +450,7 @@
                     });
 
                     rankJourneyChartInstance.data.datasets[0].data = animatedData;
-                    // Update point radius for the moving point
-                    rankJourneyChartInstance.data.datasets[0].pointRadius = (context) => {
-                        return context.dataIndex === currentAnimationFrameRound && rankData[context.dataIndex] !== null ? 5 : 0;
-                    };
+                    // pointRadius callback will now correctly use the global currentAnimationFrameRound
                     rankJourneyChartInstance.update();
 
                     currentAnimationFrameRound++;
@@ -454,6 +458,7 @@
                 } else {
                     videoLoadingMessage.style.display = 'none'; // Hide loading message
                     // Reset point radius to show all points after animation
+                    // This will make all points with data visible, not just the last one
                     rankJourneyChartInstance.data.datasets[0].pointRadius = 3;
                     rankJourneyChartInstance.update();
                 }
