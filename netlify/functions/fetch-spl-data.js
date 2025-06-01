@@ -1,6 +1,13 @@
 // netlify/functions/fetch-spl-data.js
 const fetch = require('node-fetch'); // Import node-fetch for Netlify Functions environment
 
+// --- GLOBAL VARIABLES FOR DIAGNOSTIC PURPOSES ---
+// Moving these to module scope to eliminate any possibility of local scope issues.
+// If this fixes the ReferenceError, we can then try to re-encapsulate them more cleanly.
+let captainCounts = {};
+let captaincyRoundsByPlayer = {};
+// --- END GLOBAL VARIABLES ---
+
 // Helper function to introduce a delay to mitigate rate-limiting
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -30,16 +37,16 @@ async function getPlayerNameMap() {
 
 // Helper function to get manager's history details and captaincy stats
 async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
+    // Reset global counters for each invocation
+    captainCounts = {};
+    captaincyRoundsByPlayer = {};
+
     let minOverallRank = Infinity;
     let minOverallRankRound = 'N/A';
     let maxOverallRank = -Infinity;
     let maxOverallRankRound = 'N/A';
     let totalPointsSum = 0;
     let roundsProcessed = 0;
-
-    const captainCounts = {}; // Stores {playerId: count}
-    // Stores {playerId: [round1, round2, ...]} - used to identify which rounds a player was captained
-    const captaincyRoundsByPlayer = {};
 
     const maxRounds = 34; // Total number of rounds in the season
 
@@ -69,10 +76,10 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     // Process collected manager picks data
     let latestOverallRank = 'N/A';
     for (let round = 1; round <= maxRounds; round++) {
-        const data = allManagerPicksData[round - 1]; // Array is 0-indexed
+        const data = allManagerPicksData[round - 1];
 
         if (data) { // Check if data for this round was successfully fetched
-            roundsProcessed++; // Count only successfully fetched rounds
+            roundsProcessed++;
 
             // --- Update for Rank & Points Table ---
             const currentOverallRank = data.entry_history.overall_rank;
@@ -87,7 +94,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
                     maxOverallRank = currentOverallRank;
                     maxOverallRankRound = round;
                 }
-                latestOverallRank = currentOverallRank; // Update with the latest available rank
+                latestOverallRank = currentOverallRank;
             }
             if (currentRoundPoints !== undefined) {
                 totalPointsSum += currentRoundPoints;
@@ -101,7 +108,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
                 if (!captaincyRoundsByPlayer[captainId]) {
                     captaincyRoundsByPlayer[captainId] = [];
                 }
-                captaincyRoundsByPlayer[captainId].push(round); // Store round for later points lookup
+                captaincyRoundsByPlayer[captainId].push(round);
             }
         }
     }
@@ -134,7 +141,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     const top3CaptainsStats = [];
     const sortedCaptains = Object.entries(captainCounts)
         .sort(([, countA], [, countB]) => countB - countA)
-        .slice(0, 3); // Get top 3 most captained players
+        .slice(0, 3);
 
     for (const [captainIdStr, timesCaptained] of sortedCaptains) {
         const captainId = parseInt(captainIdStr);
@@ -145,14 +152,16 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         let failedCaptaincies = 0;
         let totalCaptainedPoints = 0;
 
-        if (playerHistory && captaincyRoundsByPlayer[captainId]) { // This line is where the error occurred
+        // This is the line where the error was previously reported.
+        // With captaincyRoundsByPlayer now in global scope and reset, this should be defined.
+        if (playerHistory && captaincyRoundsByPlayer[captainId]) {
             captainedRoundsByPlayer[captainId].forEach(captainedRound => {
                 const roundStats = playerHistory.find(h => h.round === captainedRound);
                 if (roundStats) {
                     const points = roundStats.total_points;
-                    if (points >= 5) { // Successful if 5 points or more
+                    if (points >= 5) {
                         successfulCaptaincies++;
-                    } else { // Failed if 4 points or less
+                    } else {
                         failedCaptaincies++;
                     }
                     totalCaptainedPoints += points;
@@ -166,12 +175,12 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             successful: successfulCaptaincies,
             failed: failedCaptaincies,
             totalCaptainedPoints: totalCaptainedPoints,
-            captainedRounds: captaincyRoundsByPlayer[captainId] // Add this for debugging
+            captainedRounds: captaincyRoundsByPlayer[captainId]
         });
     }
 
     return {
-        overallRank: latestOverallRank, // The overall rank from the last processed round
+        overallRank: latestOverallRank,
         bestOverallRank: minOverallRank !== Infinity ? `${minOverallRank} (R${minOverallRankRound})` : 'N/A',
         worstOverallRank: maxOverallRank !== -Infinity ? `${maxOverallRank} (R${maxOverallRankRound})` : 'N/A',
         averagePoints: averagePoints,
@@ -194,15 +203,13 @@ exports.handler = async function(event, context) {
     }
 
     try {
-        const playerNameMap = await getPlayerNameMap(); // Fetch player names once
+        const playerNameMap = await getPlayerNameMap();
 
         // Get manager's overall history and captaincy stats
         const managerStats = await getManagerHistoryAndCaptains(managerId, playerNameMap);
 
-        // --- Fixed Average Points for 1st Place ---
-        const averagePointsFor1stPlace = 75; // Using the fixed value as specified
+        const averagePointsFor1stPlace = 75;
 
-        // Return all collected data
         return {
             statusCode: 200,
             body: JSON.stringify({
@@ -210,7 +217,7 @@ exports.handler = async function(event, context) {
                 bestOverallRank: managerStats.bestOverallRank,
                 worstOverallRank: managerStats.worstOverallRank,
                 averagePoints: managerStats.averagePoints,
-                averagePointsFor1stPlace: averagePointsFor1stPlace, // Fixed value
+                averagePointsFor1stPlace: averagePointsFor1stPlace,
                 top3Captains: managerStats.top3Captains
             }),
             headers: { "Content-Type": "application/json" }
