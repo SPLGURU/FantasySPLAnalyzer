@@ -8,7 +8,7 @@ let captainedRoundsTracker = {};
 
 // Helper function to introduce a delay
 function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => setTimeout(ms, ms));
 }
 
 // Helper function to fetch data with retries and exponential backoff
@@ -75,6 +75,9 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     const maxRounds = 34; // Total number of rounds in the season
 
+    // NEW: Array to store overall rank for each round
+    const overallRankHistory = [];
+
     // Object to store stats for all players owned by the manager
     const playerSeasonStats = {}; // { playerId: { started: 0, autoSubbed: 0, pointsGained: 0, benchedPoints: 0, roundsInfo: {} } }
     const uniquePlayerIdsInSquad = new Set();
@@ -95,85 +98,94 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             })()
         );
     }
-    const allManagerPicksData = await Promise.all(managerPicksPromises);
+    // Use Promise.allSettled to ensure all promises are handled, even if some fail
+    const allManagerPicksResults = await Promise.allSettled(managerPicksPromises);
+
+    // Sort results by round number to ensure correct order for history
+    const sortedManagerPicksData = allManagerPicksResults
+        .filter(result => result.status === 'fulfilled' && result.value.data !== null)
+        .map(result => result.value)
+        .sort((a, b) => a.round - b.round);
+
 
     // Process collected manager picks data to populate overall stats and identify all unique players
     let latestOverallRank = 'N/A';
-    for (const { round, data } of allManagerPicksData) {
-        if (data) {
-            roundsProcessed++;
+    for (const { round, data } of sortedManagerPicksData) {
+        roundsProcessed++;
 
-            // --- Update for Rank & Points Table ---
-            const currentOverallRank = data.entry_history.overall_rank;
-            const currentRoundPoints = data.entry_history.points;
+        // --- Update for Rank & Points Table ---
+        const currentOverallRank = data.entry_history.overall_rank;
+        const currentRoundPoints = data.entry_history.points;
 
-            if (currentOverallRank !== null && currentOverallRank !== undefined) {
-                if (currentOverallRank < minOverallRank) {
-                    minOverallRank = currentOverallRank;
-                    minOverallRankRound = round;
-                }
-                if (currentOverallRank > maxOverallRank) {
-                    maxOverallRank = currentOverallRank;
-                    maxOverallRankRound = round;
-                }
-                latestOverallRank = currentOverallRank;
+        // Store overall rank for this round
+        overallRankHistory.push({ round: round, rank: currentOverallRank });
+
+        if (currentOverallRank !== null && currentOverallRank !== undefined) {
+            if (currentOverallRank < minOverallRank) {
+                minOverallRank = currentOverallRank;
+                minOverallRankRound = round;
             }
-            if (currentRoundPoints !== undefined) {
-                totalPointsSum += currentRoundPoints;
+            if (currentOverallRank > maxOverallRank) {
+                maxOverallRank = currentOverallRank;
+                maxOverallRankRound = round;
             }
-
-            // --- Update for Captaincy Table ---
-            const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3); // Keep 3 for safety, though only 2 applies in SPL
-
-            if (captainPick) {
-                const captainId = captainPick.element;
-                captainCounts[captainId] = (captainCounts[captainId] || 0) + 1;
-                if (!captainedRoundsTracker[captainId]) {
-                    captainedRoundsTracker[captainId] = [];
-                }
-                captainedRoundsTracker[captainId].push(round);
-            }
-
-            // Process data for Best/Worst Players Table
-            const automaticSubs = data.automatic_subs || [];
-            const subbedOutPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_out));
-            const subbedInPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_in));
-
-            data.picks.forEach(pick => {
-                const playerId = pick.element;
-                uniquePlayerIdsInSquad.add(playerId); // Add all players ever in squad
-
-                if (!playerSeasonStats[playerId]) {
-                    playerSeasonStats[playerId] = {
-                        started: 0,
-                        autoSubbed: 0,
-                        pointsGained: 0,
-                        benchedPoints: 0,
-                        roundsInfo: {} // To store position and multiplier for each round
-                    };
-                }
-
-                // Track 'Started' and 'Auto subbed' counts
-                const isSubbedOut = subbedOutPlayersThisRound.has(playerId);
-                const isSubbedIn = subbedInPlayersThisRound.has(playerId);
-
-                if (pick.position >= 1 && pick.position <= 11 && !isSubbedOut) {
-                    // Player was in initial starting XI and not subbed out
-                    playerSeasonStats[playerId].started++;
-                } else if (isSubbedIn) {
-                    // Player was auto-subbed in (counts as starting for points purposes)
-                    playerSeasonStats[playerId].started++; // Counts as started for this specific round's context
-                    playerSeasonStats[playerId].autoSubbed++;
-                }
-                // Store pick details for later point calculation
-                playerSeasonStats[playerId].roundsInfo[round] = {
-                    position: pick.position,
-                    multiplier: pick.multiplier,
-                    isSubbedOut: isSubbedOut,
-                    isSubbedIn: isSubbedIn
-                };
-            });
+            latestOverallRank = currentOverallRank;
         }
+        if (currentRoundPoints !== undefined) {
+            totalPointsSum += currentRoundPoints;
+        }
+
+        // --- Update for Captaincy Table ---
+        const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3); // Keep 3 for safety, though only 2 applies in SPL
+
+        if (captainPick) {
+            const captainId = captainPick.element;
+            captainCounts[captainId] = (captainCounts[captainId] || 0) + 1;
+            if (!captainedRoundsTracker[captainId]) {
+                captainedRoundsTracker[captainId] = [];
+            }
+            captainedRoundsTracker[captainId].push(round);
+        }
+
+        // Process data for Best/Worst Players Table
+        const automaticSubs = data.automatic_subs || [];
+        const subbedOutPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_out));
+        const subbedInPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_in));
+
+        data.picks.forEach(pick => {
+            const playerId = pick.element;
+            uniquePlayerIdsInSquad.add(playerId); // Add all players ever in squad
+
+            if (!playerSeasonStats[playerId]) {
+                playerSeasonStats[playerId] = {
+                    started: 0,
+                    autoSubbed: 0,
+                    pointsGained: 0,
+                    benchedPoints: 0,
+                    roundsInfo: {} // To store position and multiplier for each round
+                };
+            }
+
+            // Track 'Started' and 'Auto subbed' counts
+            const isSubbedOut = subbedOutPlayersThisRound.has(playerId);
+            const isSubbedIn = subbedInPlayersThisRound.has(playerId);
+
+            if (pick.position >= 1 && pick.position <= 11 && !isSubbedOut) {
+                // Player was in initial starting XI and not subbed out
+                playerSeasonStats[playerId].started++;
+            } else if (isSubbedIn) {
+                // Player was auto-subbed in (counts as starting for points purposes)
+                playerSeasonStats[playerId].started++; // Counts as started for this specific round's context
+                playerSeasonStats[playerId].autoSubbed++;
+            }
+            // Store pick details for later point calculation
+            playerSeasonStats[playerId].roundsInfo[round] = {
+                position: pick.position,
+                multiplier: pick.multiplier,
+                isSubbedOut: isSubbedOut,
+                isSubbedIn: isSubbedIn
+            };
+        });
     }
 
     const averagePoints = roundsProcessed > 0 ? Math.round(totalPointsSum / roundsProcessed) : 'N/A';
@@ -296,7 +308,8 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         averagePoints: averagePoints,
         top3Captains: top3CaptainsStats,
         bestPlayers: bestPlayersList,
-        worstPlayers: worstPlayersList
+        worstPlayers: worstPlayersList,
+        overallRankHistory: overallRankHistory // NEW: Return the full rank history
     };
 }
 
@@ -330,7 +343,8 @@ exports.handler = async function(event, context) {
                 averagePointsFor1stPlace: averagePointsFor1stPlace,
                 top3Captains: managerStats.top3Captains,
                 bestPlayers: managerStats.bestPlayers,
-                worstPlayers: managerStats.worstPlayers
+                worstPlayers: managerStats.worstPlayers,
+                overallRankHistory: managerStats.overallRankHistory // NEW: Include in response
             }),
             headers: { "Content-Type": "application/json" }
         };
