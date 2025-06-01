@@ -94,7 +94,7 @@
         tr:hover {
             background-color: #ddd;
         }
-        .summary-stats p {
+        .summary-stats p { /* Kept for other potential plain text stats, but not used for rank table anymore */
             font-size: 1.1em;
             margin: 5px 0;
         }
@@ -116,13 +116,18 @@
         <div id="results" class="results-section" style="display: none;">
             <h2>Your Manager Stats</h2>
 
-            <div class="summary-stats">
+            <div class="rank-points-table">
                 <h3>Rank & Points Table</h3>
-                <p>Overall Rank: <span id="overallRank">N/A</span></p>
-                <p>Best Overall Rank: <span id="bestOverallRank">N/A</span></p>
-                <p>Worst Overall Rank: <span id="worstOverallRank">N/A</span></p>
-                <p>Average Points Per Round: <span id="averagePoints">N/A</span></p>
-                <p>Average Points for 1st Place (per round): <span id="averagePointsFor1stPlace">N/A</span></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankPointsTableBody">
+                        </tbody>
+                </table>
             </div>
 
             <div class="captaincy-table">
@@ -181,13 +186,11 @@
     </div>
 
     <script>
-        // NEW: Add event listener for Enter key on managerId input
         document.getElementById('managerId').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 analyzeManager();
             }
         });
-        // END NEW
 
         async function analyzeManager() {
             const managerId = document.getElementById('managerId').value;
@@ -198,6 +201,7 @@
             // Clear previous results and error
             errorDiv.style.display = 'none';
             resultsDiv.style.display = 'none';
+            document.getElementById('rankPointsTableBody').innerHTML = ''; // Clear rank table
             document.getElementById('captaincyTableBody').innerHTML = '';
             document.getElementById('bestPlayersTableBody').innerHTML = '';
             document.getElementById('worstPlayersTableBody').innerHTML = '';
@@ -233,11 +237,21 @@
 
         function displayResults(data) {
             // Display Rank & Points Table
-            document.getElementById('overallRank').textContent = data.overallRank;
-            document.getElementById('bestOverallRank').textContent = data.bestOverallRank;
-            document.getElementById('worstOverallRank').textContent = data.worstOverallRank;
-            document.getElementById('averagePoints').textContent = data.averagePoints;
-            document.getElementById('averagePointsFor1stPlace').textContent = data.averagePointsFor1stPlace;
+            const rankPointsTableBody = document.getElementById('rankPointsTableBody');
+            
+            // Helper function to add a row to the table
+            const addRow = (metric, value) => {
+                const row = rankPointsTableBody.insertRow();
+                row.insertCell().textContent = metric;
+                row.insertCell().textContent = value;
+            };
+
+            addRow("Overall Rank", data.overallRank);
+            addRow("Best Overall Rank", data.bestOverallRank);
+            addRow("Worst Overall Rank", data.worstOverallRank);
+            addRow("Average Points Per Round", data.averagePoints);
+            addRow("Average Points for 1st Place (per round)", data.averagePointsFor1stPlace);
+
 
             // Display Captaincy Table
             const captaincyTableBody = document.getElementById('captaincyTableBody');
