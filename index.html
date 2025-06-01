@@ -78,100 +78,103 @@
     </div>
 
     <script>
-        document.getElementById('analyzeButton').addEventListener('click', analyzePerformance);
+    document.getElementById('analyzeButton').addEventListener('click', analyzePerformance);
 
-        async function analyzePerformance() {
-            const managerId = document.getElementById('managerIdInput').value;
-            // Get references to all display elements
-            const overallRankDisplay = document.getElementById('overallRankDisplay');
-            const bestOverallRankDisplay = document.getElementById('bestOverallRankDisplay');
-            const worstOverallRankDisplay = document.getElementById('worstOverallRankDisplay');
-            const averagePointsDisplay = document.getElementById('averagePointsDisplay');
-            const averagePointsFor1stPlaceDisplay = document.getElementById('averagePointsFor1stPlaceDisplay');
-            const captaincyTableBody = document.getElementById('captaincyTableBody');
-            const errorMessageDisplay = document.getElementById('errorMessageDisplay');
+    // NEW: Add event listener for 'keydown' on the input field
+    document.getElementById('managerIdInput').addEventListener('keydown', function(event) {
+        // Check if the pressed key is 'Enter'
+        if (event.key === 'Enter') {
+            analyzePerformance(); // Trigger the analysis function
+        }
+    });
 
-            // --- Visual feedback for loading state ---
-            const loadingText = 'Loading...';
-            overallRankDisplay.textContent = loadingText;
-            bestOverallRankDisplay.textContent = loadingText;
-            worstOverallRankDisplay.textContent = loadingText;
-            averagePointsDisplay.textContent = loadingText;
-            averagePointsFor1stPlaceDisplay.textContent = loadingText;
-            captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Loading Captains...</td></tr>'; // Clear and show loading for table
-            errorMessageDisplay.classList.add('hidden'); // Hide any previous errors
-            errorMessageDisplay.textContent = ''; // Clear previous error text
+    async function analyzePerformance() {
+        const managerId = document.getElementById('managerIdInput').value;
+        const overallRankDisplay = document.getElementById('overallRankDisplay');
+        const bestOverallRankDisplay = document.getElementById('bestOverallRankDisplay');
+        const worstOverallRankDisplay = document.getElementById('worstOverallRankDisplay');
+        const averagePointsDisplay = document.getElementById('averagePointsDisplay');
+        const averagePointsFor1stPlaceDisplay = document.getElementById('averagePointsFor1stPlaceDisplay');
+        const captaincyTableBody = document.getElementById('captaincyTableBody');
+        const errorMessageDisplay = document.getElementById('errorMessageDisplay');
 
-            if (!managerId) {
-                const naText = 'N/A';
-                overallRankDisplay.textContent = naText;
-                bestOverallRankDisplay.textContent = naText;
-                worstOverallRankDisplay.textContent = naText;
-                averagePointsDisplay.textContent = naText;
-                averagePointsFor1stPlaceDisplay.textContent = naText;
-                captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Enter Manager ID to analyze.</td></tr>';
-                errorMessageDisplay.textContent = 'Please enter a Manager ID.';
-                errorMessageDisplay.classList.remove('hidden');
-                return;
-            }
+        // --- Visual feedback for loading state ---
+        const loadingText = 'Loading...';
+        overallRankDisplay.textContent = loadingText;
+        bestOverallRankDisplay.textContent = loadingText;
+        worstOverallRankDisplay.textContent = loadingText;
+        averagePointsDisplay.textContent = loadingText;
+        averagePointsFor1stPlaceDisplay.textContent = loadingText;
+        captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Loading Captains...</td></tr>';
+        errorMessageDisplay.classList.add('hidden');
+        errorMessageDisplay.textContent = '';
 
-            try {
-                // Call your Netlify function
-                const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`);
-                const data = await response.json();
+        if (!managerId) {
+            const naText = 'N/A';
+            overallRankDisplay.textContent = naText;
+            bestOverallRankDisplay.textContent = naText;
+            worstOverallRankDisplay.textContent = naText;
+            averagePointsDisplay.textContent = naText;
+            averagePointsFor1stPlaceDisplay.textContent = naText;
+            captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">Enter Manager ID to analyze.</td></tr>';
+            errorMessageDisplay.textContent = 'Please enter a Manager ID.';
+            errorMessageDisplay.classList.remove('hidden');
+            return;
+        }
 
-                if (response.ok) {
-                    overallRankDisplay.textContent = data.overallRank || 'N/A';
-                    bestOverallRankDisplay.textContent = data.bestOverallRank || 'N/A';
-                    worstOverallRankDisplay.textContent = data.worstOverallRank || 'N/A';
-                    averagePointsDisplay.textContent = data.averagePoints || 'N/A';
-                    averagePointsFor1stPlaceDisplay.textContent = data.averagePointsFor1stPlace || 'N/A';
+        try {
+            const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`);
+            const data = await response.json();
 
-                    // Populate Captaincy Table
-                    captaincyTableBody.innerHTML = ''; // Clear loading message
-                    if (data.top3Captains && data.top3Captains.length > 0) {
-                        data.top3Captains.forEach(captain => {
-                            const row = `
-                                <tr>
-                                    <td class="py-2 px-4">${captain.name}</td>
-                                    <td class="py-2 px-4">${captain.times}</td>
-                                    <td class="py-2 px-4">${captain.successful}</td>
-                                    <td class="py-2 px-4">${captain.failed}</td>
-                                    <td class="py-2 px-4">${captain.totalCaptainedPoints}</td>
-                                </tr>
-                            `;
-                            captaincyTableBody.insertAdjacentHTML('beforeend', row);
-                        });
-                    } else {
-                        captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">No captaincy data found for this manager.</td></tr>';
-                    }
+            if (response.ok) {
+                overallRankDisplay.textContent = data.overallRank || 'N/A';
+                bestOverallRankDisplay.textContent = data.bestOverallRank || 'N/A';
+                worstOverallRankDisplay.textContent = data.worstOverallRank || 'N/A';
+                averagePointsDisplay.textContent = data.averagePoints || 'N/A';
+                averagePointsFor1stPlaceDisplay.textContent = data.averagePointsFor1stPlace || 'N/A';
 
+                captaincyTableBody.innerHTML = '';
+                if (data.top3Captains && data.top3Captains.length > 0) {
+                    data.top3Captains.forEach(captain => {
+                        const row = `
+                            <tr>
+                                <td class="py-2 px-4">${captain.name}</td>
+                                <td class="py-2 px-4">${captain.times}</td>
+                                <td class="py-2 px-4">${captain.successful}</td>
+                                <td class="py-2 px-4">${captain.failed}</td>
+                                <td class="py-2 px-4">${captain.totalCaptainedPoints}</td>
+                            </tr>
+                        `;
+                        captaincyTableBody.insertAdjacentHTML('beforeend', row);
+                    });
                 } else {
-                    // Handle errors from the Netlify function
-                    const errorText = 'Error';
-                    overallRankDisplay.textContent = errorText;
-                    bestOverallRankDisplay.textContent = errorText;
-                    worstOverallRankDisplay.textContent = errorText;
-                    averagePointsDisplay.textContent = errorText;
-                    averagePointsFor1stPlaceDisplay.textContent = errorText;
-                    captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-400">Error loading captains.</td></tr>';
-                    errorMessageDisplay.textContent = data.error || 'An unknown error occurred from the server.';
-                    errorMessageDisplay.classList.remove('hidden');
+                    captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-400">No captaincy data found for this manager.</td></tr>';
                 }
-            } catch (error) {
-                // Handle network errors or issues before the function response
-                const errorText = 'Network Error';
+
+            } else {
+                const errorText = 'Error';
                 overallRankDisplay.textContent = errorText;
                 bestOverallRankDisplay.textContent = errorText;
                 worstOverallRankDisplay.textContent = errorText;
                 averagePointsDisplay.textContent = errorText;
                 averagePointsFor1stPlaceDisplay.textContent = errorText;
-                captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-400">Network error.</td></tr>';
-                errorMessageDisplay.textContent = `Failed to connect to analysis service: ${error.message}. Please check your internet connection.`;
+                captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-400">Error loading captains.</td></tr>';
+                errorMessageDisplay.textContent = data.error || 'An unknown error occurred from the server.';
                 errorMessageDisplay.classList.remove('hidden');
-                console.error('Frontend fetch error:', error);
             }
+        } catch (error) {
+            const errorText = 'Network Error';
+            overallRankDisplay.textContent = errorText;
+            bestOverallRankDisplay.textContent = errorText;
+            worstOverallRankDisplay.textContent = errorText;
+            averagePointsDisplay.textContent = errorText;
+            averagePointsFor1stPlaceDisplay.textContent = errorText;
+            captaincyTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-400">Network error.</td></tr>';
+            errorMessageDisplay.textContent = `Failed to connect to analysis service: ${error.message}. Please check your internet connection.`;
+            errorMessageDisplay.classList.remove('hidden');
+            console.error('Frontend fetch error:', error);
         }
-    </script>
+    }
+</script>
 </body>
 </html>

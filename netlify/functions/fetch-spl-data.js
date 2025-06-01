@@ -32,14 +32,14 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     const captainCounts = {}; // {playerId: count}
     // {playerId: [round1, round2, ...]} - used to identify which rounds a player was captained
-    const captaincyRoundsByPlayer = {};
+    const captaincyRoundsByPlayer = {}; // NEW: Stores the specific rounds
 
     const maxRounds = 34; // Total number of rounds in the season
 
     // Fetch data for all rounds for the given manager concurrently
     const managerPicksPromises = [];
     for (let round = 1; round <= maxRounds; round++) {
-        const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`;
+        const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/<span class="math-inline">\{managerId\}/event/</span>{round}/picks`;
         managerPicksPromises.push(
             fetch(picksUrl)
                 .then(res => {
@@ -155,14 +155,15 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             times: timesCaptained,
             successful: successfulCaptaincies,
             failed: failedCaptaincies,
-            totalCaptainedPoints: totalCaptainedPoints
+            totalCaptainedPoints: totalCaptainedPoints,
+            captainedRounds: captaincyRoundsByPlayer[captainId] // NEW: Add this for debugging
         });
     }
 
     return {
         overallRank: latestOverallRank, // The overall rank from the last processed round
-        bestOverallRank: minOverallRank !== Infinity ? `${minOverallRank} (R${minOverallRankRound})` : 'N/A',
-        worstOverallRank: maxOverallRank !== -Infinity ? `${maxOverallRank} (R${maxOverallRankRound})` : 'N/A',
+        bestOverallRank: minOverallRank !== Infinity ? `<span class="math-inline">\{minOverallRank\} \(R</span>{minOverallRankRound})` : 'N/A',
+        worstOverallRank: maxOverallRank !== -Infinity ? `<span class="math-inline">\{maxOverallRank\} \(R</span>{maxOverallRankRound})` : 'N/A',
         averagePoints: averagePoints,
         top3Captains: top3CaptainsStats
     };
