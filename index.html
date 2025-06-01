@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fantasy SPL Manager Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Basic CSS for readability - you can adjust this */
         body {
@@ -98,6 +99,18 @@
             font-size: 1.1em;
             margin: 5px 0;
         }
+        #rankJourneyVideoContainer {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+        #rankJourneyVideoContainer canvas {
+            max-width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
@@ -129,6 +142,13 @@
                         </tbody>
                 </table>
             </div>
+
+            <div id="rankJourneyVideoContainer" style="display: none;">
+                <h3>My Rank Journey</h3>
+                <p id="videoLoadingMessage" style="display: none;">Generating video...</p>
+                <canvas id="rankJourneyChart"></canvas>
+            </div>
+
 
             <div class="captaincy-table">
                 <h3>Top 3 Captains</h3>
@@ -192,19 +212,26 @@
             }
         });
 
+        let managerOverallRankHistory = []; // Global variable to store rank history
+
         async function analyzeManager() {
             const managerId = document.getElementById('managerId').value;
             const loadingDiv = document.getElementById('loading');
             const errorDiv = document.getElementById('error');
             const resultsDiv = document.getElementById('results');
+            const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
 
             // Clear previous results and error
             errorDiv.style.display = 'none';
             resultsDiv.style.display = 'none';
-            document.getElementById('rankPointsTableBody').innerHTML = ''; // Clear rank table
+            rankJourneyVideoContainer.style.display = 'none'; // Hide video container
+            document.getElementById('rankPointsTableBody').innerHTML = '';
             document.getElementById('captaincyTableBody').innerHTML = '';
             document.getElementById('bestPlayersTableBody').innerHTML = '';
             document.getElementById('worstPlayersTableBody').innerHTML = '';
+            
+            // Clear global rank history
+            managerOverallRankHistory = [];
 
             if (!managerId) {
                 errorDiv.textContent = 'Please enter a Manager ID.';
@@ -236,6 +263,9 @@
         }
 
         function displayResults(data) {
+            // Store rank history for video generation
+            managerOverallRankHistory = data.overallRankHistory || [];
+
             // Display Rank & Points Table
             const rankPointsTableBody = document.getElementById('rankPointsTableBody');
             
@@ -251,6 +281,15 @@
             addRow("Worst Overall Rank", data.worstOverallRank);
             addRow("Average Points Per Round", data.averagePoints);
             addRow("Average Points for 1st Place (per round)", data.averagePointsFor1stPlace);
+
+            // NEW ROW for "Create My Rank Journey Video" button
+            const videoButtonRow = rankPointsTableBody.insertRow();
+            const videoButtonCell = videoButtonRow.insertCell();
+            videoButtonCell.colSpan = 2; // Span across both columns
+            const videoButton = document.createElement('button');
+            videoButton.textContent = "Create My Rank Journey Video";
+            videoButton.onclick = createRankJourneyVideo; // Attach the new function
+            videoButtonCell.appendChild(videoButton);
 
 
             // Display Captaincy Table
@@ -288,6 +327,139 @@
             });
 
             document.getElementById('results').style.display = 'block'; // Show results section
+        }
+
+        let rankJourneyChartInstance = null; // To store the Chart.js instance
+
+        function createRankJourneyVideo() {
+            const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
+            const videoLoadingMessage = document.getElementById('videoLoadingMessage');
+            const rankJourneyChartCanvas = document.getElementById('rankJourneyChart');
+
+            // Show container and loading message
+            rankJourneyVideoContainer.style.display = 'block';
+            videoLoadingMessage.style.display = 'block';
+            
+            // Clear any existing chart
+            if (rankJourneyChartInstance) {
+                rankJourneyChartInstance.destroy();
+            }
+
+            // Prepare data for Chart.js
+            const labels = Array.from({ length: 35 }, (_, i) => `RD ${i}`); // Rounds 0 to 34
+            const rankData = new Array(35).fill(null); // Initialize with nulls
+
+            // Map overallRankHistory to the chart data array
+            managerOverallRankHistory.forEach(entry => {
+                if (entry.round >= 1 && entry.round <= 34) {
+                    rankData[entry.round] = entry.rank;
+                }
+            });
+
+            // Initial data for animation - only the first point visible
+            const initialData = rankData.map((val, idx) => (idx === 0 || val !== null ? val : NaN)); // Show initial value and points that exist
+
+            // Chart.js configuration
+            const ctx = rankJourneyChartCanvas.getContext('2d');
+            rankJourneyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Your Overall Rank',
+                        data: initialData, // Will be updated during animation
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1,
+                        spanGaps: true, // Connect gaps where data is null
+                        pointRadius: (context) => {
+                            // Make point visible only for the current animated round
+                            return context.dataIndex === currentAnimationFrameRound ? 5 : 0;
+                        },
+                        pointBackgroundColor: 'red'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false, // Disable default animation
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        title: {
+                            display: true,
+                            text: 'Your Rank Journey Over Rounds'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Round Number'
+                            },
+                            min: 0,
+                            max: 34,
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    return index === 0 ? 'Start' : `RD ${index}`;
+                                },
+                                autoSkip: true,
+                                maxTicksLimit: 15 // Limit number of ticks for readability
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Overall Rank'
+                            },
+                            min: 1, // Top of the chart is rank 1
+                            max: 114000, // Bottom of the chart is 114,000
+                            reverse: true, // Rank 1 is at the top
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString(); // Format with commas
+                                },
+                                autoSkip: true,
+                                maxTicksLimit: 10
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Animation Logic
+            let currentAnimationFrameRound = 0; // Start at Round 0 (before RD1)
+            const animationDuration = 50; // Milliseconds per frame/round
+            const maxRounds = 34;
+
+            function animateRankJourney() {
+                if (currentAnimationFrameRound <= maxRounds) {
+                    // Update data for the current frame
+                    const animatedData = rankData.map((val, idx) => {
+                        if (idx <= currentAnimationFrameRound) {
+                            return val;
+                        }
+                        return null; // Don't show future points yet
+                    });
+
+                    rankJourneyChartInstance.data.datasets[0].data = animatedData;
+                    // Update point radius for the moving point
+                    rankJourneyChartInstance.data.datasets[0].pointRadius = (context) => {
+                        return context.dataIndex === currentAnimationFrameRound && rankData[context.dataIndex] !== null ? 5 : 0;
+                    };
+                    rankJourneyChartInstance.update();
+
+                    currentAnimationFrameRound++;
+                    setTimeout(animateRankJourney, animationDuration);
+                } else {
+                    videoLoadingMessage.style.display = 'none'; // Hide loading message
+                    // Reset point radius to show all points after animation
+                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3;
+                    rankJourneyChartInstance.update();
+                }
+            }
+
+            animateRankJourney(); // Start the animation
         }
     </script>
 </body>
