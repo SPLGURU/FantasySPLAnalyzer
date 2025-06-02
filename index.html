@@ -403,15 +403,15 @@
 
             if (managerCurrentOverallRank !== null) { // Only apply custom logic if overall rank is known
                 if (managerCurrentOverallRank >= 1 && managerCurrentOverallRank <= 150) {
-                    calculatedYAxisMax = worstOverallRankVal + 25;
+                    calculatedYAxisMax = worstOverallRankVal + 10; // New: worstOverallRank + 10
                 } else if (managerCurrentOverallRank >= 151 && managerCurrentOverallRank <= 300) {
-                    calculatedYAxisMax = worstOverallRankVal + 50;
+                    calculatedYAxisMax = worstOverallRankVal + 25; // New: worstOverallRank + 25
                 } else { // managerCurrentOverallRank > 300 or other cases
-                    calculatedYAxisMax = worstOverallRankVal + 100;
+                    calculatedYAxisMax = worstOverallRankVal + 50; // New: worstOverallRank + 50
                 }
             } else {
                 // Fallback if managerCurrentOverallRank is not set or invalid
-                calculatedYAxisMax = worstOverallRankVal + 100;
+                calculatedYAxisMax = worstOverallRankVal + 50; // Default to the highest buffer if rank unknown
             }
 
             // Ensure a reasonable minimum max, e.g., if worstOverallRank is very low (e.g. 5)
