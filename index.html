@@ -7,23 +7,23 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* SPL Fantasy Inspired Design */
+        /* SPL Fantasy Inspired Design - LIGHT MODE */
         :root {
-            /* Main Colors - Adjusted for better contrast */
-            --spl-dark-bg: #1A202C; /* Very dark background for body */
-            --spl-container-bg: #2D3748; /* Slightly lighter dark for main container/cards */
-            --spl-table-bg: #1F2937; /* Distinct dark grey for table background */
-            --spl-table-header-bg: #303846; /* Medium dark blue-grey for table headers */
-            --spl-table-row-even: #26303C; /* Slightly darker than table bg for even rows */
-            --spl-table-row-hover: #364250; /* Lighter for hover */
+            /* Main Colors - Adjusted for a lighter theme */
+            --spl-light-bg: #F8F9FA; /* Very light background for body */
+            --spl-container-bg: #FFFFFF; /* White for main container/cards */
+            --spl-table-bg: #F1F3F5; /* Light grey for table background */
+            --spl-table-header-bg: #E9ECEF; /* Slightly darker light grey for table headers */
+            --spl-table-row-even: #E9ECEF; /* Slightly different shade for even rows */
+            --spl-table-row-hover: #DEE2E6; /* Lighter grey for hover */
 
-            --spl-text-light: #E2E8F0; /* Light text color */
-            --spl-text-dark: #A0AEC0; /* Darker text for secondary info */
-            --spl-primary-accent: #66DA26; /* Vibrant green for positive elements */
-            --spl-secondary-accent: #E53E3E; /* Red for negative elements */
-            --spl-button-bg: #4C51BF; /* A nice purple-blue for buttons */
-            --spl-button-hover: #5A67D8; /* Lighter button on hover */
-            --spl-border-color: #4A5568; /* Subtle border color */
+            --spl-text-dark: #212529; /* Dark text for primary content */
+            --spl-text-medium: #495057; /* Medium dark text for secondary info */
+            --spl-primary-accent: #007BFF; /* A vibrant blue for primary accents (from SPL site) */
+            --spl-secondary-accent: #DC3545; /* Red for negative elements */
+            --spl-button-bg: #007BFF; /* Blue for buttons */
+            --spl-button-hover: #0056B3; /* Darker blue on hover */
+            --spl-border-color: #CED4DA; /* Light grey border color */
         }
 
         html, body {
@@ -35,8 +35,8 @@
         body {
             font-family: 'Roboto', sans-serif;
             padding: 20px;
-            background-color: var(--spl-dark-bg);
-            color: var(--spl-text-light);
+            background-color: var(--spl-light-bg);
+            color: var(--spl-text-dark); /* Dark text on light background */
             line-height: 1.6;
         }
 
@@ -46,28 +46,28 @@
             background-color: var(--spl-container-bg);
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Lighter shadow for light mode */
             border: 1px solid var(--spl-border-color);
         }
 
         h1, h2, h3 {
             font-family: 'Oswald', sans-serif;
-            color: var(--spl-primary-accent); /* Green for headings */
+            color: var(--spl-primary-accent); /* Blue for headings */
             text-align: center;
             margin-bottom: 20px;
             text-transform: uppercase;
             letter-spacing: 1.5px;
         }
-        h1 { font-size: 2.5em; color: var(--spl-text-light); } /* Main title can be white */
+        h1 { font-size: 2.5em; color: var(--spl-text-dark); } /* Main title can be dark */
         h2 { font-size: 2em; border-bottom: 2px solid var(--spl-border-color); padding-bottom: 10px; margin-top: 40px; }
-        h3 { font-size: 1.5em; color: var(--spl-text-light); margin-top: 30px; }
+        h3 { font-size: 1.5em; color: var(--spl-text-dark); margin-top: 30px; }
 
 
         label {
             display: block;
             margin-bottom: 10px;
             font-weight: bold;
-            color: var(--spl-text-dark);
+            color: var(--spl-text-medium); /* Medium dark text for labels */
             font-size: 1.1em;
         }
 
@@ -77,8 +77,8 @@
             margin-bottom: 25px;
             border: 1px solid var(--spl-border-color);
             border-radius: 8px;
-            background-color: var(--spl-dark-bg);
-            color: var(--spl-text-light);
+            background-color: var(--spl-light-bg); /* Light background for input */
+            color: var(--spl-text-dark);
             font-size: 1em;
             transition: border-color 0.3s ease;
         }
@@ -89,7 +89,7 @@
 
         button {
             background-color: var(--spl-button-bg);
-            color: var(--spl-text-light);
+            color: #FFFFFF; /* White text on blue button */
             padding: 12px 20px;
             border: none;
             border-radius: 8px;
@@ -122,7 +122,7 @@
             padding: 15px;
             display: none;
             border: 1px solid var(--spl-secondary-accent);
-            background-color: rgba(229, 62, 62, 0.2);
+            background-color: rgba(220, 53, 69, 0.1); /* Lighter error background */
             border-radius: 8px;
             margin-top: 25px;
             font-weight: bold;
@@ -139,33 +139,34 @@
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 25px;
-            background-color: var(--spl-table-bg); /* Distinct dark grey for tables */
+            background-color: var(--spl-table-bg); /* Light grey for tables */
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4); /* Stronger shadow */
-            border: 1px solid var(--spl-border-color); /* Subtle border */
-            table-layout: fixed; /* Fixed table layout for responsiveness */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15); /* Lighter shadow */
+            border: 1px solid var(--spl-border-color);
+            table-layout: fixed;
         }
 
         th, td {
             border: 1px solid var(--spl-border-color);
             padding: 12px 15px;
             font-size: 0.95em;
-            word-break: break-word; /* Allow long words to break and wrap */
-            white-space: normal; /* Ensure text wraps */
+            word-break: break-word;
+            white-space: normal;
         }
 
         th {
-            background-color: var(--spl-table-header-bg); /* Medium dark blue-grey for table headers */
-            color: var(--spl-text-light);
+            background-color: var(--spl-table-header-bg); /* Slightly darker light grey for headers */
+            color: var(--spl-text-dark); /* Dark text on light header */
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            text-align: center; /* Center headers too for consistency */
+            text-align: center;
         }
 
         td {
-            text-align: center; /* Center all values in cells */
+            text-align: center;
+            color: var(--spl-text-medium); /* Medium dark text for table data */
         }
 
         /* Specific border-radius for table corners */
@@ -176,20 +177,20 @@
 
 
         tr:nth-child(even) {
-            background-color: var(--spl-table-row-even); /* Slightly darker than table bg for even rows */
+            background-color: var(--spl-table-row-even); /* Slightly different shade for even rows */
         }
         tr:hover {
-            background-color: var(--spl-table-row-hover); /* Lighter for hover */
+            background-color: var(--spl-table-row-hover); /* Accent on hover */
             transition: background-color 0.2s ease;
         }
 
         .summary-stats p {
             font-size: 1.1em;
             margin: 8px 0;
-            color: var(--spl-text-dark);
+            color: var(--spl-text-medium);
         }
         .summary-stats p strong {
-            color: var(--spl-text-light);
+            color: var(--spl-text-dark);
         }
 
         #rankJourneyVideoContainer {
@@ -197,15 +198,15 @@
             padding: 20px;
             border: 1px solid var(--spl-border-color);
             border-radius: 12px;
-            background-color: var(--spl-dark-bg);
+            background-color: var(--spl-container-bg); /* Use container bg for chart area */
             text-align: center;
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
         }
         #rankJourneyVideoContainer canvas {
             max-width: 100%;
             height: auto;
             box-sizing: border-box;
-            background-color: #1F2937; /* Darker canvas background */
+            background-color: var(--spl-table-bg); /* Use table bg for canvas */
             border-radius: 8px;
             border: 1px solid var(--spl-border-color);
         }
@@ -237,14 +238,14 @@
             h3 { font-size: 1.2em; }
             th, td {
                 padding: 8px 10px;
-                font-size: 0.85em; /* Further reduced font size */
+                font-size: 0.8em; /* Adjusted for 25% reduction from 0.95em -> 0.7125em, so 0.8em is roughly 20% smaller */
             }
             .captaincy-table th,
             .best-players-table th,
             .worst-players-table th,
             .missed-points-table th {
-                font-size: 0.8em; /* Further reduce for tablets */
-                padding: 6px 8px; /* Reduce padding more */
+                font-size: 0.7em; /* Adjusted for 25% reduction from 0.9em -> 0.675em, so 0.7em is roughly 22% smaller */
+                padding: 6px 8px;
             }
         }
         @media (max-width: 480px) {
@@ -254,14 +255,14 @@
             }
             th, td {
                 padding: 5px 6px;
-                font-size: 0.75em; /* Even smaller font size for mobile table cells */
+                font-size: 0.7em; /* Adjusted for ~25% reduction from 0.95em -> 0.7125em, so 0.7em is close */
             }
             .captaincy-table th,
             .best-players-table th,
             .worst-players-table th,
             .missed-points-table th {
-                font-size: 0.65em; /* Even smaller for phones' specific headers */
-                padding: 4px 5px; /* Minimal padding */
+                font-size: 0.6em; /* Adjusted for ~25% reduction from 0.9em -> 0.675em, so 0.6em is close */
+                padding: 4px 5px;
             }
         }
     </style>
@@ -272,7 +273,7 @@
 
         <div>
             <label for="managerId">Enter Manager ID:</label>
-            <input type="text" id="managerId" placeholder="e.g., 4">
+            <input type="text" id="managerId" placeholder="e.g., 1234"> <!-- Changed placeholder -->
             <button onclick="analyzeManager()">Analyze My Performance</button>
         </div>
 
@@ -282,6 +283,7 @@
         <div id="results" class="results-section" style="display: none;">
             <h2>Your Manager Stats</h2>
 
+            <!-- Rank & Points Table -->
             <div class="rank-points-table">
                 <h3>Rank & Points</h3>
                 <table>
@@ -292,10 +294,12 @@
                         </tr>
                     </thead>
                     <tbody id="rankPointsTableBody">
-                        </tbody>
+                        <!-- Data will be inserted here by JavaScript -->
+                    </tbody>
                 </table>
             </div>
 
+            <!-- Rank Journey Video Container -->
             <div id="rankJourneyVideoContainer" style="display: none;">
                 <h3>My Rank Journey</h3>
                 <p id="videoLoadingMessage" style="display: none;">Generating video...</p>
@@ -303,6 +307,7 @@
             </div>
 
 
+            <!-- Captaincy Table -->
             <div class="captaincy-table">
                 <h3>Top 3 Captains</h3>
                 <table>
@@ -312,21 +317,23 @@
                             <th>Times Captained</th>
                             <th>Successful</th>
                             <th>Failed</th>
-                            <th>Total Captained Points</th>
+                            <th>Total Captaincy Points</th> <!-- Changed header text -->
                             <th>Captained in Rounds</th>
                         </tr>
                     </thead>
                     <tbody id="captaincyTableBody">
-                        </tbody>
+                        <!-- Data will be inserted here by JavaScript -->
+                    </tbody>
                 </table>
             </div>
 
+            <!-- Best Players Table Section -->
             <div class="best-players-table">
                 <h3>Best Players</h3>
                 <table>
                     <thead>
                         <tr>
-                            <th>Best Players</th>
+                            <th>Players</th> <!-- Changed header text -->
                             <th>Started</th>
                             <th>Auto Subbed</th>
                             <th>Points Gained</th>
@@ -334,16 +341,18 @@
                         </tr>
                     </thead>
                     <tbody id="bestPlayersTableBody">
-                        </tbody>
+                        <!-- Data will be inserted here by JavaScript -->
+                    </tbody>
                 </table>
             </div>
 
+            <!-- Worst Players Table Section -->
             <div class="worst-players-table">
                 <h3>Worst Players</h3>
                 <table>
                     <thead>
                         <tr>
-                            <th>Worst Players</th>
+                            <th>Players</th> <!-- Changed header text -->
                             <th>Started</th>
                             <th>Auto Subbed</th>
                             <th>Points Gained</th>
@@ -351,10 +360,12 @@
                         </tr>
                     </thead>
                     <tbody id="worstPlayersTableBody">
-                        </tbody>
+                        <!-- Data will be inserted here by JavaScript -->
+                    </tbody>
                 </table>
             </div>
 
+            <!-- Missed Points (Benched Players Points) Table -->
             <div class="missed-points-table">
                 <h3>Missed Points (Benched Players Points)</h3>
                 <table>
@@ -366,7 +377,8 @@
                         </tr>
                     </thead>
                     <tbody id="missedPointsTableBody">
-                        </tbody>
+                        <!-- Data will be inserted here by JavaScript -->
+                    </tbody>
                 </table>
             </div>
 
