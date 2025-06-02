@@ -20,10 +20,10 @@
             --spl-text-dark: #212529; /* Dark text for primary content */
             --spl-text-medium: #495057; /* Medium dark text for secondary info */
             --spl-primary-accent: #007BFF; /* A vibrant blue for primary accents (from SPL site) */
-            --spl-secondary-accent: #DC3545; /* Red for negative elements */
             --spl-button-bg: #007BFF; /* Blue for buttons */
             --spl-button-hover: #0056B3; /* Darker blue on hover */
             --spl-border-color: #CED4DA; /* Light grey border color */
+            --spl-secondary-accent: #DC3545; /* Red for negative elements */ /* Moved to be with main colors */
         }
 
         html, body {
@@ -796,7 +796,7 @@
                             title: {
                                 display: true,
                                 text: 'Round Number',
-                                color: var(--spl-text-dark),
+                                color: '#212529', /* Corrected: Used hex value for --spl-text-dark */
                                 font: {
                                     size: 16,
                                     family: 'Roboto',
@@ -807,7 +807,7 @@
                                 color: 'rgba(0, 0, 0, 0.1)',
                             },
                             ticks: {
-                                color: var(--spl-text-medium),
+                                color: '#495057', /* Corrected: Used hex value for --spl-text-medium */
                                 font: {
                                     family: 'Roboto'
                                 }
@@ -817,7 +817,7 @@
                             title: {
                                 display: true,
                                 text: 'Overall Rank',
-                                color: var(--spl-text-dark),
+                                color: '#212529', /* Corrected: Used hex value for --spl-text-dark */
                                 font: {
                                     size: 16,
                                     family: 'Roboto',
@@ -831,7 +831,7 @@
                                 color: 'rgba(0, 0, 0, 0.1)',
                             },
                             ticks: {
-                                color: var(--spl-text-medium),
+                                color: '#495057', /* Corrected: Used hex value for --spl-text-medium */
                                 font: {
                                     family: 'Roboto'
                                 },
@@ -846,7 +846,7 @@
                         legend: {
                             display: true,
                             labels: {
-                                color: var(--spl-text-dark),
+                                color: '#212529', /* Corrected: Used hex value for --spl-text-dark */
                                 font: {
                                     size: 14,
                                     family: 'Roboto'
