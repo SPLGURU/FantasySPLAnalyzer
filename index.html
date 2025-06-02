@@ -144,15 +144,15 @@
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15); /* Lighter shadow */
             border: 1px solid var(--spl-border-color);
-            table-layout: fixed;
+            table-layout: fixed; /* Ensures columns respect defined widths */
         }
 
         th, td {
             border: 1px solid var(--spl-border-color);
             padding: 12px 15px;
             font-size: 0.95em;
-            word-break: break-word;
-            white-space: normal;
+            word-break: break-word; /* Allows long words to break and wrap */
+            white-space: normal; /* Ensures text wraps normally */
         }
 
         th {
@@ -236,34 +236,65 @@
             h1 { font-size: 2em; }
             h2 { font-size: 1.6em; }
             h3 { font-size: 1.2em; }
+
+            /* Reduce font size for all table cells and headers by approx 25% for tablets */
             th, td {
                 padding: 8px 10px;
-                font-size: 0.8em; /* Adjusted for 25% reduction from 0.95em -> 0.7125em, so 0.8em is roughly 20% smaller */
+                font-size: 0.7em; /* ~25% reduction from 0.95em */
             }
             .captaincy-table th,
             .best-players-table th,
             .worst-players-table th,
             .missed-points-table th {
-                font-size: 0.7em; /* Adjusted for 25% reduction from 0.9em -> 0.675em, so 0.7em is roughly 22% smaller */
+                font-size: 0.65em; /* ~25% reduction from 0.9em */
                 padding: 6px 8px;
             }
+
+            /* Adjust column widths for better fitting on tablets */
+            .rank-points-table th:nth-child(1) { width: 40%; }
+            .rank-points-table th:nth-child(2) { width: 60%; }
+
+            .captaincy-table th:nth-child(1) { width: 15%; } /* Captain */
+            .captaincy-table th:nth-child(2) { width: 18%; } /* Times Captained */
+            .captaincy-table th:nth-child(3) { width: 14%; } /* Successful */
+            .captaincy-table th:nth-child(4) { width: 14%; } /* Failed */
+            .captaincy-table th:nth-child(5) { width: 19%; } /* Total Captaincy Points */
+            .captaincy-table th:nth-child(6) { width: 20%; } /* Captained in Rounds */
+
+            .best-players-table th:nth-child(1),
+            .worst-players-table th:nth-child(1) { width: 25%; } /* Players */
+            .best-players-table th:nth-child(2),
+            .worst-players-table th:nth-child(2) { width: 15%; } /* Started */
+            .best-players-table th:nth-child(3),
+            .worst-players-table th:nth-child(3) { width: 20%; } /* Auto Subbed */
+            .best-players-table th:nth-child(4),
+            .worst-players-table th:nth-child(4) { width: 20%; } /* Points Gained */
+            .best-players-table th:nth-child(5),
+            .worst-players-table th:nth-child(5) { width: 20%; } /* Benched Points */
+
+            .missed-points-table th:nth-child(1) { width: 40%; } /* Player Name */
+            .missed-points-table th:nth-child(2) { width: 30%; } /* Points */
+            .missed-points-table th:nth-child(3) { width: 30%; } /* Round */
         }
+
         @media (max-width: 480px) {
             input[type="text"], button {
                 padding: 10px;
                 font-size: 1em;
             }
+            /* Further reduce font size for all table cells and headers by approx 25% for phones */
             th, td {
                 padding: 5px 6px;
-                font-size: 0.7em; /* Adjusted for ~25% reduction from 0.95em -> 0.7125em, so 0.7em is close */
+                font-size: 0.6em; /* ~25% reduction from previous mobile 0.8em */
             }
             .captaincy-table th,
             .best-players-table th,
             .worst-players-table th,
             .missed-points-table th {
-                font-size: 0.6em; /* Adjusted for ~25% reduction from 0.9em -> 0.675em, so 0.6em is close */
+                font-size: 0.55em; /* ~25% reduction from previous mobile 0.7em */
                 padding: 4px 5px;
             }
+            /* Column widths remain the same as 768px; smaller font handles tighter space */
         }
     </style>
 </head>
@@ -273,8 +304,7 @@
 
         <div>
             <label for="managerId">Enter Manager ID:</label>
-            <input type="text" id="managerId" placeholder="e.g., 1234"> <!-- Changed placeholder -->
-            <button onclick="analyzeManager()">Analyze My Performance</button>
+            <input type="text" id="managerId" placeholder="e.g., 1234"> <button onclick="analyzeManager()">Analyze My Performance</button>
         </div>
 
         <div id="loading">Loading data...</div>
@@ -283,7 +313,6 @@
         <div id="results" class="results-section" style="display: none;">
             <h2>Your Manager Stats</h2>
 
-            <!-- Rank & Points Table -->
             <div class="rank-points-table">
                 <h3>Rank & Points</h3>
                 <table>
@@ -294,12 +323,10 @@
                         </tr>
                     </thead>
                     <tbody id="rankPointsTableBody">
-                        <!-- Data will be inserted here by JavaScript -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
-            <!-- Rank Journey Video Container -->
             <div id="rankJourneyVideoContainer" style="display: none;">
                 <h3>My Rank Journey</h3>
                 <p id="videoLoadingMessage" style="display: none;">Generating video...</p>
@@ -307,7 +334,6 @@
             </div>
 
 
-            <!-- Captaincy Table -->
             <div class="captaincy-table">
                 <h3>Top 3 Captains</h3>
                 <table>
@@ -317,55 +343,46 @@
                             <th>Times Captained</th>
                             <th>Successful</th>
                             <th>Failed</th>
-                            <th>Total Captaincy Points</th> <!-- Changed header text -->
-                            <th>Captained in Rounds</th>
+                            <th>Total Captaincy Points</th> <th>Captained in Rounds</th>
                         </tr>
                     </thead>
                     <tbody id="captaincyTableBody">
-                        <!-- Data will be inserted here by JavaScript -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
-            <!-- Best Players Table Section -->
             <div class="best-players-table">
                 <h3>Best Players</h3>
                 <table>
                     <thead>
                         <tr>
-                            <th>Players</th> <!-- Changed header text -->
-                            <th>Started</th>
+                            <th>Players</th> <th>Started</th>
                             <th>Auto Subbed</th>
                             <th>Points Gained</th>
                             <th>Benched Points</th>
                         </tr>
                     </thead>
                     <tbody id="bestPlayersTableBody">
-                        <!-- Data will be inserted here by JavaScript -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
-            <!-- Worst Players Table Section -->
             <div class="worst-players-table">
                 <h3>Worst Players</h3>
                 <table>
                     <thead>
                         <tr>
-                            <th>Players</th> <!-- Changed header text -->
-                            <th>Started</th>
+                            <th>Players</th> <th>Started</th>
                             <th>Auto Subbed</th>
                             <th>Points Gained</th>
                             <th>Benched Points</th>
                         </tr>
                     </thead>
                     <tbody id="worstPlayersTableBody">
-                        <!-- Data will be inserted here by JavaScript -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
-            <!-- Missed Points (Benched Players Points) Table -->
             <div class="missed-points-table">
                 <h3>Missed Points (Benched Players Points)</h3>
                 <table>
@@ -377,8 +394,7 @@
                         </tr>
                     </thead>
                     <tbody id="missedPointsTableBody">
-                        <!-- Data will be inserted here by JavaScript -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
