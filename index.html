@@ -416,10 +416,8 @@
                 }
             });
 
-            // Calculate dynamic Y-axis max: ("Worst Overall Rank" value + 100)
-            // Ensure a minimum Y-axis max of at least 200 for very high-ranking managers
-            // to avoid extreme zooming if worst rank is e.g. 15 or 20.
-            const yAxisMax = Math.max(globalWorstOverallRank + 100, 200);
+            // Calculate overall Y-axis max: ("Worst Overall Rank" value + 100)
+            const overallYAxisMax = Math.max(globalWorstOverallRank + 100, 200); // Ensure a minimum Y-axis max of at least 200
 
 
             // Animation speed for 5 seconds total
@@ -445,43 +443,43 @@
                             return context.dataIndex === currentAnimationFrameRound && rankData[context.dataIndex] !== null ? 5 : 0;
                         },
                         pointBackgroundColor: 'red',
-                        // Dynamic border color based on rank change - NOW DIRECTLY ACCESSING rankData
+                        // Dynamic border color based on rank change
                         borderColor: (context) => {
-                            const p0Index = context.p0 ? context.p0.dataIndex : null;
-                            const p1Index = context.p1 ? context.p1.dataIndex : null;
+                            const currentDataIndex = context.dataIndex;
+                            const previousDataIndex = currentDataIndex - 1;
 
-                            // Ensure indices are valid and data exists for those indices
-                            const rank0 = (p0Index !== null && rankData[p0Index] !== undefined) ? rankData[p0Index] : null;
-                            const rank1 = (p1Index !== null && rankData[p1Index] !== undefined) ? rankData[p1Index] : null;
-
-                            if (typeof rank0 !== 'number' || typeof rank1 !== 'number') {
-                                return 'rgb(75, 192, 192)'; // Default for invalid or incomplete data
+                            // Get the actual data points from the animated dataset
+                            const currentRank = context.dataset.data[currentDataIndex];
+                            const previousRank = context.dataset.data[previousDataIndex]; 
+                            
+                            // If previous or current rank is not a valid number, use default color (e.g., for initial point or gaps)
+                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
+                                return 'rgb(75, 192, 192)'; // Default color (e.g., blue/cyan)
                             }
 
-                            if (rank1 < rank0) { // Rank improved (lower number is better)
+                            if (currentRank < previousRank) { // Rank improved (lower number is better)
                                 return 'green';
-                            } else if (rank1 > rank0) { // Rank worsened (higher number is worse)
+                            } else if (currentRank > previousRank) { // Rank worsened (higher number is worse)
                                 return 'red';
                             } else { // Rank unchanged
                                 return 'grey';
                             }
                         },
-                        // Dynamic background color based on rank change - NOW DIRECTLY ACCESSING rankData
+                        // Dynamic background color based on rank change (matching border)
                         backgroundColor: (context) => {
-                            const p0Index = context.p0 ? context.p0.dataIndex : null;
-                            const p1Index = context.p1 ? context.p1.dataIndex : null;
+                            const currentDataIndex = context.dataIndex;
+                            const previousDataIndex = currentDataIndex - 1;
 
-                            // Ensure indices are valid and data exists for those indices
-                            const rank0 = (p0Index !== null && rankData[p0Index] !== undefined) ? rankData[p0Index] : null;
-                            const rank1 = (p1Index !== null && rankData[p1Index] !== undefined) ? rankData[p1Index] : null;
+                            const currentRank = context.dataset.data[currentDataIndex];
+                            const previousRank = context.dataset.data[previousDataIndex];
 
-                            if (typeof rank0 !== 'number' || typeof rank1 !== 'number') {
+                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
                                 return 'rgba(75, 192, 192, 0.2)'; // Default transparent color
                             }
 
-                            if (rank1 < rank0) {
+                            if (currentRank < previousRank) {
                                 return 'rgba(0, 128, 0, 0.2)'; // Green transparent
-                            } else if (rank1 > rank0) {
+                            } else if (currentRank > previousRank) {
                                 return 'rgba(255, 0, 0, 0.2)'; // Red transparent
                             } else {
                                 return 'rgba(128, 128, 128, 0.2)'; // Grey transparent
@@ -532,7 +530,7 @@
                                 maxRotation: 0, // No rotation needed with fewer labels
                                 minRotation: 0,
                                 font: {
-                                    size: window.innerWidth < 600 ? 7 : 11 // NEW: Smaller X-axis tick labels on mobile (increased from 5 to 7)
+                                    size: window.innerWidth < 600 ? 7 : 11 // Smaller X-axis tick labels on mobile
                                 }
                             }
                         },
@@ -544,8 +542,7 @@
                                     size: window.innerWidth < 600 ? 10 : 12 // Smaller axis title on mobile
                                 }
                             },
-                            min: 1, // Top of the chart is rank 1
-                            max: yAxisMax, // Dynamic Y-axis max
+                            // min and max will be dynamically updated in animateRankJourney
                             reverse: true, // Rank 1 is at the top
                             ticks: {
                                 callback: function(value) {
@@ -563,9 +560,8 @@
             });
 
             // Animation Logic
-            // currentAnimationFrameRound is globally declared
-            // animationSpeed calculated above now for 5 seconds total
             const maxRounds = 34;
+            const yAxisBuffer = 500; // Ranks above and below the current rank for dynamic Y-axis window
 
             function animateRankJourney() {
                 if (currentAnimationFrameRound <= maxRounds) {
@@ -578,12 +574,39 @@
                     });
 
                     rankJourneyChartInstance.data.datasets[0].data = animatedData;
+
+                    // NEW: Dynamic Y-axis min/max based on current dot position
+                    const currentRankValue = rankData[currentAnimationFrameRound];
+                    if (typeof currentRankValue === 'number' && !isNaN(currentRankValue)) {
+                        let newYMin = Math.max(1, currentRankValue - yAxisBuffer);
+                        let newYMax = currentRankValue + yAxisBuffer;
+
+                        // Ensure a minimum range for the Y-axis, e.g., at least 2 * buffer
+                        if (newYMax - newYMin < (yAxisBuffer * 2)) {
+                            // If the current rank is very low (e.g., 50), ensure newYMin doesn't go below 1
+                            newYMin = Math.max(1, newYMax - (yAxisBuffer * 2));
+                        }
+                        
+                        // Ensure the dynamic range doesn't exceed the overall Y-axis max
+                        newYMax = Math.min(newYMax, overallYAxisMax); 
+                        // If yMax was capped, ensure yMin is still within reasonable bounds relative to yMax
+                        newYMin = Math.max(1, Math.min(newYMin, newYMax - (yAxisBuffer * 2)));
+
+
+                        rankJourneyChartInstance.options.scales.y.min = newYMin;
+                        rankJourneyChartInstance.options.scales.y.max = newYMax;
+                    }
+
+
                     rankJourneyChartInstance.update();
 
                     currentAnimationFrameRound++;
                     setTimeout(animateRankJourney, animationSpeed); // Use the calculated animation speed
                 } else {
                     videoLoadingMessage.style.display = 'none'; // Hide loading message
+                    // After animation, set Y-axis back to full range for final view
+                    rankJourneyChartInstance.options.scales.y.min = 1;
+                    rankJourneyChartInstance.options.scales.y.max = overallYAxisMax; // Use the calculated max from the start
                     // Reset point radius to show all points after animation
                     rankJourneyChartInstance.data.datasets[0].pointRadius = 3;
                     rankJourneyChartInstance.update();
