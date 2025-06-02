@@ -122,26 +122,6 @@
                 padding: 10px;
             }
         }
-
-        /* Styles for the color legend */
-        .color-legend {
-            display: flex;
-            justify-content: center;
-            gap: 15px; /* Space between legend items */
-            margin-bottom: 10px;
-            flex-wrap: wrap; /* Allow wrapping on small screens */
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            font-size: 0.9em;
-        }
-        .legend-color-box {
-            width: 15px;
-            height: 15px;
-            margin-right: 5px;
-            border: 1px solid #ccc; /* Border to make grey visible */
-        }
     </style>
 </head>
 <body>
@@ -176,17 +156,6 @@
 
             <div id="rankJourneyVideoContainer" style="display: none;">
                 <h3>My Rank Journey</h3>
-                <div class="color-legend">
-                    <div class="legend-item">
-                        <span class="legend-color-box" style="background-color: green;"></span> Green Arrow
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color-box" style="background-color: red;"></span> Red Arrow
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color-box" style="background-color: grey;"></span> Grey Arrow
-                    </div>
-                </div>
                 <p id="videoLoadingMessage" style="display: none;">Generating video...</p>
                 <canvas id="rankJourneyChart"></canvas>
             </div>
@@ -259,6 +228,7 @@
         let rankJourneyChartInstance = null; // To store the Chart.js instance
         let currentAnimationFrameRound = 0; // Global to be accessible by Chart.js callbacks
         let globalWorstOverallRank = 114000; // Global for worst rank, default to 114k (used as fallback/initial)
+        let managerCurrentOverallRank = null; // New global variable for current overall rank
 
         async function analyzeManager() {
             const managerId = document.getElementById('managerId').value;
@@ -280,6 +250,7 @@
             managerOverallRankHistory = [];
             currentAnimationFrameRound = 0; // Reset animation counter
             globalWorstOverallRank = 114000; // Reset worst rank to default for new analysis
+            managerCurrentOverallRank = null; // Reset current manager rank
 
             if (!managerId) {
                 errorDiv.textContent = 'Please enter a Manager ID.';
@@ -320,6 +291,14 @@
                 if (match && match[1]) {
                     globalWorstOverallRank = parseInt(match[1], 10);
                 }
+            }
+
+            // Store current overall rank for new Y-axis scaling logic
+            if (data.overallRank && data.overallRank !== 'N/A') {
+                // Remove commas and parse as float, then round to nearest integer
+                managerCurrentOverallRank = Math.round(parseFloat(data.overallRank.replace(/,/g, '')));
+            } else {
+                managerCurrentOverallRank = null; // Ensure it's explicitly null if no valid rank
             }
 
 
@@ -416,8 +395,25 @@
                 }
             });
 
-            // Calculate overall Y-axis max: ("Worst Overall Rank" value + 100)
-            const overallYAxisMax = Math.max(globalWorstOverallRank + 100, 200); // Ensure a minimum Y-axis max of at least 200
+            // Calculate overall Y-axis max based on new logic
+            let calculatedYAxisMax;
+            const worstOverallRankVal = globalWorstOverallRank; // Use the parsed worst rank
+
+            if (managerCurrentOverallRank !== null) { // Only apply custom logic if overall rank is known
+                if (managerCurrentOverallRank >= 1 && managerCurrentOverallRank <= 150) {
+                    calculatedYAxisMax = worstOverallRankVal + 25;
+                } else if (managerCurrentOverallRank >= 151 && managerCurrentOverallRank <= 300) {
+                    calculatedYAxisMax = worstOverallRankVal + 50;
+                } else { // managerCurrentOverallRank > 300 or other cases
+                    calculatedYAxisMax = worstOverallRankVal + 100;
+                }
+            } else {
+                // Fallback if managerCurrentOverallRank is not set or invalid
+                calculatedYAxisMax = worstOverallRankVal + 100;
+            }
+
+            // Ensure a reasonable minimum max, e.g., if worstOverallRank is very low (e.g. 5)
+            const overallYAxisMax = Math.max(calculatedYAxisMax, 200); // Ensure a minimum Y-axis max of at least 200
 
 
             // Animation speed for 5 seconds total
@@ -495,7 +491,7 @@
                     animation: false, // Disable default Chart.js animation
                     plugins: {
                         legend: {
-                            display: false // Hide default legend as we have a custom one
+                            display: true // Re-enable default legend
                         },
                         title: {
                             display: true,
@@ -542,7 +538,8 @@
                                     size: window.innerWidth < 600 ? 10 : 12 // Smaller axis title on mobile
                                 }
                             },
-                            // min and max will be dynamically updated in animateRankJourney
+                            min: 1, // Fixed min
+                            max: overallYAxisMax, // Fixed max based on new logic
                             reverse: true, // Rank 1 is at the top
                             ticks: {
                                 callback: function(value) {
@@ -561,7 +558,6 @@
 
             // Animation Logic
             const maxRounds = 34;
-            const yAxisBuffer = 500; // Ranks above and below the current rank for dynamic Y-axis window
 
             function animateRankJourney() {
                 if (currentAnimationFrameRound <= maxRounds) {
@@ -574,40 +570,16 @@
                     });
 
                     rankJourneyChartInstance.data.datasets[0].data = animatedData;
-
-                    // NEW: Dynamic Y-axis min/max based on current dot position
-                    const currentRankValue = rankData[currentAnimationFrameRound];
-                    if (typeof currentRankValue === 'number' && !isNaN(currentRankValue)) {
-                        let newYMin = Math.max(1, currentRankValue - yAxisBuffer);
-                        let newYMax = currentRankValue + yAxisBuffer;
-
-                        // Ensure a minimum range for the Y-axis, e.g., at least 2 * buffer
-                        if (newYMax - newYMin < (yAxisBuffer * 2)) {
-                            // If the current rank is very low (e.g., 50), ensure newYMin doesn't go below 1
-                            newYMin = Math.max(1, newYMax - (yAxisBuffer * 2));
-                        }
-                        
-                        // Ensure the dynamic range doesn't exceed the overall Y-axis max
-                        newYMax = Math.min(newYMax, overallYAxisMax); 
-                        // If yMax was capped, ensure yMin is still within reasonable bounds relative to yMax
-                        newYMin = Math.max(1, Math.min(newYMin, newYMax - (yAxisBuffer * 2)));
-
-
-                        rankJourneyChartInstance.options.scales.y.min = newYMin;
-                        rankJourneyChartInstance.options.scales.y.max = newYMax;
-                    }
-
-
+                    
+                    // Removed dynamic Y-axis min/max updates here
+                    
                     rankJourneyChartInstance.update();
 
                     currentAnimationFrameRound++;
                     setTimeout(animateRankJourney, animationSpeed); // Use the calculated animation speed
                 } else {
                     videoLoadingMessage.style.display = 'none'; // Hide loading message
-                    // After animation, set Y-axis back to full range for final view
-                    rankJourneyChartInstance.options.scales.y.min = 1;
-                    rankJourneyChartInstance.options.scales.y.max = overallYAxisMax; // Use the calculated max from the start
-                    // Reset point radius to show all points after animation
+                    // After animation, reset point radius to show all points
                     rankJourneyChartInstance.data.datasets[0].pointRadius = 3;
                     rankJourneyChartInstance.update();
                 }
