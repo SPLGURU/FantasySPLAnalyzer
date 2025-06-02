@@ -95,7 +95,7 @@
         tr:hover {
             background-color: #ddd;
         }
-        .summary-stats p { /* Kept for other potential plain text stats, but not used for rank table anymore */
+        .summary-stats p {
             font-size: 1.1em;
             margin: 5px 0;
         }
@@ -109,7 +109,7 @@
         }
         #rankJourneyVideoContainer canvas {
             max-width: 100%; /* Ensures canvas scales down */
-            height: auto; /* Maintains aspect ratio */
+            height: auto; /* Maintains aspect ratio on large screens */
             box-sizing: border-box; /* Include padding and border in the element's total width and height */
         }
 
@@ -121,6 +121,31 @@
             .container {
                 padding: 10px;
             }
+            /* NEW: Adjust canvas height for mobile to improve Y-axis visualization */
+            #rankJourneyVideoContainer canvas {
+                height: 50vw; /* Height is 50% of viewport width, makes it taller */
+                min-height: 300px; /* Ensure a minimum height */
+            }
+        }
+
+        /* Styles for the color legend */
+        .color-legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* Space between legend items */
+            margin-bottom: 10px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+        }
+        .legend-color-box {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border: 1px solid #ccc; /* Border to make grey visible */
         }
     </style>
 </head>
@@ -156,6 +181,17 @@
 
             <div id="rankJourneyVideoContainer" style="display: none;">
                 <h3>My Rank Journey</h3>
+                <div class="color-legend">
+                    <div class="legend-item">
+                        <span class="legend-color-box" style="background-color: green;"></span> Green Arrow
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color-box" style="background-color: red;"></span> Red Arrow
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color-box" style="background-color: grey;"></span> Grey Arrow
+                    </div>
+                </div>
                 <p id="videoLoadingMessage" style="display: none;">Generating video...</p>
                 <canvas id="rankJourneyChart"></canvas>
             </div>
@@ -220,7 +256,7 @@
         document.getElementById('managerId').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 analyzeManager();
-                document.getElementById('managerId').blur(); // NEW: Hide keyboard on Enter
+                document.getElementById('managerId').blur(); // Hide keyboard on Enter
             }
         });
 
@@ -276,7 +312,6 @@
                 console.error("Fetch error:", err);
             } finally {
                 loadingDiv.style.display = 'none'; // Hide loading indicator
-                // document.getElementById('managerId').blur(); // Alternative place to hide keyboard
             }
         }
 
@@ -284,7 +319,7 @@
             // Store rank history for video generation
             managerOverallRankHistory = data.overallRankHistory || [];
 
-            // NEW: Extract numeric worst overall rank for Y-axis max
+            // Extract numeric worst overall rank for Y-axis max
             if (data.worstOverallRank && data.worstOverallRank !== 'N/A') {
                 const match = data.worstOverallRank.match(/^(\d+)/); // Extracts numbers at the beginning
                 if (match && match[1]) {
@@ -391,6 +426,12 @@
             const calculatedYAxisMax = Math.max(globalWorstOverallRank + 100, 5000); // Ensures at least a reasonable range
             const yAxisMax = calculatedYAxisMax;
 
+            // NEW: Animation speed for 5 seconds total
+            const totalAnimationDurationMs = 5000;
+            const numberOfAnimationSteps = 34; // From RD1 to RD34 (34 segments)
+            const animationDurationPerStep = totalAnimationDurationMs / numberOfAnimationSteps;
+            const animationSpeed = animationDurationPerStep; // Use this in setTimeout
+
 
             // Chart.js configuration
             const ctx = rankJourneyChartCanvas.getContext('2d');
@@ -401,8 +442,6 @@
                     datasets: [{
                         label: 'Your Overall Rank',
                         data: [], // Starts empty, will be populated by animation
-                        borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
                         tension: 0.1,
                         spanGaps: true, // Connect gaps where data is null
                         pointRadius: (context) => {
@@ -410,16 +449,52 @@
                             // And only if there's actual data for that point
                             return context.dataIndex === currentAnimationFrameRound && rankData[context.dataIndex] !== null ? 5 : 0;
                         },
-                        pointBackgroundColor: 'red'
+                        pointBackgroundColor: 'red',
+                        // NEW: Dynamic border color based on rank change
+                        borderColor: (context) => {
+                            // Context for segments refers to p0 and p1 (start and end points of the segment)
+                            if (!context.segment || context.p0.parsed.y === null || context.p1.parsed.y === null) {
+                                return 'rgb(75, 192, 192)'; // Default color for initial or null segments
+                            }
+
+                            const p0Rank = context.p0.parsed.y; // Rank at start of segment
+                            const p1Rank = context.p1.parsed.y; // Rank at end of segment
+
+                            if (p1Rank < p0Rank) { // Rank improved (lower number is better)
+                                return 'green';
+                            } else if (p1Rank > p0Rank) { // Rank worsened (higher number is worse)
+                                return 'red';
+                            } else { // Rank unchanged
+                                return 'grey';
+                            }
+                        },
+                        // NEW: Dynamic background color based on rank change (matching border)
+                        backgroundColor: (context) => {
+                            if (!context.segment || context.p0.parsed.y === null || context.p1.parsed.y === null) {
+                                return 'rgba(75, 192, 192, 0.2)'; // Default transparent color
+                            }
+
+                            const p0Rank = context.p0.parsed.y;
+                            const p1Rank = context.p1.parsed.y;
+
+                            if (p1Rank < p0Rank) {
+                                return 'rgba(0, 128, 0, 0.2)'; // Green transparent
+                            } else if (p1Rank > p0Rank) {
+                                return 'rgba(255, 0, 0, 0.2)'; // Red transparent
+                            } else {
+                                return 'rgba(128, 128, 128, 0.2)'; // Grey transparent
+                            }
+                        },
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true, // Maintain aspect ratio for scaling
+                    // NEW: Conditional maintainAspectRatio for mobile
+                    maintainAspectRatio: window.innerWidth >= 600, // True for PC, False for mobile (allowing CSS height control)
                     animation: false, // Disable default Chart.js animation
                     plugins: {
                         legend: {
-                            display: true
+                            display: false // Hide default legend as we have a custom one
                         },
                         title: {
                             display: true,
@@ -441,12 +516,12 @@
                             min: 0,
                             max: 34,
                             ticks: {
-                                // NEW: Custom callback to show only even rounds + 'Start'
+                                // NEW: Custom callback for X-axis labels (numbers only on mobile, 'RD X' on PC)
                                 callback: function(value, index, values) {
                                     if (index === 0) { // 'Start' for Round 0
                                         return 'Start';
                                     } else if (index >= 1 && index <= 34 && index % 2 === 0) { // Even rounds
-                                        return `RD ${index}`;
+                                        return window.innerWidth < 600 ? `${index}` : `RD ${index}`;
                                     }
                                     return null; // Hide odd rounds
                                 },
@@ -485,7 +560,8 @@
             });
 
             // Animation Logic
-            const animationDuration = 50; // Milliseconds per frame/round
+            // currentAnimationFrameRound is globally declared
+            // animationSpeed calculated above now for 5 seconds total
             const maxRounds = 34;
 
             function animateRankJourney() {
@@ -502,7 +578,7 @@
                     rankJourneyChartInstance.update();
 
                     currentAnimationFrameRound++;
-                    setTimeout(animateRankJourney, animationDuration);
+                    setTimeout(animateRankJourney, animationSpeed); // Use the calculated animation speed
                 } else {
                     videoLoadingMessage.style.display = 'none'; // Hide loading message
                     // Reset point radius to show all points after animation
