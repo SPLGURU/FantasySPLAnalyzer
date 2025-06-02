@@ -276,27 +276,17 @@
                 padding: 10px;
                 font-size: 1em;
             }
-            /* Further reduce font size for ALL table cells and headers for phones */
-            /* This is the 25% reduction for the tables that are NOT rank-points-table or missed-points-table */
-            table:not(.rank-points-table):not(.missed-points-table) th,
-            table:not(.rank-points-table):not(.missed-points-table) td {
-                font-size: 0.75em; /* Original 0.95em * 0.75 = 0.7125em, so 0.75em is a good target */
+            /* Further reduce font size for all table cells and headers for phones */
+            th, td {
                 padding: 5px 6px;
+                font-size: 0.7em; /* Target: ~25% reduction from desktop 0.95em (0.95 * 0.75 = 0.7125) */
             }
-
-            /* The two tables that are already fixed will maintain their previous font-size for mobile (0.7em) */
-            .rank-points-table th, .rank-points-table td,
-            .missed-points-table th, .missed-points-table td {
-                font-size: 0.7em; /* Keep original target for these two tables */
-                padding: 5px 6px;
-            }
-
-
-            /* Specific header types for phones (these were already slightly smaller, now potentially even more so if not excluded) */
+            /* Specific header types for phones, also reduced */
             .captaincy-table th,
             .best-players-table th,
-            .worst-players-table th { /* Missed points table headers are now covered by the general rule above, but can be overridden if needed */
-                font-size: 0.65em; /* This will be overridden by the general rule if the table is not excluded. If it is excluded, it keeps this. */
+            .worst-players-table th,
+            .missed-points-table th {
+                font-size: 0.65em; /* Target: ~25% reduction from desktop 0.9em (0.9 * 0.75 = 0.675) */
                 padding: 4px 5px;
             }
 
@@ -554,16 +544,16 @@
             let bestRankRaw = String(data.bestOverallRank);
             let bestRankNumeric = bestRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim(); // Get the part before the (R#) or (RD#)
             let bestRankRound = extractAndFormatRound(bestRankRaw);
-            addRow("Best Overall Rank", `${bestRankNumeric} 件 ${bestRankRound}`);
+            addRow("Best Overall Rank", `${bestRankNumeric} ${bestRankRound}`); // Removed specific symbol
 
             // Format Worst Overall Rank
             let worstRankRaw = String(data.worstOverallRank);
             let worstRankNumeric = worstRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim(); // Get the part before the (R#) or (RD#)
             let worstRankRound = extractAndFormatRound(worstRankRaw);
-            addRow("Worst Overall Rank", `${worstRankNumeric} 件 ${worstRankRound}`);
+            addRow("Worst Overall Rank", `${worstRankNumeric} ${worstRankRound}`); // Removed specific symbol
 
             // Overall Rank is simpler
-            addRow("Overall Rank", data.overallRank + ' 件'); 
+            addRow("Overall Rank", data.overallRank); // Removed specific symbol
 
             // Calculate arrow counts
             let greenArrows = 0;
@@ -592,10 +582,10 @@
             addRow("Average Points", data.averagePoints);
             addRow("Average Points for 1st Place", data.averagePointsFor1stPlace);
             
-            // Add new rows for arrow counts with NEW EMOJIS
-            addRow("Number of Green Arrows", greenArrows + ' 泙');
-            addRow("Number of Red Arrows", redArrows + ' 閥');
-            addRow("Number of Grey Arrows", greyArrows + ' 筐�);
+            // Add new rows for arrow counts with standard EMOJIS
+            addRow("Number of Green Arrows", greenArrows + ' ⬆️');
+            addRow("Number of Red Arrows", redArrows + ' ⬇️');
+            addRow("Number of Grey Arrows", greyArrows + ' ↔️');
 
             // NEW ROW for "Create My Rank Journey Video" button (Moved after arrow counts)
             const videoButtonRow = rankPointsTableBody.insertRow();
