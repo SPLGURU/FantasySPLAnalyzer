@@ -9,9 +9,11 @@
     <style>
         /* SPL Fantasy Inspired Design */
         :root {
-            /* Main Colors */
-            --spl-dark-bg: #1A202C; /* Dark background */
-            --spl-card-bg: #2D3748; /* Card/section background */
+            /* Main Colors - Adjusted for better contrast */
+            --spl-dark-bg: #1A202C; /* Very dark background for body */
+            --spl-card-bg: #2D3748; /* Slightly lighter dark for main container/cards */
+            --spl-table-bg: #1F2937; /* Distinct dark grey for table background (was canvas background) */
+            --spl-header-bg: #222935; /* Even darker for table headers */
             --spl-text-light: #E2E8F0; /* Light text color */
             --spl-text-dark: #A0AEC0; /* Darker text for secondary info */
             --spl-primary-accent: #66DA26; /* Vibrant green for positive elements */
@@ -19,12 +21,18 @@
             --spl-button-bg: #4C51BF; /* A nice purple-blue for buttons */
             --spl-button-hover: #5A67D8; /* Lighter button on hover */
             --spl-border-color: #4A5568; /* Subtle border color */
-            --spl-header-bg: #222935; /* Header specific background */
+            --spl-table-row-even: #2F3745; /* Slightly different shade for even rows */
+            --spl-table-row-hover: #3C475A; /* Accent on hover */
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden; /* Prevent horizontal scrolling on the entire page */
         }
 
         body {
             font-family: 'Roboto', sans-serif;
-            margin: 0;
             padding: 20px;
             background-color: var(--spl-dark-bg);
             color: var(--spl-text-light);
@@ -127,12 +135,15 @@
 
         table {
             width: 100%;
-            border-collapse: separate; /* Use separate for rounded corners on cells */
+            border-collapse: separate;
             border-spacing: 0;
             margin-top: 25px;
-            background-color: var(--spl-dark-bg); /* Darker background for tables */
+            background-color: var(--spl-table-bg); /* Distinct dark grey for tables */
             border-radius: 8px;
-            overflow: hidden; /* Ensures rounded corners are applied */
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4); /* Stronger shadow */
+            border: 1px solid var(--spl-border-color); /* Subtle border */
+            table-layout: fixed; /* NEW: Fixed table layout for responsiveness */
         }
 
         th, td {
@@ -140,14 +151,21 @@
             padding: 12px 15px;
             text-align: left;
             font-size: 0.95em;
+            word-break: break-word; /* NEW: Allow long words to break and wrap */
+            white-space: normal; /* NEW: Ensure text wraps */
         }
 
         th {
-            background-color: var(--spl-header-bg); /* Darker header background */
+            background-color: var(--spl-header-bg);
             color: var(--spl-text-light);
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            text-align: center; /* Center headers too for consistency */
+        }
+
+        td {
+            text-align: center; /* NEW: Center all values in cells */
         }
 
         /* Specific border-radius for table corners */
@@ -158,10 +176,10 @@
 
 
         tr:nth-child(even) {
-            background-color: #2F3745; /* Slightly different shade for even rows */
+            background-color: var(--spl-table-row-even); /* Slightly different shade for even rows */
         }
         tr:hover {
-            background-color: #3C475A; /* Accent on hover */
+            background-color: var(--spl-table-row-hover); /* Accent on hover */
             transition: background-color 0.2s ease;
         }
 
@@ -211,7 +229,7 @@
             h3 { font-size: 1.2em; }
             th, td {
                 padding: 8px 10px;
-                font-size: 0.85em;
+                font-size: 0.85em; /* Further reduced font size */
             }
         }
         @media (max-width: 480px) {
@@ -220,8 +238,8 @@
                 font-size: 1em;
             }
             th, td {
-                padding: 6px 8px;
-                font-size: 0.8em;
+                padding: 5px 6px; /* Even smaller padding */
+                font-size: 0.75em; /* Even smaller font size */
             }
         }
     </style>
