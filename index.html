@@ -153,6 +153,7 @@
             font-size: 0.95em;
             word-break: break-word; /* Allows long words to break and wrap */
             white-space: normal; /* Ensures text wraps normally */
+            line-height: 1.2; /* Tighter line spacing for wrapped text */
         }
 
         th {
@@ -217,14 +218,6 @@
             margin-top: 10px;
         }
 
-        /* Specific adjustments for table headers for 1-2 lines (except Rank & Points) */
-        .captaincy-table th,
-        .best-players-table th,
-        .worst-players-table th,
-        .missed-points-table th {
-            font-size: 0.9em; /* Slightly smaller default font for these headers */
-        }
-
         /* Responsive adjustments for smaller screens */
         @media (max-width: 768px) {
             body {
@@ -237,44 +230,45 @@
             h2 { font-size: 1.6em; }
             h3 { font-size: 1.2em; }
 
-            /* Reduce font size for all table cells and headers by approx 25% for tablets */
+            /* Reduce font size for all table cells and headers for tablets */
             th, td {
                 padding: 8px 10px;
-                font-size: 0.7em; /* ~25% reduction from 0.95em */
+                font-size: 0.8em;
             }
+            /* Default smaller font for specific header types, also reduced */
             .captaincy-table th,
             .best-players-table th,
             .worst-players-table th,
             .missed-points-table th {
-                font-size: 0.65em; /* ~25% reduction from 0.9em */
+                font-size: 0.75em; /* Slightly larger to improve readability after new widths */
                 padding: 6px 8px;
             }
 
-            /* Adjust column widths for better fitting on tablets */
+            /* Adjust column widths for better fitting on tablets - general distribution */
             .rank-points-table th:nth-child(1) { width: 40%; }
             .rank-points-table th:nth-child(2) { width: 60%; }
 
-            .captaincy-table th:nth-child(1) { width: 15%; } /* Captain */
-            .captaincy-table th:nth-child(2) { width: 18%; } /* Times Captained */
-            .captaincy-table th:nth-child(3) { width: 14%; } /* Successful */
-            .captaincy-table th:nth-child(4) { width: 14%; } /* Failed */
-            .captaincy-table th:nth-child(5) { width: 19%; } /* Total Captaincy Points */
-            .captaincy-table th:nth-child(6) { width: 20%; } /* Captained in Rounds */
+            .captaincy-table th:nth-child(1) { width: 15%; }
+            .captaincy-table th:nth-child(2) { width: 18%; }
+            .captaincy-table th:nth-child(3) { width: 14%; }
+            .captaincy-table th:nth-child(4) { width: 14%; }
+            .captaincy-table th:nth-child(5) { width: 19%; }
+            .captaincy-table th:nth-child(6) { width: 20%; } /* 'Rounds' is now short */
 
             .best-players-table th:nth-child(1),
-            .worst-players-table th:nth-child(1) { width: 25%; } /* Players */
+            .worst-players-table th:nth-child(1) { width: 25%; }
             .best-players-table th:nth-child(2),
-            .worst-players-table th:nth-child(2) { width: 15%; } /* Started */
+            .worst-players-table th:nth-child(2) { width: 15%; }
             .best-players-table th:nth-child(3),
-            .worst-players-table th:nth-child(3) { width: 20%; } /* Auto Subbed */
+            .worst-players-table th:nth-child(3) { width: 20%; }
             .best-players-table th:nth-child(4),
-            .worst-players-table th:nth-child(4) { width: 20%; } /* Points Gained */
+            .worst-players-table th:nth-child(4) { width: 20%; }
             .best-players-table th:nth-child(5),
-            .worst-players-table th:nth-child(5) { width: 20%; } /* Benched Points */
+            .worst-players-table th:nth-child(5) { width: 20%; }
 
-            .missed-points-table th:nth-child(1) { width: 40%; } /* Player Name */
-            .missed-points-table th:nth-child(2) { width: 30%; } /* Points */
-            .missed-points-table th:nth-child(3) { width: 30%; } /* Round */
+            .missed-points-table th:nth-child(1) { width: 40%; }
+            .missed-points-table th:nth-child(2) { width: 30%; }
+            .missed-points-table th:nth-child(3) { width: 30%; }
         }
 
         @media (max-width: 480px) {
@@ -282,19 +276,49 @@
                 padding: 10px;
                 font-size: 1em;
             }
-            /* Further reduce font size for all table cells and headers by approx 25% for phones */
+            /* Further reduce font size for all table cells and headers for phones */
             th, td {
                 padding: 5px 6px;
-                font-size: 0.6em; /* ~25% reduction from previous mobile 0.8em */
+                font-size: 0.7em; /* Target: ~25% reduction from desktop 0.95em (0.95 * 0.75 = 0.7125) */
             }
+            /* Specific header types for phones, also reduced */
             .captaincy-table th,
             .best-players-table th,
             .worst-players-table th,
             .missed-points-table th {
-                font-size: 0.55em; /* ~25% reduction from previous mobile 0.7em */
+                font-size: 0.65em; /* Target: ~25% reduction from desktop 0.9em (0.9 * 0.75 = 0.675) */
                 padding: 4px 5px;
             }
-            /* Column widths remain the same as 768px; smaller font handles tighter space */
+
+            /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS --- */
+            /* Rank & Points Table: Make left column wider for one-line text */
+            .rank-points-table th:nth-child(1) { width: 55%; }
+            .rank-points-table th:nth-child(2) { width: 45%; }
+
+            /* Top 3 Captains Table: Re-distribute widths for 'Rounds' and other headers */
+            .captaincy-table th:nth-child(1) { width: 18%; } /* Captain */
+            .captaincy-table th:nth-child(2) { width: 18%; } /* Times Captained */
+            .captaincy-table th:nth-child(3) { width: 15%; } /* Successful */
+            .captaincy-table th:nth-child(4) { width: 15%; } /* Failed */
+            .captaincy-table th:nth-child(5) { width: 22%; } /* Total Captaincy Points */
+            .captaincy-table th:nth-child(6) { width: 12%; } /* Rounds (much shorter) */
+
+            /* Best/Worst Players Tables: Give more room to player names */
+            .best-players-table th:nth-child(1),
+            .worst-players-table th:nth-child(1) { width: 30%; } /* Players */
+            .best-players-table th:nth-child(2),
+            .worst-players-table th:nth-child(2) { width: 15%; } /* Started */
+            .best-players-table th:nth-child(3),
+            .worst-players-table th:nth-child(3) { width: 18%; } /* Auto Subbed */
+            .best-players-table th:nth-child(4),
+            .worst-players-table th:nth-child(4) { width: 18%; } /* Points Gained */
+            .best-players-table th:nth-child(5),
+            .worst-players-table th:nth-child(5) { width: 19%; } /* Benched Points */
+
+            /* Missed Points Table: Give more room to player names */
+            .missed-points-table th:nth-child(1) { width: 45%; } /* Player Name */
+            .missed-points-table th:nth-child(2) { width: 27.5%; } /* Points */
+            .missed-points-table th:nth-child(3) { width: 27.5%; } /* Round */
         }
     </style>
 </head>
@@ -343,8 +367,8 @@
                             <th>Times Captained</th>
                             <th>Successful</th>
                             <th>Failed</th>
-                            <th>Total Captaincy Points</th> <th>Captained in Rounds</th>
-                        </tr>
+                            <th>Total Captaincy Points</th>
+                            <th>Rounds</th> </tr>
                     </thead>
                     <tbody id="captaincyTableBody">
                         </tbody>
@@ -356,7 +380,8 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Players</th> <th>Started</th>
+                            <th>Players</th>
+                            <th>Started</th>
                             <th>Auto Subbed</th>
                             <th>Points Gained</th>
                             <th>Benched Points</th>
@@ -372,7 +397,8 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Players</th> <th>Started</th>
+                            <th>Players</th>
+                            <th>Started</th>
                             <th>Auto Subbed</th>
                             <th>Points Gained</th>
                             <th>Benched Points</th>
