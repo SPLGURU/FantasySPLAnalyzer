@@ -75,12 +75,15 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     const maxRounds = 34; // Total number of rounds in the season
 
-    // NEW: Array to store overall rank for each round
+    // Array to store overall rank for each round
     const overallRankHistory = [];
 
     // Object to store stats for all players owned by the manager
     const playerSeasonStats = {}; // { playerId: { started: 0, autoSubbed: 0, pointsGained: 0, benchedPoints: 0, roundsInfo: {} } }
     const uniquePlayerIdsInSquad = new Set();
+
+    // NEW: Array to store potential "missed points" instances
+    const missedPointsInstances = [];
 
     // Fetch data for all rounds for the given manager concurrently with retries
     const managerPicksPromises = [];
@@ -147,7 +150,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             captainedRoundsTracker[captainId].push(round);
         }
 
-        // Process data for Best/Worst Players Table
+        // Process data for Best/Worst Players Table AND Missed Points Table
         const automaticSubs = data.automatic_subs || [];
         const subbedOutPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_out));
         const subbedInPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_in));
@@ -230,9 +233,29 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
             } else {
                 // Benched Points: Player was on bench (12-15) OR was subbed out
                 playerStats.benchedPoints += playerPointsForRound; // Raw points from bench
+
+                // NEW LOGIC for Missed Points Table:
+                // Check if the player was on the bench (position 12-15) AND NOT subbed in
+                if (position >= 12 && position <= 15 && !isSubbedIn) {
+                    missedPointsInstances.push({
+                        playerId: playerId,
+                        points: playerPointsForRound,
+                        round: roundNum
+                    });
+                }
             }
         }
     }
+
+    // Sort missed points instances by points in descending order and take top 5
+    const top5MissedPoints = missedPointsInstances
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 5)
+        .map(item => ({
+            playerName: playerNameMap[item.playerId] || `Unknown (ID:${item.playerId})`,
+            points: item.points,
+            round: item.round
+        }));
 
 
     const top3CaptainsStats = [];
@@ -309,7 +332,8 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         top3Captains: top3CaptainsStats,
         bestPlayers: bestPlayersList,
         worstPlayers: worstPlayersList,
-        overallRankHistory: overallRankHistory // NEW: Return the full rank history
+        overallRankHistory: overallRankHistory,
+        top5MissedPoints: top5MissedPoints // NEW: Include in response
     };
 }
 
@@ -344,7 +368,8 @@ exports.handler = async function(event, context) {
                 top3Captains: managerStats.top3Captains,
                 bestPlayers: managerStats.bestPlayers,
                 worstPlayers: managerStats.worstPlayers,
-                overallRankHistory: managerStats.overallRankHistory // NEW: Include in response
+                overallRankHistory: managerStats.overallRankHistory,
+                top5MissedPoints: managerStats.top5MissedPoints // NEW: Include in response
             }),
             headers: { "Content-Type": "application/json" }
         };
