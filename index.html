@@ -375,7 +375,8 @@
             // Display Worst Players Table
             const worstPlayersTableBody = document.getElementById('worstPlayersTableBody');
             data.worstPlayers.forEach(player => {
-                const row = worstPlayersTableBody.insertCell();
+                // FIX: Changed .insertCell() to .insertRow() here
+                const row = worstPlayersTableBody.insertRow();
                 row.insertCell().textContent = player.name;
                 row.insertCell().textContent = player.started;
                 row.insertCell().textContent = player.autoSubbed;
@@ -483,7 +484,7 @@
                 },
                 options: {
                     responsive: true,
-                    // NEW: Set aspect ratio to 1 for a square chart on both PC and Phone
+                    // Set aspect ratio to 1 for a square chart on both PC and Phone
                     maintainAspectRatio: true,
                     aspectRatio: 1, 
                     animation: false, // Disable default Chart.js animation
@@ -511,7 +512,7 @@
                             min: 0,
                             max: 34,
                             ticks: {
-                                // NEW: Custom callback for X-axis labels (numbers only for both PC and Phone)
+                                // Custom callback for X-axis labels (numbers only for both PC and Phone)
                                 callback: function(value, index, values) {
                                     if (index === 0) { // 'Start' for Round 0
                                         return 'Start';
@@ -524,7 +525,7 @@
                                 maxRotation: 0, // No rotation needed with fewer labels
                                 minRotation: 0,
                                 font: {
-                                    size: window.innerWidth < 600 ? 5 : 11 // NEW: Smaller X-axis tick labels on mobile (half)
+                                    size: window.innerWidth < 600 ? 5 : 11 // Smaller X-axis tick labels on mobile (half)
                                 }
                             }
                         },
