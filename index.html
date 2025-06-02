@@ -258,7 +258,7 @@
         let managerOverallRankHistory = []; // Global variable to store rank history
         let rankJourneyChartInstance = null; // To store the Chart.js instance
         let currentAnimationFrameRound = 0; // Global to be accessible by Chart.js callbacks
-        let globalWorstOverallRank = 114000; // Global for worst rank, default to 114k
+        let globalWorstOverallRank = 114000; // Global for worst rank, default to 114k (used as fallback/initial)
 
         async function analyzeManager() {
             const managerId = document.getElementById('managerId').value;
@@ -279,7 +279,7 @@
             // Clear global rank history and reset animation state
             managerOverallRankHistory = [];
             currentAnimationFrameRound = 0; // Reset animation counter
-            globalWorstOverallRank = 114000; // Reset worst rank to default
+            globalWorstOverallRank = 114000; // Reset worst rank to default for new analysis
 
             if (!managerId) {
                 errorDiv.textContent = 'Please enter a Manager ID.';
@@ -375,7 +375,6 @@
             // Display Worst Players Table
             const worstPlayersTableBody = document.getElementById('worstPlayersTableBody');
             data.worstPlayers.forEach(player => {
-                // FIX: Changed .insertCell() to .insertRow() here
                 const row = worstPlayersTableBody.insertRow();
                 row.insertCell().textContent = player.name;
                 row.insertCell().textContent = player.started;
@@ -418,9 +417,11 @@
             });
 
             // Calculate dynamic Y-axis max: ("Worst Overall Rank" value + 100)
-            // Ensure a minimum max value in case worst rank is very low
-            const calculatedYAxisMax = Math.max(globalWorstOverallRank + 100, 5000); // Ensures at least a reasonable range
-            const yAxisMax = calculatedYAxisMax;
+            // Removed the Math.max(..., 5000) part as requested.
+            // Ensure a minimum Y-axis max of at least 200 for very high-ranking managers
+            // to avoid extreme zooming if worst rank is e.g. 15 or 20.
+            const yAxisMax = Math.max(globalWorstOverallRank + 100, 200);
+
 
             // Animation speed for 5 seconds total
             const totalAnimationDurationMs = 5000;
@@ -447,12 +448,12 @@
                         pointBackgroundColor: 'red',
                         // Dynamic border color based on rank change
                         borderColor: (context) => {
-                            // context.p0 and context.p1 are the start and end points of the segment
-                            const p0Parsed = context.p0 && context.p0.parsed ? context.p0.parsed.y : null;
-                            const p1Parsed = context.p1 && context.p1.parsed ? context.p1.parsed.y : null;
-
+                            const p0Parsed = context.p0 && typeof context.p0.parsed.y === 'number' ? context.p0.parsed.y : null;
+                            const p1Parsed = context.p1 && typeof context.p1.parsed.y === 'number' ? context.p1.parsed.y : null;
+                            
+                            // Return default if data is not a valid number for either point
                             if (p0Parsed === null || p1Parsed === null) {
-                                return 'rgb(75, 192, 192)'; // Default color for initial or null segments/gaps
+                                return 'rgb(75, 192, 192)'; 
                             }
 
                             if (p1Parsed < p0Parsed) { // Rank improved (lower number is better)
@@ -465,11 +466,11 @@
                         },
                         // Dynamic background color based on rank change (matching border)
                         backgroundColor: (context) => {
-                            const p0Parsed = context.p0 && context.p0.parsed ? context.p0.parsed.y : null;
-                            const p1Parsed = context.p1 && context.p1.parsed ? context.p1.parsed.y : null;
+                            const p0Parsed = context.p0 && typeof context.p0.parsed.y === 'number' ? context.p0.parsed.y : null;
+                            const p1Parsed = context.p1 && typeof context.p1.parsed.y === 'number' ? context.p1.parsed.y : null;
 
                             if (p0Parsed === null || p1Parsed === null) {
-                                return 'rgba(75, 192, 192, 0.2)'; // Default transparent color
+                                return 'rgba(75, 192, 192, 0.2)'; 
                             }
 
                             if (p1Parsed < p0Parsed) {
@@ -525,7 +526,7 @@
                                 maxRotation: 0, // No rotation needed with fewer labels
                                 minRotation: 0,
                                 font: {
-                                    size: window.innerWidth < 600 ? 5 : 11 // Smaller X-axis tick labels on mobile (half)
+                                    size: window.innerWidth < 600 ? 7 : 11 // NEW: Smaller X-axis tick labels on mobile (increased from 5 to 7)
                                 }
                             }
                         },
