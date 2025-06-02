@@ -11,9 +11,12 @@
         :root {
             /* Main Colors - Adjusted for better contrast */
             --spl-dark-bg: #1A202C; /* Very dark background for body */
-            --spl-card-bg: #2D3748; /* Slightly lighter dark for main container/cards */
-            --spl-table-bg: #1F2937; /* Distinct dark grey for table background (was canvas background) */
-            --spl-header-bg: #222935; /* Even darker for table headers */
+            --spl-container-bg: #2D3748; /* Slightly lighter dark for main container/cards */
+            --spl-table-bg: #1F2937; /* Distinct dark grey for table background */
+            --spl-table-header-bg: #303846; /* Medium dark blue-grey for table headers */
+            --spl-table-row-even: #26303C; /* Slightly darker than table bg for even rows */
+            --spl-table-row-hover: #364250; /* Lighter for hover */
+
             --spl-text-light: #E2E8F0; /* Light text color */
             --spl-text-dark: #A0AEC0; /* Darker text for secondary info */
             --spl-primary-accent: #66DA26; /* Vibrant green for positive elements */
@@ -21,8 +24,6 @@
             --spl-button-bg: #4C51BF; /* A nice purple-blue for buttons */
             --spl-button-hover: #5A67D8; /* Lighter button on hover */
             --spl-border-color: #4A5568; /* Subtle border color */
-            --spl-table-row-even: #2F3745; /* Slightly different shade for even rows */
-            --spl-table-row-hover: #3C475A; /* Accent on hover */
         }
 
         html, body {
@@ -42,7 +43,7 @@
         .container {
             max-width: 900px;
             margin: 0 auto;
-            background-color: var(--spl-card-bg);
+            background-color: var(--spl-container-bg);
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
@@ -143,20 +144,19 @@
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4); /* Stronger shadow */
             border: 1px solid var(--spl-border-color); /* Subtle border */
-            table-layout: fixed; /* NEW: Fixed table layout for responsiveness */
+            table-layout: fixed; /* Fixed table layout for responsiveness */
         }
 
         th, td {
             border: 1px solid var(--spl-border-color);
             padding: 12px 15px;
-            text-align: left;
             font-size: 0.95em;
-            word-break: break-word; /* NEW: Allow long words to break and wrap */
-            white-space: normal; /* NEW: Ensure text wraps */
+            word-break: break-word; /* Allow long words to break and wrap */
+            white-space: normal; /* Ensure text wraps */
         }
 
         th {
-            background-color: var(--spl-header-bg);
+            background-color: var(--spl-table-header-bg); /* Medium dark blue-grey for table headers */
             color: var(--spl-text-light);
             font-weight: bold;
             text-transform: uppercase;
@@ -165,7 +165,7 @@
         }
 
         td {
-            text-align: center; /* NEW: Center all values in cells */
+            text-align: center; /* Center all values in cells */
         }
 
         /* Specific border-radius for table corners */
@@ -176,10 +176,10 @@
 
 
         tr:nth-child(even) {
-            background-color: var(--spl-table-row-even); /* Slightly different shade for even rows */
+            background-color: var(--spl-table-row-even); /* Slightly darker than table bg for even rows */
         }
         tr:hover {
-            background-color: var(--spl-table-row-hover); /* Accent on hover */
+            background-color: var(--spl-table-row-hover); /* Lighter for hover */
             transition: background-color 0.2s ease;
         }
 
@@ -216,6 +216,14 @@
             margin-top: 10px;
         }
 
+        /* Specific adjustments for table headers for 1-2 lines (except Rank & Points) */
+        .captaincy-table th,
+        .best-players-table th,
+        .worst-players-table th,
+        .missed-points-table th {
+            font-size: 0.9em; /* Slightly smaller default font for these headers */
+        }
+
         /* Responsive adjustments for smaller screens */
         @media (max-width: 768px) {
             body {
@@ -231,6 +239,13 @@
                 padding: 8px 10px;
                 font-size: 0.85em; /* Further reduced font size */
             }
+            .captaincy-table th,
+            .best-players-table th,
+            .worst-players-table th,
+            .missed-points-table th {
+                font-size: 0.8em; /* Further reduce for tablets */
+                padding: 6px 8px; /* Reduce padding more */
+            }
         }
         @media (max-width: 480px) {
             input[type="text"], button {
@@ -238,8 +253,15 @@
                 font-size: 1em;
             }
             th, td {
-                padding: 5px 6px; /* Even smaller padding */
-                font-size: 0.75em; /* Even smaller font size */
+                padding: 5px 6px;
+                font-size: 0.75em; /* Even smaller font size for mobile table cells */
+            }
+            .captaincy-table th,
+            .best-players-table th,
+            .worst-players-table th,
+            .missed-points-table th {
+                font-size: 0.65em; /* Even smaller for phones' specific headers */
+                padding: 4px 5px; /* Minimal padding */
             }
         }
     </style>
@@ -286,12 +308,12 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Captain Name</th>
+                            <th>Captain</th>
                             <th>Times Captained</th>
-                            <th>Successful Captaincies (&ge; 5 Points)</th>
-                            <th>Failed Captaincies (&lt; 5 Points)</th>
-                            <th>Total Captained Points Gained</th>
-                            <th>Captained Rounds</th>
+                            <th>Successful</th>
+                            <th>Failed</th>
+                            <th>Total Captained Points</th>
+                            <th>Captained in Rounds</th>
                         </tr>
                     </thead>
                     <tbody id="captaincyTableBody">
@@ -783,7 +805,7 @@
                     setTimeout(animateRankJourney, animationSpeed); // Use the calculated animation speed
                 } else {
                     videoLoadingMessage.style.display = 'none'; // Hide loading message
-                    // After animation, reset point radius to show all points
+                    // After animation, reset pointRadius to show all points
                     rankJourneyChartInstance.data.datasets[0].pointRadius = 3;
                     rankJourneyChartInstance.update();
                 }
