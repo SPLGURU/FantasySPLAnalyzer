@@ -141,10 +141,12 @@
             <h2>Your Manager Stats</h2>
 
             <div class="rank-points-table">
-                <h3>Rank & Points</h3> <table>
+                <h3>Rank & Points</h3>
+                <table>
                     <thead>
                         <tr>
-                            <th>Category</th> <th>Value</th>
+                            <th>Category</th>
+                            <th>Value</th>
                         </tr>
                     </thead>
                     <tbody id="rankPointsTableBody">
@@ -211,7 +213,21 @@
                 </table>
             </div>
 
-        </div>
+            <div class="missed-points-table">
+                <h3>Missed Points (Benched Players Points)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player Name</th>
+                            <th>Points</th>
+                            <th>Round</th>
+                        </tr>
+                    </thead>
+                    <tbody id="missedPointsTableBody">
+                        </tbody>
+                </table>
+            </div>
+            </div>
     </div>
 
     <script>
@@ -243,6 +259,7 @@
             document.getElementById('captaincyTableBody').innerHTML = '';
             document.getElementById('bestPlayersTableBody').innerHTML = '';
             document.getElementById('worstPlayersTableBody').innerHTML = '';
+            document.getElementById('missedPointsTableBody').innerHTML = ''; // NEW: Clear missed points table
             
             // Clear global rank history and reset animation state
             managerOverallRankHistory = [];
@@ -284,7 +301,7 @@
             if (typeof rankValueString !== 'string' || rankValueString === 'N/A') {
                 return ''; // Return empty string if not a string or N/A
             }
-            // Regex to find (R#) or (RD#) patterns
+            // Regex to find (R#) or (RD#) patterns, with optional space after R/RD
             const match = rankValueString.match(/\((R|RD)\s*(\d+)\)/i);
             if (match && match[2]) {
                 return `(In Round ${match[2]})`;
@@ -328,13 +345,13 @@
 
             // Format Best Overall Rank
             let bestRankRaw = String(data.bestOverallRank);
-            let bestRankNumeric = bestRankRaw.split(/\s*\(/)[0]; // Get the part before the first '('
+            let bestRankNumeric = bestRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim(); // Get the part before the (R#) or (RD#)
             let bestRankRound = extractAndFormatRound(bestRankRaw);
             addRow("Best Overall Rank", `${bestRankNumeric} 🌏 ${bestRankRound}`);
 
             // Format Worst Overall Rank
             let worstRankRaw = String(data.worstOverallRank);
-            let worstRankNumeric = worstRankRaw.split(/\s*\(/)[0]; // Get the part before the first '('
+            let worstRankNumeric = worstRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim(); // Get the part before the (R#) or (RD#)
             let worstRankRound = extractAndFormatRound(worstRankRaw);
             addRow("Worst Overall Rank", `${worstRankNumeric} 🌏 ${worstRankRound}`);
 
@@ -365,13 +382,13 @@
                 }
             }
 
-            addRow("Average Points", data.averagePoints); // Removed "Per Round"
-            addRow("Average Points for 1st Place", data.averagePointsFor1stPlace); // Removed "(per round)"
+            addRow("Average Points", data.averagePoints);
+            addRow("Average Points for 1st Place", data.averagePointsFor1stPlace);
             
             // Add new rows for arrow counts with emojis
-            addRow("Number of Green Arrows", greenArrows + ' ⬆️'); // Added emoji
-            addRow("Number of Red Arrows", redArrows + ' ⬇️');   // Added emoji
-            addRow("Number of Grey Arrows", greyArrows + ' ➖');  // Added emoji
+            addRow("Number of Green Arrows", greenArrows + ' ⬆️');
+            addRow("Number of Red Arrows", redArrows + ' ⬇️');
+            addRow("Number of Grey Arrows", greyArrows + ' ➖');
 
             // NEW ROW for "Create My Rank Journey Video" button (Moved after arrow counts)
             const videoButtonRow = rankPointsTableBody.insertRow();
@@ -419,6 +436,17 @@
                 row.insertCell().textContent = player.pointsGained;
                 row.insertCell().textContent = player.benchedPoints;
             });
+
+            // NEW: Display Missed Points Table
+            const missedPointsTableBody = document.getElementById('missedPointsTableBody');
+            missedPointsTableBody.innerHTML = ''; // Clear previous content
+            data.top5MissedPoints.forEach(item => {
+                const row = missedPointsTableBody.insertRow();
+                row.insertCell().textContent = item.playerName;
+                row.insertCell().textContent = item.points;
+                row.insertCell().textContent = item.round;
+            });
+
 
             document.getElementById('results').style.display = 'block'; // Show results section
         }
@@ -628,9 +656,6 @@
                     });
 
                     rankJourneyChartInstance.data.datasets[0].data = animatedData;
-                    
-                    // Removed dynamic Y-axis min/max updates here
-                    
                     rankJourneyChartInstance.update();
 
                     currentAnimationFrameRound++;
