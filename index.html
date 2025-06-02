@@ -141,12 +141,10 @@
             <h2>Your Manager Stats</h2>
 
             <div class="rank-points-table">
-                <h3>Rank & Points Table</h3>
-                <table>
+                <h3>Rank & Points</h3> <table>
                     <thead>
                         <tr>
-                            <th>Metric</th>
-                            <th>Value</th>
+                            <th>Category</th> <th>Value</th>
                         </tr>
                     </thead>
                     <tbody id="rankPointsTableBody">
@@ -281,6 +279,16 @@
             }
         }
 
+        // Helper function to format rank values (e.g., "1,234 (RD5)" to "1,234 (In Round 5)")
+        function formatRankValue(rankValue) {
+            if (typeof rankValue !== 'string' || rankValue === 'N/A') {
+                return rankValue; // Return as is if not a string or N/A
+            }
+            // Regex to find "RD" followed by numbers
+            const regex = /(RD(\d+))/;
+            return rankValue.replace(regex, (match, p1, p2) => `In Round ${p2}`);
+        }
+
         function displayResults(data) {
             // Store rank history for video generation
             managerOverallRankHistory = data.overallRankHistory || [];
@@ -306,21 +314,52 @@
 
             // Display Rank & Points Table
             const rankPointsTableBody = document.getElementById('rankPointsTableBody');
+            rankPointsTableBody.innerHTML = ''; // Clear previous content
             
             // Helper function to add a row to the table
-            const addRow = (metric, value) => {
+            const addRow = (category, value) => {
                 const row = rankPointsTableBody.insertRow();
-                row.insertCell().textContent = metric;
+                row.insertCell().textContent = category;
                 row.insertCell().textContent = value;
             };
 
             addRow("Overall Rank", data.overallRank);
-            addRow("Best Overall Rank", data.bestOverallRank);
-            addRow("Worst Overall Rank", data.worstOverallRank);
-            addRow("Average Points Per Round", data.averagePoints);
-            addRow("Average Points for 1st Place (per round)", data.averagePointsFor1stPlace);
+            addRow("Best Overall Rank", formatRankValue(data.bestOverallRank)); // Apply formatting
+            addRow("Worst Overall Rank", formatRankValue(data.worstOverallRank)); // Apply formatting
 
-            // NEW ROW for "Create My Rank Journey Video" button
+            // Calculate arrow counts
+            let greenArrows = 0;
+            let redArrows = 0;
+            let greyArrows = 0;
+
+            // Sort history by round to ensure correct sequential comparison
+            const sortedRankHistory = managerOverallRankHistory.filter(entry => typeof entry.rank === 'number' && !isNaN(entry.rank)).sort((a, b) => a.round - b.round);
+
+            for (let i = 1; i < sortedRankHistory.length; i++) {
+                const currentEntry = sortedRankHistory[i];
+                const previousEntry = sortedRankHistory[i - 1];
+
+                // Ensure both current and previous entries have valid ranks for comparison
+                if (typeof previousEntry.rank === 'number' && typeof currentEntry.rank === 'number') {
+                    if (currentEntry.rank < previousEntry.rank) {
+                        greenArrows++;
+                    } else if (currentEntry.rank > previousEntry.rank) {
+                        redArrows++;
+                    } else {
+                        greyArrows++;
+                    }
+                }
+            }
+
+            addRow("Average Points", data.averagePoints); // Removed "Per Round"
+            addRow("Average Points for 1st Place", data.averagePointsFor1stPlace); // Removed "(per round)"
+            
+            // Add new rows for arrow counts
+            addRow("Number of Green Arrows", greenArrows);
+            addRow("Number of Red Arrows", redArrows);
+            addRow("Number of Grey Arrows", greyArrows);
+
+            // NEW ROW for "Create My Rank Journey Video" button (Moved after arrow counts)
             const videoButtonRow = rankPointsTableBody.insertRow();
             const videoButtonCell = videoButtonRow.insertCell();
             videoButtonCell.colSpan = 2; // Span across both columns
@@ -332,6 +371,7 @@
 
             // Display Captaincy Table
             const captaincyTableBody = document.getElementById('captaincyTableBody');
+            captaincyTableBody.innerHTML = ''; // Clear previous content
             data.top3Captains.forEach(captain => {
                 const row = captaincyTableBody.insertRow();
                 row.insertCell().textContent = captain.name;
@@ -344,6 +384,7 @@
 
             // Display Best Players Table
             const bestPlayersTableBody = document.getElementById('bestPlayersTableBody');
+            bestPlayersTableBody.innerHTML = ''; // Clear previous content
             data.bestPlayers.forEach(player => {
                 const row = bestPlayersTableBody.insertRow();
                 row.insertCell().textContent = player.name;
@@ -355,6 +396,7 @@
 
             // Display Worst Players Table
             const worstPlayersTableBody = document.getElementById('worstPlayersTableBody');
+            worstPlayersTableBody.innerHTML = ''; // Clear previous content
             data.worstPlayers.forEach(player => {
                 const row = worstPlayersTableBody.insertRow();
                 row.insertCell().textContent = player.name;
