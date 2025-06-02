@@ -108,8 +108,19 @@
             text-align: center;
         }
         #rankJourneyVideoContainer canvas {
-            max-width: 100%;
-            height: auto;
+            max-width: 100%; /* Ensures canvas scales down */
+            height: auto; /* Maintains aspect ratio */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 600px) {
+            body {
+                margin: 10px;
+            }
+            .container {
+                padding: 10px;
+            }
         }
     </style>
 </head>
@@ -209,13 +220,14 @@
         document.getElementById('managerId').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 analyzeManager();
+                document.getElementById('managerId').blur(); // NEW: Hide keyboard on Enter
             }
         });
 
         let managerOverallRankHistory = []; // Global variable to store rank history
         let rankJourneyChartInstance = null; // To store the Chart.js instance
         let currentAnimationFrameRound = 0; // Global to be accessible by Chart.js callbacks
-        let globalWorstOverallRank = 114000; // NEW: Global for worst rank, default to 114k
+        let globalWorstOverallRank = 114000; // Global for worst rank, default to 114k
 
         async function analyzeManager() {
             const managerId = document.getElementById('managerId').value;
@@ -264,6 +276,7 @@
                 console.error("Fetch error:", err);
             } finally {
                 loadingDiv.style.display = 'none'; // Hide loading indicator
+                // document.getElementById('managerId').blur(); // Alternative place to hide keyboard
             }
         }
 
@@ -362,6 +375,7 @@
 
             // Prepare data for Chart.js
             const labels = Array.from({ length: 35 }, (_, i) => `RD ${i}`); // Rounds 0 to 34
+            labels[0] = 'Start'; // Label for round 0
             const rankData = new Array(35).fill(null); // Initialize with nulls
 
             // Map overallRankHistory to the chart data array
@@ -372,8 +386,11 @@
                 }
             });
 
-            // Calculate dynamic Y-axis max
-            const yAxisMax = globalWorstOverallRank + 1000; // Add 1000 buffer
+            // Calculate dynamic Y-axis max: ("Worst Overall Rank" value + 100)
+            // Ensure a minimum max value in case worst rank is very low
+            const calculatedYAxisMax = Math.max(globalWorstOverallRank + 100, 5000); // Ensures at least a reasonable range
+            const yAxisMax = calculatedYAxisMax;
+
 
             // Chart.js configuration
             const ctx = rankJourneyChartCanvas.getContext('2d');
@@ -398,6 +415,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: true, // Maintain aspect ratio for scaling
                     animation: false, // Disable default Chart.js animation
                     plugins: {
                         legend: {
@@ -405,39 +423,61 @@
                         },
                         title: {
                             display: true,
-                            text: 'Your Rank Journey Over Rounds'
+                            text: 'Your Rank Journey Over Rounds',
+                            font: {
+                                size: window.innerWidth < 600 ? 14 : 18 // Smaller title on mobile
+                            }
                         }
                     },
                     scales: {
                         x: {
                             title: {
                                 display: true,
-                                text: 'Round Number'
+                                text: 'Round Number',
+                                font: {
+                                    size: window.innerWidth < 600 ? 10 : 12 // Smaller axis title on mobile
+                                }
                             },
                             min: 0,
                             max: 34,
                             ticks: {
+                                // NEW: Custom callback to show only even rounds + 'Start'
                                 callback: function(value, index, values) {
-                                    return index === 0 ? 'Start' : `RD ${index}`;
+                                    if (index === 0) { // 'Start' for Round 0
+                                        return 'Start';
+                                    } else if (index >= 1 && index <= 34 && index % 2 === 0) { // Even rounds
+                                        return `RD ${index}`;
+                                    }
+                                    return null; // Hide odd rounds
                                 },
-                                autoSkip: false, // NEW: Show all X-axis ticks
-                                // Removed maxTicksLimit to ensure all are shown
+                                autoSkip: false, // Ensure our custom callback is strictly followed
+                                maxRotation: 0, // No rotation needed with fewer labels
+                                minRotation: 0,
+                                font: {
+                                    size: window.innerWidth < 600 ? 9 : 11 // Smaller tick labels on mobile
+                                }
                             }
                         },
                         y: {
                             title: {
                                 display: true,
-                                text: 'Overall Rank'
+                                text: 'Overall Rank',
+                                font: {
+                                    size: window.innerWidth < 600 ? 10 : 12 // Smaller axis title on mobile
+                                }
                             },
                             min: 1, // Top of the chart is rank 1
-                            max: yAxisMax, // NEW: Dynamic Y-axis max
+                            max: yAxisMax, // Dynamic Y-axis max: ("Worst Overall Rank" value + 100)
                             reverse: true, // Rank 1 is at the top
                             ticks: {
                                 callback: function(value) {
                                     return value.toLocaleString(); // Format with commas
                                 },
                                 autoSkip: true, // Keep auto-skip for Y-axis for readability if many ticks
-                                maxTicksLimit: 10
+                                maxTicksLimit: 10,
+                                font: {
+                                    size: window.innerWidth < 600 ? 9 : 11 // Smaller tick labels on mobile
+                                }
                             }
                         }
                     }
