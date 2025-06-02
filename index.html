@@ -5,121 +5,223 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fantasy SPL Manager Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* Basic CSS for readability - you can adjust this */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
-            color: #333;
+        /* SPL Fantasy Inspired Design */
+        :root {
+            /* Main Colors */
+            --spl-dark-bg: #1A202C; /* Dark background */
+            --spl-card-bg: #2D3748; /* Card/section background */
+            --spl-text-light: #E2E8F0; /* Light text color */
+            --spl-text-dark: #A0AEC0; /* Darker text for secondary info */
+            --spl-primary-accent: #66DA26; /* Vibrant green for positive elements */
+            --spl-secondary-accent: #E53E3E; /* Red for negative elements */
+            --spl-button-bg: #4C51BF; /* A nice purple-blue for buttons */
+            --spl-button-hover: #5A67D8; /* Lighter button on hover */
+            --spl-border-color: #4A5568; /* Subtle border color */
+            --spl-header-bg: #222935; /* Header specific background */
         }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--spl-dark-bg);
+            color: var(--spl-text-light);
+            line-height: 1.6;
+        }
+
         .container {
             max-width: 900px;
             margin: 0 auto;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: var(--spl-card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--spl-border-color);
         }
-        h1, h2 {
-            color: #0056b3;
+
+        h1, h2, h3 {
+            font-family: 'Oswald', sans-serif;
+            color: var(--spl-primary-accent); /* Green for headings */
             text-align: center;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
         }
+        h1 { font-size: 2.5em; color: var(--spl-text-light); } /* Main title can be white */
+        h2 { font-size: 2em; border-bottom: 2px solid var(--spl-border-color); padding-bottom: 10px; margin-top: 40px; }
+        h3 { font-size: 1.5em; color: var(--spl-text-light); margin-top: 30px; }
+
+
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: bold;
+            color: var(--spl-text-dark);
+            font-size: 1.1em;
         }
+
         input[type="text"] {
-            width: calc(100% - 22px);
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            width: calc(100% - 24px); /* Account for padding + border */
+            padding: 12px;
+            margin-bottom: 25px;
+            border: 1px solid var(--spl-border-color);
+            border-radius: 8px;
+            background-color: var(--spl-dark-bg);
+            color: var(--spl-text-light);
+            font-size: 1em;
+            transition: border-color 0.3s ease;
         }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--spl-primary-accent);
+        }
+
         button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 15px;
+            background-color: var(--spl-button-bg);
+            color: var(--spl-text-light);
+            padding: 12px 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 1.1em;
+            font-weight: bold;
             display: block;
             width: 100%;
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--spl-button-hover);
+            transform: translateY(-2px);
         }
+        button:active {
+            transform: translateY(0);
+        }
+
         #loading {
             text-align: center;
             padding: 20px;
             font-size: 1.2em;
-            color: #007bff;
-            display: none; /* Hidden by default */
+            color: var(--spl-primary-accent);
+            display: none;
         }
+
         #error {
-            color: red;
+            color: var(--spl-secondary-accent);
             text-align: center;
-            padding: 10px;
-            display: none; /* Hidden by default */
-            border: 1px solid red;
-            background-color: #ffe6e6;
-            border-radius: 4px;
-            margin-top: 20px;
-        }
-        .results-section {
-            margin-top: 30px;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background-color: #fff;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #007bff;
-            color: white;
+            padding: 15px;
+            display: none;
+            border: 1px solid var(--spl-secondary-accent);
+            background-color: rgba(229, 62, 62, 0.2);
+            border-radius: 8px;
+            margin-top: 25px;
             font-weight: bold;
         }
+
+        .results-section {
+            margin-top: 40px;
+            border-top: 1px solid var(--spl-border-color);
+            padding-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate; /* Use separate for rounded corners on cells */
+            border-spacing: 0;
+            margin-top: 25px;
+            background-color: var(--spl-dark-bg); /* Darker background for tables */
+            border-radius: 8px;
+            overflow: hidden; /* Ensures rounded corners are applied */
+        }
+
+        th, td {
+            border: 1px solid var(--spl-border-color);
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 0.95em;
+        }
+
+        th {
+            background-color: var(--spl-header-bg); /* Darker header background */
+            color: var(--spl-text-light);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Specific border-radius for table corners */
+        th:first-child { border-top-left-radius: 8px; }
+        th:last-child { border-top-right-radius: 8px; }
+        tr:last-child td:first-child { border-bottom-left-radius: 8px; }
+        tr:last-child td:last-child { border-bottom-right-radius: 8px; }
+
+
         tr:nth-child(even) {
-            background-color: #f2f2f2;
+            background-color: #2F3745; /* Slightly different shade for even rows */
         }
         tr:hover {
-            background-color: #ddd;
+            background-color: #3C475A; /* Accent on hover */
+            transition: background-color 0.2s ease;
         }
+
         .summary-stats p {
             font-size: 1.1em;
-            margin: 5px 0;
+            margin: 8px 0;
+            color: var(--spl-text-dark);
         }
+        .summary-stats p strong {
+            color: var(--spl-text-light);
+        }
+
         #rankJourneyVideoContainer {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            background-color: #f9f9f9;
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid var(--spl-border-color);
+            border-radius: 12px;
+            background-color: var(--spl-dark-bg);
             text-align: center;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
         }
         #rankJourneyVideoContainer canvas {
-            max-width: 100%; /* Ensures canvas scales down */
-            height: auto; /* Allows height to be determined by aspect ratio */
-            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            max-width: 100%;
+            height: auto;
+            box-sizing: border-box;
+            background-color: #1F2937; /* Darker canvas background */
+            border-radius: 8px;
+            border: 1px solid var(--spl-border-color);
+        }
+        #videoLoadingMessage {
+            color: var(--spl-primary-accent);
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 10px;
         }
 
         /* Responsive adjustments for smaller screens */
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             body {
-                margin: 10px;
+                padding: 10px;
             }
             .container {
+                padding: 15px;
+            }
+            h1 { font-size: 2em; }
+            h2 { font-size: 1.6em; }
+            h3 { font-size: 1.2em; }
+            th, td {
+                padding: 8px 10px;
+                font-size: 0.85em;
+            }
+        }
+        @media (max-width: 480px) {
+            input[type="text"], button {
                 padding: 10px;
+                font-size: 1em;
+            }
+            th, td {
+                padding: 6px 8px;
+                font-size: 0.8em;
             }
         }
     </style>
@@ -227,7 +329,8 @@
                         </tbody>
                 </table>
             </div>
-            </div>
+
+        </div>
     </div>
 
     <script>
@@ -259,7 +362,7 @@
             document.getElementById('captaincyTableBody').innerHTML = '';
             document.getElementById('bestPlayersTableBody').innerHTML = '';
             document.getElementById('worstPlayersTableBody').innerHTML = '';
-            document.getElementById('missedPointsTableBody').innerHTML = ''; // NEW: Clear missed points table
+            document.getElementById('missedPointsTableBody').innerHTML = '';
             
             // Clear global rank history and reset animation state
             managerOverallRankHistory = [];
@@ -385,9 +488,9 @@
             addRow("Average Points", data.averagePoints);
             addRow("Average Points for 1st Place", data.averagePointsFor1stPlace);
             
-            // Add new rows for arrow counts with emojis
-            addRow("Number of Green Arrows", greenArrows + ' ⬆️');
-            addRow("Number of Red Arrows", redArrows + ' ⬇️');
+            // Add new rows for arrow counts with NEW EMOJIS
+            addRow("Number of Green Arrows", greenArrows + ' 🟢');
+            addRow("Number of Red Arrows", redArrows + ' 🔴');
             addRow("Number of Grey Arrows", greyArrows + ' ➖');
 
             // NEW ROW for "Create My Rank Journey Video" button (Moved after arrow counts)
@@ -437,7 +540,7 @@
                 row.insertCell().textContent = player.benchedPoints;
             });
 
-            // NEW: Display Missed Points Table
+            // Display Missed Points Table
             const missedPointsTableBody = document.getElementById('missedPointsTableBody');
             missedPointsTableBody.innerHTML = ''; // Clear previous content
             data.top5MissedPoints.forEach(item => {
