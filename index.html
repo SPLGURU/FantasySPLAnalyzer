@@ -417,7 +417,6 @@
             });
 
             // Calculate dynamic Y-axis max: ("Worst Overall Rank" value + 100)
-            // Removed the Math.max(..., 5000) part as requested.
             // Ensure a minimum Y-axis max of at least 200 for very high-ranking managers
             // to avoid extreme zooming if worst rank is e.g. 15 or 20.
             const yAxisMax = Math.max(globalWorstOverallRank + 100, 200);
@@ -446,36 +445,43 @@
                             return context.dataIndex === currentAnimationFrameRound && rankData[context.dataIndex] !== null ? 5 : 0;
                         },
                         pointBackgroundColor: 'red',
-                        // Dynamic border color based on rank change
+                        // Dynamic border color based on rank change - NOW DIRECTLY ACCESSING rankData
                         borderColor: (context) => {
-                            const p0Parsed = context.p0 && typeof context.p0.parsed.y === 'number' ? context.p0.parsed.y : null;
-                            const p1Parsed = context.p1 && typeof context.p1.parsed.y === 'number' ? context.p1.parsed.y : null;
-                            
-                            // Return default if data is not a valid number for either point
-                            if (p0Parsed === null || p1Parsed === null) {
-                                return 'rgb(75, 192, 192)'; 
+                            const p0Index = context.p0 ? context.p0.dataIndex : null;
+                            const p1Index = context.p1 ? context.p1.dataIndex : null;
+
+                            // Ensure indices are valid and data exists for those indices
+                            const rank0 = (p0Index !== null && rankData[p0Index] !== undefined) ? rankData[p0Index] : null;
+                            const rank1 = (p1Index !== null && rankData[p1Index] !== undefined) ? rankData[p1Index] : null;
+
+                            if (typeof rank0 !== 'number' || typeof rank1 !== 'number') {
+                                return 'rgb(75, 192, 192)'; // Default for invalid or incomplete data
                             }
 
-                            if (p1Parsed < p0Parsed) { // Rank improved (lower number is better)
+                            if (rank1 < rank0) { // Rank improved (lower number is better)
                                 return 'green';
-                            } else if (p1Parsed > p0Parsed) { // Rank worsened (higher number is worse)
+                            } else if (rank1 > rank0) { // Rank worsened (higher number is worse)
                                 return 'red';
                             } else { // Rank unchanged
                                 return 'grey';
                             }
                         },
-                        // Dynamic background color based on rank change (matching border)
+                        // Dynamic background color based on rank change - NOW DIRECTLY ACCESSING rankData
                         backgroundColor: (context) => {
-                            const p0Parsed = context.p0 && typeof context.p0.parsed.y === 'number' ? context.p0.parsed.y : null;
-                            const p1Parsed = context.p1 && typeof context.p1.parsed.y === 'number' ? context.p1.parsed.y : null;
+                            const p0Index = context.p0 ? context.p0.dataIndex : null;
+                            const p1Index = context.p1 ? context.p1.dataIndex : null;
 
-                            if (p0Parsed === null || p1Parsed === null) {
-                                return 'rgba(75, 192, 192, 0.2)'; 
+                            // Ensure indices are valid and data exists for those indices
+                            const rank0 = (p0Index !== null && rankData[p0Index] !== undefined) ? rankData[p0Index] : null;
+                            const rank1 = (p1Index !== null && rankData[p1Index] !== undefined) ? rankData[p1Index] : null;
+
+                            if (typeof rank0 !== 'number' || typeof rank1 !== 'number') {
+                                return 'rgba(75, 192, 192, 0.2)'; // Default transparent color
                             }
 
-                            if (p1Parsed < p0Parsed) {
+                            if (rank1 < rank0) {
                                 return 'rgba(0, 128, 0, 0.2)'; // Green transparent
-                            } else if (p1Parsed > p0Parsed) {
+                            } else if (rank1 > rank0) {
                                 return 'rgba(255, 0, 0, 0.2)'; // Red transparent
                             } else {
                                 return 'rgba(128, 128, 128, 0.2)'; // Grey transparent
@@ -539,7 +545,7 @@
                                 }
                             },
                             min: 1, // Top of the chart is rank 1
-                            max: yAxisMax, // Dynamic Y-axis max: ("Worst Overall Rank" value + 100)
+                            max: yAxisMax, // Dynamic Y-axis max
                             reverse: true, // Rank 1 is at the top
                             ticks: {
                                 callback: function(value) {
