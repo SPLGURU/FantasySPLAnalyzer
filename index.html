@@ -279,16 +279,17 @@
             }
         }
 
-        // Helper function to format rank values (e.g., "1,234 (RD5)" to "1,234 (In Round 5)")
-        function formatRankValue(rankValue) {
-            if (typeof rankValue !== 'string' || rankValue === 'N/A') {
-                return rankValue; // Return as is if not a string or N/A
+        // Helper function to extract and format the "In Round X" part
+        function extractAndFormatRound(rankValueString) {
+            if (typeof rankValueString !== 'string' || rankValueString === 'N/A') {
+                return ''; // Return empty string if not a string or N/A
             }
-            // Updated regex to handle optional space after "RD" (e.g., "RD5" or "RD 5")
-            const regex = /(RD\s*(\d+))/;
-            // Replace "RDX" with "In Round X"
-            const formatted = rankValue.replace(regex, (match, p1, p2) => `In Round ${p2}`);
-            return formatted;
+            // Regex to find (R#) or (RD#) patterns
+            const match = rankValueString.match(/\((R|RD)\s*(\d+)\)/i);
+            if (match && match[2]) {
+                return `(In Round ${match[2]})`;
+            }
+            return ''; // No round information found
         }
 
         function displayResults(data) {
@@ -325,9 +326,20 @@
                 row.insertCell().textContent = value;
             };
 
-            addRow("Overall Rank", data.overallRank + ' 🌏'); // Added emoji
-            addRow("Best Overall Rank", formatRankValue(data.bestOverallRank) + ' 🌏'); // Apply formatting and added emoji
-            addRow("Worst Overall Rank", formatRankValue(data.worstOverallRank) + ' 🌏'); // Apply formatting and added emoji
+            // Format Best Overall Rank
+            let bestRankRaw = String(data.bestOverallRank);
+            let bestRankNumeric = bestRankRaw.split(/\s*\(/)[0]; // Get the part before the first '('
+            let bestRankRound = extractAndFormatRound(bestRankRaw);
+            addRow("Best Overall Rank", `${bestRankNumeric} 🌏 ${bestRankRound}`);
+
+            // Format Worst Overall Rank
+            let worstRankRaw = String(data.worstOverallRank);
+            let worstRankNumeric = worstRankRaw.split(/\s*\(/)[0]; // Get the part before the first '('
+            let worstRankRound = extractAndFormatRound(worstRankRaw);
+            addRow("Worst Overall Rank", `${worstRankNumeric} 🌏 ${worstRankRound}`);
+
+            // Overall Rank is simpler
+            addRow("Overall Rank", data.overallRank + ' 🌏'); 
 
             // Calculate arrow counts
             let greenArrows = 0;
