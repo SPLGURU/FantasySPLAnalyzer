@@ -284,9 +284,11 @@
             if (typeof rankValue !== 'string' || rankValue === 'N/A') {
                 return rankValue; // Return as is if not a string or N/A
             }
-            // Regex to find "RD" followed by numbers
-            const regex = /(RD(\d+))/;
-            return rankValue.replace(regex, (match, p1, p2) => `In Round ${p2}`);
+            // Updated regex to handle optional space after "RD" (e.g., "RD5" or "RD 5")
+            const regex = /(RD\s*(\d+))/;
+            // Replace "RDX" with "In Round X"
+            const formatted = rankValue.replace(regex, (match, p1, p2) => `In Round ${p2}`);
+            return formatted;
         }
 
         function displayResults(data) {
@@ -323,9 +325,9 @@
                 row.insertCell().textContent = value;
             };
 
-            addRow("Overall Rank", data.overallRank);
-            addRow("Best Overall Rank", formatRankValue(data.bestOverallRank)); // Apply formatting
-            addRow("Worst Overall Rank", formatRankValue(data.worstOverallRank)); // Apply formatting
+            addRow("Overall Rank", data.overallRank + ' 🌏'); // Added emoji
+            addRow("Best Overall Rank", formatRankValue(data.bestOverallRank) + ' 🌏'); // Apply formatting and added emoji
+            addRow("Worst Overall Rank", formatRankValue(data.worstOverallRank) + ' 🌏'); // Apply formatting and added emoji
 
             // Calculate arrow counts
             let greenArrows = 0;
@@ -354,10 +356,10 @@
             addRow("Average Points", data.averagePoints); // Removed "Per Round"
             addRow("Average Points for 1st Place", data.averagePointsFor1stPlace); // Removed "(per round)"
             
-            // Add new rows for arrow counts
-            addRow("Number of Green Arrows", greenArrows);
-            addRow("Number of Red Arrows", redArrows);
-            addRow("Number of Grey Arrows", greyArrows);
+            // Add new rows for arrow counts with emojis
+            addRow("Number of Green Arrows", greenArrows + ' ⬆️'); // Added emoji
+            addRow("Number of Red Arrows", redArrows + ' ⬇️');   // Added emoji
+            addRow("Number of Grey Arrows", greyArrows + ' ➖');  // Added emoji
 
             // NEW ROW for "Create My Rank Journey Video" button (Moved after arrow counts)
             const videoButtonRow = rankPointsTableBody.insertRow();
