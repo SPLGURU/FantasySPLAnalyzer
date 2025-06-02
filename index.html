@@ -109,7 +109,7 @@
         }
         #rankJourneyVideoContainer canvas {
             max-width: 100%; /* Ensures canvas scales down */
-            height: auto; /* Maintains aspect ratio on large screens */
+            height: auto; /* Allows height to be determined by aspect ratio */
             box-sizing: border-box; /* Include padding and border in the element's total width and height */
         }
 
@@ -120,11 +120,6 @@
             }
             .container {
                 padding: 10px;
-            }
-            /* NEW: Adjust canvas height for mobile to improve Y-axis visualization */
-            #rankJourneyVideoContainer canvas {
-                height: 50vw; /* Height is 50% of viewport width, makes it taller */
-                min-height: 300px; /* Ensure a minimum height */
             }
         }
 
@@ -380,7 +375,7 @@
             // Display Worst Players Table
             const worstPlayersTableBody = document.getElementById('worstPlayersTableBody');
             data.worstPlayers.forEach(player => {
-                const row = worstPlayersTableBody.insertRow();
+                const row = worstPlayersTableBody.insertCell();
                 row.insertCell().textContent = player.name;
                 row.insertCell().textContent = player.started;
                 row.insertCell().textContent = player.autoSubbed;
@@ -426,11 +421,10 @@
             const calculatedYAxisMax = Math.max(globalWorstOverallRank + 100, 5000); // Ensures at least a reasonable range
             const yAxisMax = calculatedYAxisMax;
 
-            // NEW: Animation speed for 5 seconds total
+            // Animation speed for 5 seconds total
             const totalAnimationDurationMs = 5000;
             const numberOfAnimationSteps = 34; // From RD1 to RD34 (34 segments)
-            const animationDurationPerStep = totalAnimationDurationMs / numberOfAnimationSteps;
-            const animationSpeed = animationDurationPerStep; // Use this in setTimeout
+            const animationSpeed = totalAnimationDurationMs / numberOfAnimationSteps;
 
 
             // Chart.js configuration
@@ -450,36 +444,36 @@
                             return context.dataIndex === currentAnimationFrameRound && rankData[context.dataIndex] !== null ? 5 : 0;
                         },
                         pointBackgroundColor: 'red',
-                        // NEW: Dynamic border color based on rank change
+                        // Dynamic border color based on rank change
                         borderColor: (context) => {
-                            // Context for segments refers to p0 and p1 (start and end points of the segment)
-                            if (!context.segment || context.p0.parsed.y === null || context.p1.parsed.y === null) {
-                                return 'rgb(75, 192, 192)'; // Default color for initial or null segments
+                            // context.p0 and context.p1 are the start and end points of the segment
+                            const p0Parsed = context.p0 && context.p0.parsed ? context.p0.parsed.y : null;
+                            const p1Parsed = context.p1 && context.p1.parsed ? context.p1.parsed.y : null;
+
+                            if (p0Parsed === null || p1Parsed === null) {
+                                return 'rgb(75, 192, 192)'; // Default color for initial or null segments/gaps
                             }
 
-                            const p0Rank = context.p0.parsed.y; // Rank at start of segment
-                            const p1Rank = context.p1.parsed.y; // Rank at end of segment
-
-                            if (p1Rank < p0Rank) { // Rank improved (lower number is better)
+                            if (p1Parsed < p0Parsed) { // Rank improved (lower number is better)
                                 return 'green';
-                            } else if (p1Rank > p0Rank) { // Rank worsened (higher number is worse)
+                            } else if (p1Parsed > p0Parsed) { // Rank worsened (higher number is worse)
                                 return 'red';
                             } else { // Rank unchanged
                                 return 'grey';
                             }
                         },
-                        // NEW: Dynamic background color based on rank change (matching border)
+                        // Dynamic background color based on rank change (matching border)
                         backgroundColor: (context) => {
-                            if (!context.segment || context.p0.parsed.y === null || context.p1.parsed.y === null) {
+                            const p0Parsed = context.p0 && context.p0.parsed ? context.p0.parsed.y : null;
+                            const p1Parsed = context.p1 && context.p1.parsed ? context.p1.parsed.y : null;
+
+                            if (p0Parsed === null || p1Parsed === null) {
                                 return 'rgba(75, 192, 192, 0.2)'; // Default transparent color
                             }
 
-                            const p0Rank = context.p0.parsed.y;
-                            const p1Rank = context.p1.parsed.y;
-
-                            if (p1Rank < p0Rank) {
+                            if (p1Parsed < p0Parsed) {
                                 return 'rgba(0, 128, 0, 0.2)'; // Green transparent
-                            } else if (p1Rank > p0Rank) {
+                            } else if (p1Parsed > p0Parsed) {
                                 return 'rgba(255, 0, 0, 0.2)'; // Red transparent
                             } else {
                                 return 'rgba(128, 128, 128, 0.2)'; // Grey transparent
@@ -489,8 +483,9 @@
                 },
                 options: {
                     responsive: true,
-                    // NEW: Conditional maintainAspectRatio for mobile
-                    maintainAspectRatio: window.innerWidth >= 600, // True for PC, False for mobile (allowing CSS height control)
+                    // NEW: Set aspect ratio to 1 for a square chart on both PC and Phone
+                    maintainAspectRatio: true,
+                    aspectRatio: 1, 
                     animation: false, // Disable default Chart.js animation
                     plugins: {
                         legend: {
@@ -516,12 +511,12 @@
                             min: 0,
                             max: 34,
                             ticks: {
-                                // NEW: Custom callback for X-axis labels (numbers only on mobile, 'RD X' on PC)
+                                // NEW: Custom callback for X-axis labels (numbers only for both PC and Phone)
                                 callback: function(value, index, values) {
                                     if (index === 0) { // 'Start' for Round 0
                                         return 'Start';
                                     } else if (index >= 1 && index <= 34 && index % 2 === 0) { // Even rounds
-                                        return window.innerWidth < 600 ? `${index}` : `RD ${index}`;
+                                        return `${index}`; // Just the number for both PC and Mobile
                                     }
                                     return null; // Hide odd rounds
                                 },
@@ -529,7 +524,7 @@
                                 maxRotation: 0, // No rotation needed with fewer labels
                                 minRotation: 0,
                                 font: {
-                                    size: window.innerWidth < 600 ? 9 : 11 // Smaller tick labels on mobile
+                                    size: window.innerWidth < 600 ? 5 : 11 // NEW: Smaller X-axis tick labels on mobile (half)
                                 }
                             }
                         },
