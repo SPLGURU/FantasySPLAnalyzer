@@ -287,7 +287,7 @@
 
             // Extract numeric worst overall rank for Y-axis max
             if (data.worstOverallRank && data.worstOverallRank !== 'N/A') {
-                const match = data.worstOverallRank.match(/^(\d+)/); // Extracts numbers at the beginning
+                const match = String(data.worstOverallRank).match(/^(\d+)/); // Ensure it's a string before regex
                 if (match && match[1]) {
                     globalWorstOverallRank = parseInt(match[1], 10);
                 }
@@ -295,8 +295,10 @@
 
             // Store current overall rank for new Y-axis scaling logic
             if (data.overallRank && data.overallRank !== 'N/A') {
+                // Ensure it's a string before attempting to remove commas
+                const rankString = String(data.overallRank);
                 // Remove commas and parse as float, then round to nearest integer
-                managerCurrentOverallRank = Math.round(parseFloat(data.overallRank.replace(/,/g, '')));
+                managerCurrentOverallRank = Math.round(parseFloat(rankString.replace(/,/g, '')));
             } else {
                 managerCurrentOverallRank = null; // Ensure it's explicitly null if no valid rank
             }
