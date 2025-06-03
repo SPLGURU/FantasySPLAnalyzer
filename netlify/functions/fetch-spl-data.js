@@ -61,53 +61,40 @@ async function getPlayerNameMap() {
     }
 }
 
-// Dedicated function to fetch manager chips, current event, and last_deadline_total_transfers
-async function getManagerEssentialData(managerId) { // Renamed for clarity
+// Dedicated function to fetch manager basic data: chips, current event, and last_deadline_total_transfers
+async function getManagerBasicData(managerId) { // Renamed for clarity
     const managerEntryUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/`;
     try {
         const entryRes = await fetchWithRetry(managerEntryUrl);
         const managerEntryData = await entryRes.json();
         
-        console.log('--- Inside getManagerEssentialData ---'); // Debug Marker
-        console.log('Full managerEntryData object:', JSON.stringify(managerEntryData, null, 2)); // DEBUG LOG: Full object
+        console.log('--- Inside getManagerBasicData ---'); // Debug Marker
+        console.log('Full managerEntryData object (for basic data):', JSON.stringify(managerEntryData, null, 2)); // DEBUG LOG: Full object
 
         // Directly extract essential data
-        const chips = managerEntryData.chips || [];
-        const currentEvent = managerEntryData.current_event || 34; // Fallback to 34 if not available
-        const lastDeadlineTotalTransfers = managerEntryData.last_deadline_total_transfers;
+        const chips = managerEntryData.chips || []; // Chips might be missing sometimes
+        const currentEvent = managerEntryData.current_event || 34; // Fallback to 34
+        const lastDeadlineTotalTransfers = managerEntryData.last_deadline_total_transfers || 'N/A';
         
-        // Calculate total hits from history
-        let totalHitsCost = 0;
-        if (managerEntryData.history && Array.isArray(managerEntryData.history)) {
-            managerEntryData.history.forEach(roundHistory => {
-                // 'event_transfers_cost' is the 'TC' value for each round
-                totalHitsCost += (roundHistory.event_transfers_cost || 0); 
-            });
-        }
-        const totalHitsPoints = totalHitsCost * -1; // Apply minus sign as per your rule
-
-        console.log('Chips extracted by getManagerEssentialData:', chips); // DEBUG LOG
-        console.log('Current Event extracted by getManagerEssentialData:', currentEvent); // DEBUG LOG
-        console.log('last_deadline_total_transfers extracted:', lastDeadlineTotalTransfers); // DEBUG LOG
-        console.log('Calculated Total Hits Cost (sum of TC):', totalHitsCost); // DEBUG LOG
-        console.log('Calculated Total Hits Points (with minus):', totalHitsPoints); // DEBUG LOG
-        console.log('--- End getManagerEssentialData ---'); // Debug Marker
+        console.log('Chips extracted by getManagerBasicData:', chips); // DEBUG LOG
+        console.log('Current Event extracted by getManagerBasicData:', currentEvent); // DEBUG LOG
+        console.log('last_deadline_total_transfers extracted by getManagerBasicData:', lastDeadlineTotalTransfers); // DEBUG LOG
+        console.log('--- End getManagerBasicData ---'); // Debug Marker
 
         return { 
             chips, 
             currentEvent,
-            lastDeadlineTotalTransfers, // Directly use the API provided value
-            totalHitsPoints // Use the newly calculated value from history
+            lastDeadlineTotalTransfers
         };
     } catch (error) {
-        console.error(`ERROR: Failed to fetch manager essential data for ${managerId}:`, error.message);
-        return { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', totalHitsPoints: 'N/A' }; // Return defaults on failure
+        console.error(`ERROR: Failed to fetch manager basic data for ${managerId}:`, error.message);
+        return { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A' }; // Return defaults on failure
     }
 }
 
 
-// Helper function to get manager's history details and captaincy stats
-async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerEssentialData) { // Now accepts managerEssentialData
+// Helper function to get manager's history details, captaincy stats, and calculate total hits
+async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBasicData) { 
     // Reset global counters for each invocation
     captainCounts = {};
     captainedRoundsTracker = {};
@@ -118,18 +105,21 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerEss
     let maxOverallRankRound = 'N/A';
     let totalPointsSum = 0;
     let roundsProcessed = 0;
+    let totalTransfersCost = 0; // Initialize total transfers cost for hits calculation
 
     const maxRounds = 34; // Total number of rounds in the season
 
     // Array to store overall rank for each round
     const overallRankHistory = [];
 
-    // FIX: Initialize missedPointsInstances array before the loop
+    // Initialize these sets/objects
     const missedPointsInstances = []; 
+    const playerSeasonStats = {}; 
+    const uniquePlayerIdsInSquad = new Set(); // FIX: Initialize uniquePlayerIdsInSquad here
 
-    // Use chips and currentEvent from managerEssentialData passed from handler
-    const managerChips = managerEssentialData?.chips || [];
-    const currentEvent = managerEssentialData?.currentEvent || maxRounds;
+    // Use chips and currentEvent from managerBasicData passed from handler
+    const managerChips = managerBasicData?.chips || []; // Keep for other potential uses, not for hits calc
+    const currentEvent = managerBasicData?.currentEvent || maxRounds;
 
 
     // Fetch data for all rounds for the given manager concurrently with retries
@@ -166,6 +156,9 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerEss
         // --- Update for Rank & Points Table ---
         const currentOverallRank = data.entry_history.overall_rank;
         const currentRoundPoints = data.entry_history.points;
+
+        // Calculate total hits by summing 'event_transfers_cost' from each round's entry_history
+        totalTransfersCost += (data.entry_history.event_transfers_cost || 0);
 
         // Store overall rank for this round
         overallRankHistory.push({ round: round, rank: currentOverallRank });
@@ -388,57 +381,20 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerEss
         worstPlayers: worstPlayersList,
         overallRankHistory: overallRankHistory,
         top5MissedPoints: top5MissedPoints,
-        chips: managerEssentialData.chips, // Return the chips array from the initial fetch
-        currentEvent: managerEssentialData.currentEvent // Return current event from the initial fetch
+        chips: managerBasicData.chips, // Keep chips for other potential uses, not for hits calc
+        currentEvent: managerBasicData.currentEvent, // Keep currentEvent
+        totalHitsPoints: totalTransfersCost * -1 // The calculated total hits points
     };
 }
 
 
-// --- NEW: Function to fetch and process Transfers Data (Simplified) ---
-// This function now primarily serves to pass through the pre-calculated transfer data.
-// It still fetches transfersRawData in case it's needed for other future features (e.g., displaying individual transfer logs).
-async function getTransfersData(managerId, managerEssentialData) { 
-    let transfersRawDataLength = 0; // Initialize to 0
-    try {
-        const transfersApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/transfers/`;
-        console.log(`Attempting to fetch transfers raw data from: ${transfersApiUrl}`);
-        
-        const transfersResponse = await fetch(transfersApiUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Encoding': 'gzip, deflate, br, zstd',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`,
-                'DNT': '1',
-                'Connection': 'keep-alive',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Site': 'same-origin',
-                'sec-ch-ua': '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"Windows"',
-                'priority': 'u=1, i',
-            },
-        });
-
-        if (transfersResponse.ok) {
-            const responseText = await transfersResponse.text();
-            const transfersRawData = JSON.parse(responseText);
-            transfersRawDataLength = transfersRawData.length;
-            console.log('Successfully fetched and parsed transfers raw data. Length:', transfersRawDataLength);
-        } else {
-            const errorText = await transfersResponse.text();
-            console.error(`Transfers raw data fetch failed with status ${transfersResponse.status}: ${errorText.substring(0, 200)}...`);
-        }
-    } catch (transfersFetchError) {
-        console.error('Error during transfers raw data fetch (network or unexpected issue):', transfersFetchError);
-    }
-
-    // Use the pre-calculated values from managerEssentialData
-    const totalTransfersCount = managerEssentialData.lastDeadlineTotalTransfers;
-    const totalHitsPoints = managerEssentialData.totalHitsPoints;
+// --- Simplified getTransfersData function ---
+// This function now only passes through the pre-calculated transfer data.
+// It no longer needs to fetch /api/entry/{managerId}/transfers/ or perform calculations itself.
+async function getTransfersData(managerId, managerBasicData, managerStats) { 
+    // Use the pre-calculated values from managerBasicData and managerStats
+    const totalTransfersCount = managerBasicData.lastDeadlineTotalTransfers;
+    const totalHitsPoints = managerStats.totalHitsPoints; // Get from managerStats as it's calculated there now
 
     console.log(`Final Transfers Data: Total Transfers: ${totalTransfersCount}, Total Hits: ${totalHitsPoints}`); // DEBUG LOG
 
@@ -465,21 +421,22 @@ exports.handler = async function(event, context) {
     try {
         const playerMap = await getPlayerNameMap();
 
-        // Step 1: Fetch manager essential data (chips, current event, total transfers, total hits)
-        let managerEssentialData = {};
+        // Step 1: Fetch manager basic data (current event, total transfers, and chips)
+        let managerBasicData = {};
         try {
-            managerEssentialData = await getManagerEssentialData(managerId);
-            console.log('Manager Essential Data fetched successfully.'); // DEBUG LOG
-            console.log('Essential Data (in handler):', managerEssentialData); // DEBUG LOG
+            managerBasicData = await getManagerBasicData(managerId);
+            console.log('Manager Basic Data fetched successfully.'); // DEBUG LOG
+            console.log('Basic Data (in handler):', managerBasicData); // DEBUG LOG
         } catch (error) {
-            console.error("getManagerEssentialData failed in handler:", error);
-            managerEssentialData = { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', totalHitsPoints: 'N/A' }; // Default on failure
+            console.error("getManagerBasicData failed in handler:", error);
+            managerBasicData = { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A' }; // Default on failure
         }
 
-        // Step 2: Fetch manager history and captaincy stats
+        // Step 2: Fetch manager history and captaincy stats, and calculate total hits
         let managerStats = {};
         try {
-            managerStats = await getManagerHistoryAndCaptains(managerId, playerMap, managerEssentialData);
+            // Pass managerBasicData to getManagerHistoryAndCaptains
+            managerStats = await getManagerHistoryAndCaptains(managerId, playerMap, managerBasicData);
             console.log('Manager History and Captains fetched successfully.'); // DEBUG LOG
         } catch (error) {
             console.error("getManagerHistoryAndCaptains failed in handler:", error);
@@ -493,15 +450,17 @@ exports.handler = async function(event, context) {
                 bestPlayers: [],
                 worstPlayers: [],
                 top5MissedPoints: [],
-                chips: managerEssentialData.chips, // Ensure chips are passed through
-                currentEvent: managerEssentialData.currentEvent // Ensure currentEvent is passed through
+                chips: managerBasicData.chips, 
+                currentEvent: managerBasicData.currentEvent,
+                totalHitsPoints: 'N/A' // Default to N/A if this part fails
             };
         }
 
         // Step 3: Get transfers data (now just passing through pre-calculated values)
         let transfersData = {};
         try {
-            transfersData = await getTransfersData(managerId, managerEssentialData); // Pass the essential data
+            // Pass both managerBasicData and managerStats (which contains totalHitsPoints)
+            transfersData = await getTransfersData(managerId, managerBasicData, managerStats); 
             console.log('Transfers Data retrieved successfully.'); // DEBUG LOG
         } catch (error) {
             console.error("getTransfersData failed during retrieval in handler:", error);
