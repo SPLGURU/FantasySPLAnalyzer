@@ -248,12 +248,16 @@
             }
             .container {
                 padding: 0; /* Removed padding for tablet */
-                width: 100%; /* Revert container to 100% width on tablet */
+                width: 105%; /* Container is 5% wider on tablet */
             }
-            /* Make all tables wider than the container on tablet */
-            table {
-                width: 105%;
+            /* Shorten input and button width by 10% on tablet */
+            input[type="text"] {
+                width: calc(90% - 24px); /* 90% of container width, minus padding/border */
             }
+            button {
+                width: 90%; /* 90% of container width */
+            }
+
             h1 { font-size: 2em; }
             h2 { font-size: 1.6em; }
             h3 { font-size: 1.2em; }
@@ -286,7 +290,7 @@
 
             /* Adjust column widths for better fitting on tablets - general distribution */
             .rank-points-table th:nth-child(1) { width: 40%; }
-            .rank-points-table th:nth-child(2) { width: 60%; }
+            .rank-            .rank-points-table th:nth-child(2) { width: 60%; }
 
             /* Best Players & Worst Players Tables (5 players + 1 metric column) */
             /* Metric label column (e.g., 'Started') */
@@ -343,11 +347,14 @@
             }
             .container {
                 padding: 0; /* Removed padding for phone */
-                width: 100%; /* Revert container to 100% width on phone */
+                width: 105%; /* Container is 5% wider on phone */
             }
-            /* Make all tables wider than the container on phone */
-            table {
-                width: 105%;
+            /* Shorten input and button width by 10% on phone */
+            input[type="text"] {
+                width: calc(90% - 24px); /* 90% of container width, minus padding/border */
+            }
+            button {
+                width: 90%; /* 90% of container width */
             }
             /* Further reduce font size for all table cells and headers for phones */
             th, td {
