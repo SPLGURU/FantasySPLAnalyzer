@@ -219,6 +219,7 @@
         }
 
         /* Adjustments for Best Players and Worst Players tables font size (10% reduction) */
+        /* This applies to desktop and acts as a base for mobile calculations */
         .best-players-table th, .best-players-table td,
         .worst-players-table th, .worst-players-table td {
             font-size: calc(0.95em * 0.9); /* 10% reduction from base 0.95em */
@@ -235,7 +236,6 @@
             border-color: var(--spl-border-color) !important; /* Match the table border color */
             color: transparent !important; /* Make any accidental text transparent */
             padding: 12px 15px !important; /* Keep original padding to maintain spacing */
-            /* Ensure it takes up minimal but existing space */
             min-width: 1px !important; /* Give it a tiny width to prevent collapse */
             max-width: 1px !important;
             overflow: hidden !important; /* Hide any overflow */
@@ -261,22 +261,23 @@
             }
             /* Default smaller font for specific header types, also reduced */
             .captaincy-table th,
-            .best-players-table th,
-            .worst-players-table th,
-            .missed-points-table th {
+            .missed-points-table th { /* Removed best/worst players from here */
                 font-size: 0.75em;
                 padding: 6px 8px;
             }
 
-            /* Apply 10% reduction on top of tablet base font sizes for Best/Worst Players */
-            .best-players-table th, .best-players-table td,
-            .worst-players-table th, .worst-players-table td {
-                font-size: calc(0.8em * 0.9); /* 10% reduction from tablet 0.8em */
+            /* --- Specific font size adjustments for Best/Worst Players tables on tablet --- */
+            /* Revert TD font size to general mobile size for Best/Worst Players */
+            .best-players-table td,
+            .worst-players-table td {
+                font-size: 0.8em; /* Revert to general mobile td size */
             }
+            /* Apply ADDITIONAL 10% reduction to TH font size for Best/Worst Players */
             .best-players-table th,
             .worst-players-table th {
-                font-size: calc(0.75em * 0.9); /* 10% reduction from tablet 0.75em for specific headers */
+                font-size: calc(0.75em * 0.9); /* Original mobile header size (0.75em) * 0.9 */
             }
+
 
             /* Adjust column widths for better fitting on tablets - general distribution */
             .rank-points-table th:nth-child(1) { width: 40%; }
@@ -306,21 +307,21 @@
             }
             /* Specific header types for phones, also reduced */
             .captaincy-table th,
-            .best-players-table th,
-            .worst-players-table th,
-            .missed-points-table th {
+            .missed-points-table th { /* Removed best/worst players from here */
                 font-size: 0.65em; /* Target: ~25% reduction from desktop 0.9em */
                 padding: 4px 5px;
             }
 
-            /* Apply 10% reduction on top of phone base font sizes for Best/Worst Players */
-            .best-players-table th, .best-players-table td,
-            .worst-players-table th, .worst-players-table td {
-                font-size: calc(0.7em * 0.9); /* 10% reduction from phone 0.7em */
+            /* --- Specific font size adjustments for Best/Worst Players tables on phone --- */
+            /* Revert TD font size to general mobile size for Best/Worst Players */
+            .best-players-table td,
+            .worst-players-table td {
+                font-size: 0.7em; /* Revert to general mobile td size */
             }
+            /* Apply ADDITIONAL 10% reduction to TH font size for Best/Worst Players */
             .best-players-table th,
             .worst-players-table th {
-                font-size: calc(0.65em * 0.9); /* 10% reduction from phone 0.65em for specific headers */
+                font-size: calc(0.65em * 0.9); /* Original mobile header size (0.65em) * 0.9 */
             }
 
             /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS --- */
