@@ -283,35 +283,42 @@
             .rank-points-table th:nth-child(1) { width: 40%; }
             .rank-points-table th:nth-child(2) { width: 60%; }
 
-            /* For transposed tables, the first column (category/metric label) needs significant space */
-            /* For tablet, we'll keep the 35% for metric labels for now, as it seemed okay */
-            .captaincy-table th:first-child,
+            /* Best Players & Worst Players Tables (5 players + 1 metric column) */
+            /* Metric label column (e.g., 'Started') */
             .best-players-table th:first-child,
             .worst-players-table th:first-child {
-                width: 35%; /* Give more space to the category name column */
-                white-space: normal; /* Allow wrapping */
-                overflow: visible;    /* No cutoff */
+                width: 25%; /* Adjusted for tablet to be as short as possible while allowing content to wrap */
+                white-space: normal; /* Allow metric labels to wrap */
+                overflow: visible;    /* Ensure no cutoff for metric labels */
             }
-            /* Distribute remaining width for player columns on tablet */
-            .captaincy-table th:not(.transposed-table-empty-header),
-            .captaincy-table td:not(:first-child) {
-                width: 21.66%; /* (100-35)/3 = ~21.66% */
-                white-space: normal; /* Allow wrapping */
-                overflow: visible;    /* No cutoff */
-            }
-            .best-players-table th:not(.transposed-table-empty-header),
-            .best-players-table td:not(:first-child),
-            .worst-players-table th:not(.transposed-table-empty-header),
-            .worst-players-table td:not(:first-child) {
-                width: 13%; /* (100-35)/5 = 13% - This is a guess, might need adjustment */
-                white-space: normal; /* Allow wrapping for data, will be overridden for player names */
-                overflow: visible;    /* No cutoff */
-            }
-            /* Ensure player names on tablet are still nowrap and hidden */
+            /* Player name headers */
             .best-players-table .player-name-header,
             .worst-players-table .player-name-header {
-                white-space: nowrap;
-                overflow: hidden;
+                width: 15%; /* (100% - 25% first column) / 5 players = 15% */
+                white-space: nowrap; /* Force player names to stay on one line */
+                overflow: hidden;    /* Hide overflowing text for player names */
+            }
+            /* Player data cells (not first column) */
+            .best-players-table td:not(:first-child),
+            .worst-players-table td:not(:first-child) {
+                width: 15%; /* Match header width */
+                white-space: normal; /* Allow data to wrap */
+                overflow: visible;    /* Ensure no cutoff for data */
+            }
+
+            /* Captaincy Table (3 players + 1 metric column) */
+            /* Metric label column */
+            .captaincy-table th:first-child {
+                width: 35%; /* Adjusted for tablet to be as short as possible while allowing content to wrap */
+                white-space: normal; /* Allow metric labels to wrap */
+                overflow: visible;    /* Ensure no cutoff for metric labels */
+            }
+            /* Player name headers and data cells (not first column) */
+            .captaincy-table th:not(.transposed-table-empty-header),
+            .captaincy-table td:not(:first-child) {
+                width: 21.66%; /* (100% - 35% first column) / 3 players = ~21.66% */
+                white-space: normal; /* Allow all content to wrap */
+                overflow: visible;    /* Ensure no cutoff for all content */
             }
 
 
@@ -360,21 +367,21 @@
             /* Metric label column (e.g., 'Started') */
             .best-players-table th:first-child,
             .worst-players-table th:first-child {
-                width: 20%; /* Adjusted to be as short as possible while allowing content to wrap */
+                width: 18%; /* Adjusted to be as short as possible while allowing content to wrap */
                 white-space: normal; /* Allow metric labels to wrap */
                 overflow: visible;    /* Ensure no cutoff for metric labels */
             }
             /* Player name headers */
             .best-players-table .player-name-header,
             .worst-players-table .player-name-header {
-                width: 16%; /* (100% - 20% first column) / 5 players = 16% */
+                width: 16.4%; /* (100% - 18% first column) / 5 players = 16.4% */
                 white-space: nowrap; /* Force player names to stay on one line */
                 overflow: hidden;    /* Hide overflowing text for player names */
             }
             /* Player data cells (not first column) */
             .best-players-table td:not(:first-child),
             .worst-players-table td:not(:first-child) {
-                width: 16%; /* Match header width */
+                width: 16.4%; /* Match header width */
                 white-space: normal; /* Allow data to wrap */
                 overflow: visible;    /* Ensure no cutoff for data */
             }
@@ -382,14 +389,14 @@
             /* Captaincy Table (3 players + 1 metric column) */
             /* Metric label column */
             .captaincy-table th:first-child {
-                width: 35%; /* Adjusted to be as short as possible while allowing content to wrap */
+                width: 30%; /* Adjusted to be as short as possible while allowing content to wrap */
                 white-space: normal; /* Allow metric labels to wrap */
                 overflow: visible;    /* Ensure no cutoff for metric labels */
             }
             /* Player name headers and data cells (not first column) */
             .captaincy-table th:not(.transposed-table-empty-header),
             .captaincy-table td:not(:first-child) {
-                width: 21.66%; /* (100% - 35% first column) / 3 players = ~21.66% */
+                width: 23.33%; /* (100% - 30% first column) / 3 players = ~23.33% */
                 white-space: normal; /* Allow all content to wrap */
                 overflow: visible;    /* Ensure no cutoff for all content */
             }
