@@ -218,13 +218,12 @@
             margin-top: 10px;
         }
 
-        /* Adjustments for Best Players and Worst Players tables font size (10% reduction) */
-        /* This applies to desktop and acts as a base for mobile calculations */
+        /* Adjustments for Best Players and Worst Players tables font size (10% reduction) - DESKTOP ONLY */
+        /* This rule remains untouched as per your request */
         .best-players-table th, .best-players-table td,
         .worst-players-table th, .worst-players-table td {
             font-size: calc(0.95em * 0.9); /* 10% reduction from base 0.95em */
         }
-        /* Specific header font size for these tables, also reduced by 10% */
         .best-players-table th,
         .worst-players-table th {
             font-size: calc(0.9em * 0.9); /* 10% reduction from base 0.9em for specific headers */
@@ -261,18 +260,19 @@
             }
             /* Default smaller font for specific header types, also reduced */
             .captaincy-table th,
-            .missed-points-table th { /* Removed best/worst players from here */
+            .missed-points-table th {
                 font-size: 0.75em;
                 padding: 6px 8px;
             }
 
             /* --- Specific font size adjustments for Best/Worst Players tables on tablet --- */
-            /* Revert TD font size to general mobile size for Best/Worst Players */
-            .best-players-table td,
-            .worst-players-table td {
-                font-size: 0.8em; /* Revert to general mobile td size */
+            /* Apply a SINGLE 10% reduction to ALL cells (th and td) in these tables on tablet */
+            .best-players-table th, .best-players-table td,
+            .worst-players-table th, .worst-players-table td {
+                font-size: calc(0.8em * 0.9); /* General tablet size (0.8em) * 0.9 */
             }
-            /* Apply ADDITIONAL 10% reduction to TH font size for Best/Worst Players */
+            /* The specific header rule for these tables should also be reduced by 10% */
+            /* This overrides the general .captaincy-table th, .missed-points-table th rule */
             .best-players-table th,
             .worst-players-table th {
                 font-size: calc(0.75em * 0.9); /* Original mobile header size (0.75em) * 0.9 */
@@ -307,18 +307,19 @@
             }
             /* Specific header types for phones, also reduced */
             .captaincy-table th,
-            .missed-points-table th { /* Removed best/worst players from here */
+            .missed-points-table th {
                 font-size: 0.65em; /* Target: ~25% reduction from desktop 0.9em */
                 padding: 4px 5px;
             }
 
             /* --- Specific font size adjustments for Best/Worst Players tables on phone --- */
-            /* Revert TD font size to general mobile size for Best/Worst Players */
-            .best-players-table td,
-            .worst-players-table td {
-                font-size: 0.7em; /* Revert to general mobile td size */
+            /* Apply a SINGLE 10% reduction to ALL cells (th and td) in these tables on phone */
+            .best-players-table th, .best-players-table td,
+            .worst-players-table th, .worst-players-table td {
+                font-size: calc(0.7em * 0.9); /* General phone size (0.7em) * 0.9 */
             }
-            /* Apply ADDITIONAL 10% reduction to TH font size for Best/Worst Players */
+            /* The specific header rule for these tables should also be reduced by 10% */
+            /* This overrides the general .captaincy-table th, .missed-points-table th rule */
             .best-players-table th,
             .worst-players-table th {
                 font-size: calc(0.65em * 0.9); /* Original mobile header size (0.65em) * 0.9 */
