@@ -1,6 +1,5 @@
 // netlify/functions/fetch-spl-data.js
 
-// Import node-fetch for making HTTP requests in a Node.js environment
 const fetch = require('node-fetch');
 
 exports.handler = async (event, context) => {
@@ -30,7 +29,7 @@ exports.handler = async (event, context) => {
         }
         managerData = await managerResponse.json();
         console.log('Successfully fetched manager data. Dumping content:');
-        console.log(JSON.stringify(managerData, null, 2)); // DUMP MANAGER DATA
+        console.log(JSON.stringify(managerData, null, 2));
 
         // --- 2. Fetch Global Bootstrap Data ---
         const bootstrapApiUrl = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
@@ -44,7 +43,7 @@ exports.handler = async (event, context) => {
         }
         bootstrapData = await bootstrapResponse.json();
         console.log('Successfully fetched bootstrap data. Dumping content:');
-        console.log(JSON.stringify(bootstrapData, null, 2)); // DUMP BOOTSTRAP DATA
+        console.log(JSON.stringify(bootstrapData, null, 2));
         
         const elements = bootstrapData && bootstrapData.elements ? bootstrapData.elements : [];
 
@@ -52,7 +51,8 @@ exports.handler = async (event, context) => {
         elements.forEach(player => {
             playerMap.set(player.id, {
                 name: player.web_name || `${player.first_name} ${player.second_name}`,
-                element_type: player.element_type // Position type (1=GK, 2=DEF, 3=MID, 4=FWD)
+                element_type: player.element_type, // Position type (1=GK, 2=DEF, 3=MID, 4=FWD)
+                total_points: player.total_points || 0 // Season total points from bootstrap
             });
         });
 
@@ -68,13 +68,19 @@ exports.handler = async (event, context) => {
         }
         historyData = await historyResponse.json();
         console.log('Successfully fetched manager history data. Dumping content:');
-        console.log(JSON.stringify(historyData, null, 2)); // DUMP HISTORY DATA
+        console.log(JSON.stringify(historyData, null, 2));
 
-        // --- Transfers Data (Still N/A) ---
-        // The transfers API is still consistently returning HTML, so these will remain 'N/A'
-        // unless a reliable JSON source is found.
-        const totalTransfersCount = 'N/A';
-        const totalHitsPoints = 'N/A';
+        // --- Transfers Data ---
+        // totalTransfersCount from managerData.last_deadline_total_transfers
+        let totalTransfersCount = (managerData && managerData.last_deadline_total_transfers !== undefined) 
+                                  ? managerData.last_deadline_total_transfers 
+                                  : 'N/A';
+        
+        // totalHitsPoints from summing event_transfers_cost in historyData.current
+        let totalHitsPoints = 'N/A';
+        if (historyData && historyData.current) {
+            totalHitsPoints = historyData.current.reduce((sum, round) => sum + (round.event_transfers_cost || 0), 0);
+        }
 
         // --- 4. Process Data Points for Frontend ---
         const overallRank = (managerData && managerData.summary_overall_rank !== undefined) 
@@ -120,6 +126,7 @@ exports.handler = async (event, context) => {
 
                     if (captainPick) {
                         const captainId = captainPick.element;
+                        // Use player-specific points for the captain in that round
                         const captainPoints = (captainPick.stats && captainPick.stats.total_points !== undefined) 
                                                 ? captainPick.stats.total_points 
                                                 : 0; // Default to 0 if stats or total_points missing
@@ -139,7 +146,7 @@ exports.handler = async (event, context) => {
                         captaincyStats[captainId].totalCaptainedPoints += captainPoints;
                         captaincyStats[captainId].captainedRounds.push(round.event);
 
-                        if (captainPoints > 5) { // Threshold can be adjusted
+                        if (captainPoints > 5) { // Arbitrary threshold for 'successful' captaincy
                             captaincyStats[captainId].successful++;
                         } else {
                             captaincyStats[captainId].failed++;
@@ -154,95 +161,59 @@ exports.handler = async (event, context) => {
             .slice(0, 3);
         console.log('Top 3 Captains:', top3Captains);
 
-        // --- Calculate Best Players and Worst Players ---
-        const playerSeasonStats = {}; // { playerId: { name: '', totalPoints: N, started: N, autoSubbed: N, benchedPoints: N, element_type: N } }
-
-        if (currentHistory.length > 0) {
-            currentHistory.forEach(round => {
-                if (round.picks && Array.isArray(round.picks)) {
-                    round.picks.forEach(pick => {
-                        const playerId = pick.element;
-                        const playerName = playerMap.get(playerId)?.name || `Player ${playerId}`;
-                        const playerType = playerMap.get(playerId)?.element_type;
-
-                        if (!playerSeasonStats[playerId]) {
-                            playerSeasonStats[playerId] = {
-                                name: playerName,
-                                element_type: playerType,
-                                totalPoints: 0,
-                                started: 0,
-                                autoSubbed: 0,
-                                benchedPoints: 0
-                            };
-                        }
-
-                        const playerPointsInRound = (pick.stats && pick.stats.total_points !== undefined) ? pick.stats.total_points : 0;
-                        playerSeasonStats[playerId].totalPoints += playerPointsInRound;
-
-                        if (pick.multiplier > 0) {
-                            playerSeasonStats[playerId].started++;
-                        } else if (pick.multiplier === 0) {
-                            playerSeasonStats[playerId].benchedPoints += playerPointsInRound;
-                        }
-
-                        if (pick.multiplier === 0 && playerPointsInRound > 0) {
-                            playerSeasonStats[playerId].autoSubbed++;
-                        }
-                    });
-                }
-            });
-        }
-
-        const currentSquadPlayerIds = new Set((managerData && managerData.picks) ? managerData.picks.map(p => p.element) : []);
-        // Filter players to only include those currently in the squad AND have stats
-        const relevantPlayers = Object.values(playerSeasonStats).filter(player => 
-            currentSquadPlayerIds.has(Object.keys(playerMap).find(key => playerMap.get(key).name === player.name)) && player.totalPoints > 0
-        );
+        // --- Calculate Best Players and Worst Players (using bootstrapData.elements.total_points) ---
+        // The current squad is the 'picks' array of the LATEST round in historyData.current.
+        const latestRoundPicks = currentHistory.length > 0 ? currentHistory[currentHistory.length - 1].picks : [];
+        const currentSquadPlayerIds = new Set(latestRoundPicks.map(p => p.element));
+        
+        // Filter elements from bootstrapData to only include players currently in the squad
+        const relevantPlayers = elements.filter(player => currentSquadPlayerIds.has(player.id));
 
         const bestPlayers = [...relevantPlayers]
-            .sort((a, b) => b.totalPoints - a.totalPoints)
+            .sort((a, b) => b.total_points - a.total_points) // Sort by season total_points
             .slice(0, 5)
             .map(player => ({
-                name: player.name,
-                started: player.started,
-                autoSubbed: player.autoSubbed,
-                pointsGained: player.totalPoints,
-                benchedPoints: player.benchedPoints
+                name: playerMap.get(player.id)?.name || `Player ${player.id}`,
+                pointsGained: player.total_points,
+                // These fields (started, autoSubbed, benchedPoints) are not directly available
+                // in bootstrapData.elements. They would require iterating historyData.
+                // For simplicity and direct data access, we'll omit them for now or mark as N/A.
+                started: 'N/A', 
+                autoSubbed: 'N/A', 
+                benchedPoints: 'N/A' 
             }));
         console.log('Best Players:', bestPlayers);
 
         const worstPlayers = [...relevantPlayers]
-            .filter(player => player.started > 0 && player.element_type !== 1) // Must have started, not a GK
-            .sort((a, b) => a.totalPoints - b.totalPoints)
+            .filter(player => player.element_type !== 1) // Exclude Goalkeepers
+            .sort((a, b) => a.total_points - b.total_points) // Sort by season total_points ascending
             .slice(0, 5)
             .map(player => ({
-                name: player.name,
-                started: player.started,
-                autoSubbed: player.autoSubbed,
-                pointsGained: player.totalPoints,
-                benchedPoints: player.benchedPoints
+                name: playerMap.get(player.id)?.name || `Player ${player.id}`,
+                pointsGained: player.total_points,
+                started: 'N/A',
+                autoSubbed: 'N/A',
+                benchedPoints: 'N/A'
             }));
         console.log('Worst Players:', worstPlayers);
 
         // --- Calculate Missed Points (Benched Players Points) ---
-        const missedPoints = [];
+        // Directly use 'points_on_bench' from each round in historyData.current
+        const top5MissedPoints = [];
         if (currentHistory.length > 0) {
             currentHistory.forEach(round => {
-                if (round.picks && Array.isArray(round.picks)) {
-                    round.picks.forEach(pick => {
-                        const playerPointsInRound = (pick.stats && pick.stats.total_points !== undefined) ? pick.stats.total_points : 0;
-                        if (pick.multiplier === 0 && playerPointsInRound > 0) {
-                            missedPoints.push({
-                                playerName: playerMap.get(pick.element)?.name || `Player ${pick.element}`,
-                                points: playerPointsInRound,
-                                round: round.event
-                            });
-                        }
+                if (round.points_on_bench !== undefined && round.points_on_bench > 0) {
+                    top5MissedPoints.push({
+                        round: round.event,
+                        points: round.points_on_bench
+                        // Player names are not directly available for 'points_on_bench' without more complex parsing
+                        // For now, just show round and points.
                     });
                 }
             });
+            // Sort by points (descending) and get top 5
+            top5MissedPoints.sort((a, b) => b.points - a.points).slice(0, 5);
         }
-        const top5MissedPoints = missedPoints.sort((a, b) => b.points - a.points).slice(0, 5);
         console.log('Top 5 Missed Points:', top5MissedPoints);
 
 
