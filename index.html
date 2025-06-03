@@ -251,6 +251,11 @@
                 width: 105%; /* Container is 5% wider on tablet */
             }
             /* Shorten input and button width by 10% on tablet */
+            label {
+                width: 90%; /* Match button/input width for centering */
+                margin-left: auto; /* Center the label */
+                margin-right: auto; /* Center the label */
+            }
             input[type="text"] {
                 width: calc(90% - 24px); /* 90% of container width, minus padding/border */
                 margin-left: auto; /* Center the input */
@@ -345,6 +350,13 @@
         @media (max-width: 480px) {
             body {
                 padding: 0; /* Removed padding for phone */
+            }
+            label {
+                padding: 10px 0 0 0; /* Add top padding to label, remove side padding */
+                font-size: 1em;
+                width: 90%; /* Match button/input width for centering */
+                margin-left: auto; /* Center the label */
+                margin-right: auto; /* Center the label */
             }
             input[type="text"] {
                 padding: 10px;
