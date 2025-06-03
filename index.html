@@ -535,6 +535,22 @@
                 </table>
             </div>
 
+            <!-- NEW: Transfers Summary Table -->
+            <div class="transfers-summary-table">
+                <h3>Transfers</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transfersSummaryTableBody">
+                        <!-- Data will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 
@@ -570,6 +586,8 @@
             document.getElementById('worstPlayersTableBody').innerHTML = '';
             // For reverted table, clear body directly
             document.getElementById('missedPointsTableBody').innerHTML = '';
+            // NEW: Clear transfers summary table
+            document.getElementById('transfersSummaryTableBody').innerHTML = '';
             
             // Clear global rank history and reset animation state
             managerOverallRankHistory = [];
@@ -721,7 +739,7 @@
 
                 if (!playersData || playersData.length === 0) {
                     // Calculate colspan for the "No data" message
-                    const colspan = playersData.length + 1; // 1 for metric label column + number of players
+                    const colspan = metrics.length > 0 ? metrics.length + 1 : 2; // At least 2 columns if no metrics
                     tableBody.innerHTML = `<tr><td colspan="${colspan}">No data available.</td></tr>`;
                     return;
                 }
@@ -808,9 +826,28 @@
                 row.insertCell().textContent = item.round;
             });
 
+            // NEW: Display Transfers Summary Table
+            displayTransfersSummary(data.totalTransfersCount, data.totalHitsPoints);
 
             document.getElementById('results').style.display = 'block'; // Show results section
         }
+
+        // NEW: Function to display transfers summary
+        function displayTransfersSummary(totalTransfersCount, totalHitsPoints) {
+            const transfersSummaryTableBody = document.getElementById('transfersSummaryTableBody');
+            transfersSummaryTableBody.innerHTML = ''; // Clear previous content
+
+            // Helper to add a row to the summary table
+            const addSummaryRow = (metric, value) => {
+                const row = transfersSummaryTableBody.insertRow();
+                row.insertCell().textContent = metric;
+                row.insertCell().textContent = value;
+            };
+
+            addSummaryRow("Total Transfers", totalTransfersCount !== undefined && totalTransfersCount !== null ? totalTransfersCount : 'N/A');
+            addSummaryRow("Total Hits (Points Deducted)", totalHitsPoints !== undefined && totalHitsPoints !== null ? totalHitsPoints : 'N/A');
+        }
+
 
         function createRankJourneyVideo() {
             const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
