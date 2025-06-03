@@ -284,11 +284,37 @@
             .rank-points-table th:nth-child(2) { width: 60%; }
 
             /* For transposed tables, the first column (category/metric label) needs significant space */
+            /* For tablet, we'll keep the 35% for metric labels for now, as it seemed okay */
             .captaincy-table th:first-child,
             .best-players-table th:first-child,
             .worst-players-table th:first-child {
                 width: 35%; /* Give more space to the category name column */
+                white-space: normal; /* Allow wrapping */
+                overflow: visible;    /* No cutoff */
             }
+            /* Distribute remaining width for player columns on tablet */
+            .captaincy-table th:not(.transposed-table-empty-header),
+            .captaincy-table td:not(:first-child) {
+                width: 21.66%; /* (100-35)/3 = ~21.66% */
+                white-space: normal; /* Allow wrapping */
+                overflow: visible;    /* No cutoff */
+            }
+            .best-players-table th:not(.transposed-table-empty-header),
+            .best-players-table td:not(:first-child),
+            .worst-players-table th:not(.transposed-table-empty-header),
+            .worst-players-table td:not(:first-child) {
+                width: 13%; /* (100-35)/5 = 13% - This is a guess, might need adjustment */
+                white-space: normal; /* Allow wrapping for data, will be overridden for player names */
+                overflow: visible;    /* No cutoff */
+            }
+            /* Ensure player names on tablet are still nowrap and hidden */
+            .best-players-table .player-name-header,
+            .worst-players-table .player-name-header {
+                white-space: nowrap;
+                overflow: hidden;
+            }
+
+
             /* Missed Points table is NOT transposed here, so its widths are normal */
             .missed-points-table th:nth-child(1) { width: 40%; }
             .missed-points-table th:nth-child(2) { width: 30%; }
@@ -327,43 +353,49 @@
             /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS & WRAPPING RULES --- */
 
             /* Rank & Points Table: Make left column wider for one-line text */
-            .rank-points-table th:nth-child(1) { width: 55%; }
-            .rank-points-table th:nth-child(2) { width: 45%; }
+            .rank-points-table th:nth-child(1) { width: 55%; } /* Category */
+            .rank-points-table th:nth-child(2) { width: 45%; } /* Value */
 
             /* Best Players & Worst Players Tables (5 players + 1 metric column) */
+            /* Metric label column (e.g., 'Started') */
             .best-players-table th:first-child,
             .worst-players-table th:first-child {
-                width: 20%; /* Metric label column (e.g., 'Started') - reduced to give more room */
+                width: 20%; /* Adjusted to be as short as possible while allowing content to wrap */
                 white-space: normal; /* Allow metric labels to wrap */
                 overflow: visible;    /* Ensure no cutoff for metric labels */
             }
-            .best-players-table .player-name-header, /* Target player name headers */
+            /* Player name headers */
+            .best-players-table .player-name-header,
             .worst-players-table .player-name-header {
-                width: 16%; /* Each player column (80% / 5 players = 16%) */
+                width: 16%; /* (100% - 20% first column) / 5 players = 16% */
                 white-space: nowrap; /* Force player names to stay on one line */
                 overflow: hidden;    /* Hide overflowing text for player names */
             }
-            .best-players-table td:not(:first-child), /* Target data cells (not first column) */
+            /* Player data cells (not first column) */
+            .best-players-table td:not(:first-child),
             .worst-players-table td:not(:first-child) {
-                width: 16%; /* Each player data column */
+                width: 16%; /* Match header width */
                 white-space: normal; /* Allow data to wrap */
                 overflow: visible;    /* Ensure no cutoff for data */
             }
 
             /* Captaincy Table (3 players + 1 metric column) */
+            /* Metric label column */
             .captaincy-table th:first-child {
-                width: 40%; /* Metric label column */
+                width: 35%; /* Adjusted to be as short as possible while allowing content to wrap */
                 white-space: normal; /* Allow metric labels to wrap */
                 overflow: visible;    /* Ensure no cutoff for metric labels */
             }
-            .captaincy-table th:not(.transposed-table-empty-header), /* Player name headers */
-            .captaincy-table td:not(:first-child) { /* Data cells (not first column) */
-                width: 20%; /* Each player column (60% / 3 players = 20%) */
+            /* Player name headers and data cells (not first column) */
+            .captaincy-table th:not(.transposed-table-empty-header),
+            .captaincy-table td:not(:first-child) {
+                width: 21.66%; /* (100% - 35% first column) / 3 players = ~21.66% */
                 white-space: normal; /* Allow all content to wrap */
                 overflow: visible;    /* Ensure no cutoff for all content */
             }
 
             /* Missed Points table is NOT transposed here, so its widths are normal */
+            /* This table remains untouched as per your request */
             .missed-points-table th:nth-child(1) { width: 45%; } /* Player Name */
             .missed-points-table th:nth-child(2) { width: 27.5%; } /* Points */
             .missed-points-table th:nth-child(3) { width: 27.5%; } /* Round */
