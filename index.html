@@ -325,26 +325,33 @@
             }
 
             /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS --- */
-            /* For transposed tables, the first column (metric labels) needs significant space */
-            .captaincy-table th:first-child,
-            .best-players-table th:first-child,
-            .worst-players-table th:first-child {
-                width: 25%; /* Reduced to give more room to player names */
-            }
-            /* Apply nowrap and hidden overflow to player name headers and their data cells */
-            .captaincy-table th:not(.transposed-table-empty-header),
-            .best-players-table th:not(.transposed-table-empty-header),
-            .worst-players-table th:not(.transposed-table-empty-header),
-            .captaincy-table td:not(:first-child),
-            .best-players-table td:not(:first-child),
-            .worst-players-table td:not(:first-child) {
-                white-space: nowrap;
-                overflow: hidden;
-            }
-
             /* Rank & Points Table: Make left column wider for one-line text */
             .rank-points-table th:nth-child(1) { width: 55%; }
             .rank-points-table th:nth-child(2) { width: 45%; }
+
+            /* For Best/Worst Players tables (5 players + 1 metric column) */
+            .best-players-table th:first-child,
+            .worst-players-table th:first-child {
+                width: 25%; /* Metric label column (e.g., 'Started') */
+            }
+            .best-players-table th:not(.transposed-table-empty-header),
+            .best-players-table td:not(:first-child),
+            .worst-players-table th:not(.transposed-table-empty-header),
+            .worst-players-table td:not(:first-child) {
+                width: 15%; /* Each player column (75% / 5 players = 15%) */
+                white-space: nowrap; /* Force text to stay on one line */
+                overflow: hidden;    /* Hide overflowing text */
+            }
+
+            /* For Captaincy table (3 players + 1 metric column) */
+            .captaincy-table th:first-child {
+                width: 40%; /* Metric label column */
+            }
+            .captaincy-table th:not(.transposed-table-empty-header),
+            .captaincy-table td:not(:first-child) {
+                width: 20%; /* Each player column (60% / 3 players = 20%) */
+                /* No nowrap or overflow hidden here, allowing wrapping */
+            }
 
             /* Missed Points table is NOT transposed here, so its widths are normal */
             .missed-points-table th:nth-child(1) { width: 45%; } /* Player Name */
