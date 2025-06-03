@@ -9,13 +9,13 @@
     <style>
         /* SPL Fantasy Inspired Design - LIGHT MODE */
         :root {
-            /* Main Colors - Adjusted for a lighter theme */
+            /* Main Colors - Adjusted for a lighter theme and better table contrast */
             --spl-light-bg: #F8F9FA; /* Very light background for body */
             --spl-container-bg: #FFFFFF; /* White for main container/cards */
-            --spl-table-bg: #F1F3F5; /* Light grey for table background */
-            --spl-table-header-bg: #E9ECEF; /* Slightly darker light grey for table headers */
-            --spl-table-row-even: #E9ECEF; /* Slightly different shade for even rows */
-            --spl-table-row-hover: #DEE2E6; /* Lighter grey for hover */
+            --spl-table-bg: #E0E4E8; /* Distinct light grey for table background */
+            --spl-table-header-bg: #B3D9FF; /* Light blue for table headers */
+            --spl-table-row-even: #D6DBE0; /* Slightly different shade for even rows */
+            --spl-table-row-hover: #C7CCD1; /* Lighter grey for hover */
 
             --spl-text-dark: #212529; /* Dark text for primary content */
             --spl-text-medium: #495057; /* Medium dark text for secondary info */
@@ -248,27 +248,15 @@
             .rank-points-table th:nth-child(1) { width: 40%; }
             .rank-points-table th:nth-child(2) { width: 60%; }
 
-            .captaincy-table th:nth-child(1) { width: 15%; }
-            .captaincy-table th:nth-child(2) { width: 18%; }
-            .captaincy-table th:nth-child(3) { width: 14%; }
-            .captaincy-table th:nth-child(4) { width: 14%; }
-            .captaincy-table th:nth-child(5) { width: 19%; }
-            .captaincy-table th:nth-child(6) { width: 20%; } /* 'Rounds' is now short */
-
-            .best-players-table th:nth-child(1),
-            .worst-players-table th:nth-child(1) { width: 25%; }
-            .best-players-table th:nth-child(2),
-            .worst-players-table th:nth-child(2) { width: 15%; }
-            .best-players-table th:nth-child(3),
-            .worst-players-table th:nth-child(3) { width: 20%; }
-            .best-players-table th:nth-child(4),
-            .worst-players-table th:nth-child(4) { width: 20%; }
-            .best-players-table th:nth-child(5),
-            .worst-players-table th:nth-child(5) { width: 20%; }
-
-            .missed-points-table th:nth-child(1) { width: 40%; }
-            .missed-points-table th:nth-child(2) { width: 30%; }
-            .missed-points-table th:nth-child(3) { width: 30%; }
+            /* Transposed tables will automatically handle widths better due to new structure */
+            /* We'll set a min-width for the first column (category) and let others flex */
+            .captaincy-table th:first-child,
+            .best-players-table th:first-child,
+            .worst-players-table th:first-child,
+            .missed-points-table th:first-child {
+                width: 35%; /* Give more space to the category name column */
+            }
+            /* Remaining columns will share 65% of width, divided among players */
         }
 
         @media (max-width: 480px) {
@@ -290,35 +278,20 @@
                 padding: 4px 5px;
             }
 
-            /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS --- */
+            /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS FOR TRANSPOSED TABLES --- */
             /* Rank & Points Table: Make left column wider for one-line text */
             .rank-points-table th:nth-child(1) { width: 55%; }
             .rank-points-table th:nth-child(2) { width: 45%; }
 
-            /* Top 3 Captains Table: Re-distribute widths for 'Rounds' and other headers */
-            .captaincy-table th:nth-child(1) { width: 18%; } /* Captain */
-            .captaincy-table th:nth-child(2) { width: 18%; } /* Times Captained */
-            .captaincy-table th:nth-child(3) { width: 15%; } /* Successful */
-            .captaincy-table th:nth-child(4) { width: 15%; } /* Failed */
-            .captaincy-table th:nth-child(5) { width: 22%; } /* Total Captaincy Points */
-            .captaincy-table th:nth-child(6) { width: 12%; } /* Rounds (much shorter) */
-
-            /* Best/Worst Players Tables: Give more room to player names */
-            .best-players-table th:nth-child(1),
-            .worst-players-table th:nth-child(1) { width: 30%; } /* Players */
-            .best-players-table th:nth-child(2),
-            .worst-players-table th:nth-child(2) { width: 15%; } /* Started */
-            .best-players-table th:nth-child(3),
-            .worst-players-table th:nth-child(3) { width: 18%; } /* Auto Subbed */
-            .best-players-table th:nth-child(4),
-            .worst-players-table th:nth-child(4) { width: 18%; } /* Points Gained */
-            .best-players-table th:nth-child(5),
-            .worst-players-table th:nth-child(5) { width: 19%; } /* Benched Points */
-
-            /* Missed Points Table: Give more room to player names */
-            .missed-points-table th:nth-child(1) { width: 45%; } /* Player Name */
-            .missed-points-table th:nth-child(2) { width: 27.5%; } /* Points */
-            .missed-points-table th:nth-child(3) { width: 27.5%; } /* Round */
+            /* For transposed tables, the first column (category) needs significant space */
+            .captaincy-table th:first-child,
+            .best-players-table th:first-child,
+            .worst-players-table th:first-child,
+            .missed-points-table th:first-child {
+                width: 40%; /* Adjusted for phone to give more room to category names */
+            }
+            /* The remaining width (60%) will be divided among the player columns */
+            /* This is handled by table-layout: fixed and the browser distributing remaining space */
         }
     </style>
 </head>
@@ -328,7 +301,8 @@
 
         <div>
             <label for="managerId">Enter Manager ID:</label>
-            <input type="text" id="managerId" placeholder="e.g., 1234"> <button onclick="analyzeManager()">Analyze My Performance</button>
+            <input type="text" id="managerId" placeholder="e.g., 1234">
+            <button onclick="analyzeManager()">Analyze My Performance</button>
         </div>
 
         <div id="loading">Loading data...</div>
@@ -362,14 +336,7 @@
                 <h3>Top 3 Captains</h3>
                 <table>
                     <thead>
-                        <tr>
-                            <th>Captain</th>
-                            <th>Times Captained</th>
-                            <th>Successful</th>
-                            <th>Failed</th>
-                            <th>Total Captaincy Points</th>
-                            <th>Rounds</th> </tr>
-                    </thead>
+                        </thead>
                     <tbody id="captaincyTableBody">
                         </tbody>
                 </table>
@@ -379,14 +346,7 @@
                 <h3>Best Players</h3>
                 <table>
                     <thead>
-                        <tr>
-                            <th>Players</th>
-                            <th>Started</th>
-                            <th>Auto Subbed</th>
-                            <th>Points Gained</th>
-                            <th>Benched Points</th>
-                        </tr>
-                    </thead>
+                        </thead>
                     <tbody id="bestPlayersTableBody">
                         </tbody>
                 </table>
@@ -396,14 +356,7 @@
                 <h3>Worst Players</h3>
                 <table>
                     <thead>
-                        <tr>
-                            <th>Players</th>
-                            <th>Started</th>
-                            <th>Auto Subbed</th>
-                            <th>Points Gained</th>
-                            <th>Benched Points</th>
-                        </tr>
-                    </thead>
+                        </thead>
                     <tbody id="worstPlayersTableBody">
                         </tbody>
                 </table>
@@ -413,12 +366,7 @@
                 <h3>Missed Points (Benched Players Points)</h3>
                 <table>
                     <thead>
-                        <tr>
-                            <th>Player Name</th>
-                            <th>Points</th>
-                            <th>Round</th>
-                        </tr>
-                    </thead>
+                        </thead>
                     <tbody id="missedPointsTableBody">
                         </tbody>
                 </table>
@@ -529,7 +477,7 @@
             }
 
 
-            // Display Rank & Points Table
+            // Display Rank & Points Table (remains untransposed)
             const rankPointsTableBody = document.getElementById('rankPointsTableBody');
             rankPointsTableBody.innerHTML = ''; // Clear previous content
             
@@ -597,52 +545,128 @@
             videoButtonCell.appendChild(videoButton);
 
 
-            // Display Captaincy Table
-            const captaincyTableBody = document.getElementById('captaincyTableBody');
-            captaincyTableBody.innerHTML = ''; // Clear previous content
-            data.top3Captains.forEach(captain => {
-                const row = captaincyTableBody.insertRow();
-                row.insertCell().textContent = captain.name;
-                row.insertCell().textContent = captain.times;
-                row.insertCell().textContent = captain.successful;
-                row.insertCell().textContent = captain.failed;
-                row.insertCell().textContent = captain.totalCaptainedPoints;
-                row.insertCell().textContent = captain.captainedRounds ? captain.captainedRounds.join(', ') : 'N/A';
-            });
+            // --- TRANSPOSED TABLES ---
 
-            // Display Best Players Table
-            const bestPlayersTableBody = document.getElementById('bestPlayersTableBody');
-            bestPlayersTableBody.innerHTML = ''; // Clear previous content
-            data.bestPlayers.forEach(player => {
-                const row = bestPlayersTableBody.insertRow();
-                row.insertCell().textContent = player.name;
-                row.insertCell().textContent = player.started;
-                row.insertCell().textContent = player.autoSubbed;
-                row.insertCell().textContent = player.pointsGained;
-                row.insertCell().textContent = player.benchedPoints;
-            });
+            // Helper function to create a transposed table
+            function createTransposedTable(tableBodyId, tableHeadId, playersData, metrics) {
+                const tableBody = document.getElementById(tableBodyId);
+                const tableHead = document.getElementById(tableHeadId); // Get the thead element directly
+                tableBody.innerHTML = ''; // Clear existing body
+                tableHead.innerHTML = ''; // Clear existing head
 
-            // Display Worst Players Table
-            const worstPlayersTableBody = document.getElementById('worstPlayersTableBody');
-            worstPlayersTableBody.innerHTML = ''; // Clear previous content
-            data.worstPlayers.forEach(player => {
-                const row = worstPlayersTableBody.insertRow();
-                row.insertCell().textContent = player.name;
-                row.insertCell().textContent = player.started;
-                row.insertCell().textContent = player.autoSubbed;
-                row.insertCell().textContent = player.pointsGained;
-                row.insertCell().textContent = player.benchedPoints;
-            });
+                if (!playersData || playersData.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="' + (metrics.length + 1) + '">No data available.</td></tr>';
+                    return;
+                }
 
-            // Display Missed Points Table
-            const missedPointsTableBody = document.getElementById('missedPointsTableBody');
-            missedPointsTableBody.innerHTML = ''; // Clear previous content
-            data.top5MissedPoints.forEach(item => {
-                const row = missedPointsTableBody.insertRow();
-                row.insertCell().textContent = item.playerName;
-                row.insertCell().textContent = item.points;
-                row.insertCell().textContent = item.round;
-            });
+                // Create header row with player names
+                const headerRow = tableHead.insertRow();
+                headerRow.insertCell().textContent = 'Category'; // First cell is for the metric name
+
+                playersData.forEach(player => {
+                    const th = document.createElement('th');
+                    th.textContent = player.name;
+                    headerRow.appendChild(th);
+                });
+
+                // Create data rows for each metric
+                metrics.forEach(metric => {
+                    const row = tableBody.insertRow();
+                    row.insertCell().textContent = metric.label; // First cell is the metric label
+
+                    playersData.forEach(player => {
+                        const cell = row.insertCell();
+                        let value = player[metric.key];
+                        if (metric.formatter) {
+                            value = metric.formatter(value);
+                        }
+                        cell.textContent = value !== undefined && value !== null ? value : 'N/A';
+                    });
+                });
+            }
+
+            // Captaincy Table
+            const captaincyMetrics = [
+                { key: 'times', label: 'Times Captained' },
+                { key: 'successful', label: 'Successful' },
+                { key: 'failed', label: 'Failed' },
+                { key: 'totalCaptainedPoints', label: 'Total Captaincy Points' },
+                { key: 'captainedRounds', label: 'Rounds', formatter: (rounds) => rounds && rounds.length > 0 ? rounds.join(', ') : 'N/A' }
+            ];
+            createTransposedTable('captaincyTableBody', 'captaincyTableHead', data.top3Captains, captaincyMetrics);
+
+
+            // Best Players Table
+            const bestPlayersMetrics = [
+                { key: 'started', label: 'Started' },
+                { key: 'autoSubbed', label: 'Auto Subbed' },
+                { key: 'pointsGained', label: 'Points Gained' },
+                { key: 'benchedPoints', label: 'Benched Points' }
+            ];
+            createTransposedTable('bestPlayersTableBody', 'bestPlayersTableHead', data.bestPlayers, bestPlayersMetrics);
+
+
+            // Worst Players Table
+            const worstPlayersMetrics = [
+                { key: 'started', label: 'Started' },
+                { key: 'autoSubbed', label: 'Auto Subbed' },
+                { key: 'pointsGained', label: 'Points Gained' },
+                { key: 'benchedPoints', label: 'Benched Points' }
+            ];
+            createTransposedTable('worstPlayersTableBody', 'worstPlayersTableHead', data.worstPlayers, worstPlayersMetrics);
+
+            // Missed Points Table (This one is slightly different as it's already "per instance")
+            // It needs to be transposed if it's showing multiple players' single best scores.
+            // The current data structure for top5MissedPoints is: [{playerName, points, round}, ...]
+            // If we transpose it, the "Player Name", "Points", "Round" become row headers, and each "instance" becomes a column.
+            // Let's assume for this table, we'll transpose it to show the top 5 instances as columns.
+            const missedPointsMetrics = [
+                { key: 'playerName', label: 'Player Name' },
+                { key: 'points', label: 'Points' },
+                { key: 'round', label: 'Round' }
+            ];
+            // Need to adjust createTransposedTable or create a new function for this specific structure
+            // For now, let's keep it as is, or transpose if the user confirms this specific table needs transposing too.
+            // Given the prompt, it sounds like this one should also be transposed.
+            // The `playersData` for this table would be `data.top5MissedPoints` and each item is an "instance" not a player.
+            // The "names" for the columns would be "Instance 1", "Instance 2", etc.
+            // Let's modify `createTransposedTable` to handle this.
+
+            function createTransposedMissedPointsTable(tableBodyId, tableHeadId, instancesData, metrics) {
+                const tableBody = document.getElementById(tableBodyId);
+                const tableHead = document.getElementById(tableHeadId);
+                tableBody.innerHTML = '';
+                tableHead.innerHTML = '';
+
+                if (!instancesData || instancesData.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="' + (metrics.length + 1) + '">No data available.</td></tr>';
+                    return;
+                }
+
+                // Create header row with instance labels (e.g., "Instance 1", "Instance 2")
+                const headerRow = tableHead.insertRow();
+                headerRow.insertCell().textContent = 'Category'; // First cell is for the metric name
+
+                instancesData.forEach((instance, index) => {
+                    const th = document.createElement('th');
+                    th.textContent = `Instance ${index + 1}`; // e.g., "Instance 1"
+                    headerRow.appendChild(th);
+                });
+
+                // Create data rows for each metric
+                metrics.forEach(metric => {
+                    const row = tableBody.insertRow();
+                    row.insertCell().textContent = metric.label; // First cell is the metric label
+
+                    instancesData.forEach(instance => {
+                        const cell = row.insertCell();
+                        let value = instance[metric.key];
+                        cell.textContent = value !== undefined && value !== null ? value : 'N/A';
+                    });
+                });
+            }
+
+            createTransposedMissedPointsTable('missedPointsTableBody', 'missedPointsTableHead', data.top5MissedPoints, missedPointsMetrics);
 
 
             document.getElementById('results').style.display = 'block'; // Show results section
