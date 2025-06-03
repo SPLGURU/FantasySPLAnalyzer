@@ -290,25 +290,6 @@
                 padding: 4px 5px;
             }
 
-            /* --- NEW RULES FOR 50% TEXT REDUCTION IN SPECIFIC TABLES --- */
-            /* Captaincy Table - apply 50% reduction from its mobile base size */
-            .captaincy-table th,
-            .captaincy-table td {
-                font-size: calc(0.65em * 0.5); /* 50% of the 0.65em for headers, and 50% of the 0.7em for cells */
-            }
-            /* Best Players Table - apply 50% reduction from its mobile base size */
-            .best-players-table th,
-            .best-players-table td {
-                font-size: calc(0.65em * 0.5);
-            }
-            /* Worst Players Table - apply 50% reduction from its mobile base size */
-            .worst-players-table th,
-            .worst-players-table td {
-                font-size: calc(0.65em * 0.5);
-            }
-            /* --- END NEW RULES --- */
-
-
             /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS --- */
             /* Rank & Points Table: Make left column wider for one-line text */
             .rank-points-table th:nth-child(1) { width: 55%; }
@@ -347,8 +328,7 @@
 
         <div>
             <label for="managerId">Enter Manager ID:</label>
-            <input type="text" id="managerId" placeholder="e.g., 1234">
-            <button onclick="analyzeManager()">Analyze My Performance</button>
+            <input type="text" id="managerId" placeholder="e.g., 1234"> <button onclick="analyzeManager()">Analyze My Performance</button>
         </div>
 
         <div id="loading">Loading data...</div>
@@ -367,7 +347,7 @@
                         </tr>
                     </thead>
                     <tbody id="rankPointsTableBody">
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
@@ -388,11 +368,10 @@
                             <th>Successful</th>
                             <th>Failed</th>
                             <th>Total Captaincy Points</th>
-                            <th>Rounds</th>
-                        </tr>
+                            <th>Rounds</th> </tr>
                     </thead>
                     <tbody id="captaincyTableBody">
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
@@ -409,7 +388,7 @@
                         </tr>
                     </thead>
                     <tbody id="bestPlayersTableBody">
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
@@ -426,7 +405,7 @@
                         </tr>
                     </thead>
                     <tbody id="worstPlayersTableBody">
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
@@ -441,7 +420,7 @@
                         </tr>
                     </thead>
                     <tbody id="missedPointsTableBody">
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
@@ -744,51 +723,65 @@
                         },
                         pointBackgroundColor: 'red',
                         // Dynamic border color based on rank change
-                        pointBorderColor: (context) => {
-                            if (context.dataIndex === 0 || rankData[context.dataIndex] === null || rankData[context.dataIndex - 1] === null) {
-                                return 'grey'; // No change or no previous data
+                        borderColor: (context) => {
+                            const currentDataIndex = context.dataIndex;
+                            const previousDataIndex = currentDataIndex - 1;
+
+                            // Get the actual data points from the animated dataset
+                            const currentRank = context.dataset.data[currentDataIndex];
+                            const previousRank = context.dataset.data[previousDataIndex]; 
+                            
+                            // If previous or current rank is not a valid number, use default color (e.g., for initial point or gaps)
+                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
+                                return 'rgb(75, 192, 192)'; // Default color (e.g., blue/cyan)
                             }
-                            const currentRank = rankData[context.dataIndex];
-                            const previousRank = rankData[context.dataIndex - 1];
-                            if (currentRank < previousRank) {
-                                return 'green'; // Rank improved
-                            } else if (currentRank > previousRank) {
-                                return 'red'; // Rank worsened
-                            } else {
-                                return 'grey'; // Rank stayed the same
+
+                            if (currentRank < previousRank) { // Rank improved (lower number is better)
+                                return 'green';
+                            } else if (currentRank > previousRank) { // Rank worsened (higher number is worse)
+                                return 'red';
+                            } else { // Rank unchanged
+                                return 'grey';
                             }
                         },
-                        pointBorderWidth: 2,
-                        borderColor: 'rgba(0, 123, 255, 0.8)', // Primary accent blue for the line
-                        borderWidth: 3,
-                        fill: false,
+                        // Dynamic background color based on rank change (matching border)
+                        backgroundColor: (context) => {
+                            const currentDataIndex = context.dataIndex;
+                            const previousDataIndex = currentDataIndex - 1;
+
+                            const currentRank = context.dataset.data[currentDataIndex];
+                            const previousRank = context.dataset.data[previousDataIndex];
+
+                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
+                                return 'rgba(75, 192, 192, 0.2)'; // Default transparent color
+                            }
+
+                            if (currentRank < previousRank) {
+                                return 'rgba(0, 128, 0, 0.2)'; // Green transparent
+                            } else if (currentRank > previousRank) {
+                                return 'rgba(255, 0, 0, 0.2)'; // Red transparent
+                            } else {
+                                return 'rgba(128, 128, 128, 0.2)'; // Grey transparent
+                            }
+                        },
                     }]
                 },
                 options: {
                     responsive: true,
+                    // Set aspect ratio to 1 for a square chart on both PC and Phone
                     maintainAspectRatio: true,
-                    animation: {
-                        duration: animationSpeed, // Duration for each step
-                        easing: 'linear',
-                        onProgress: (animation) => {
-                            // Update the displayed data points incrementally
-                            if (animation.chart.data.datasets[0].data.length <= currentAnimationFrameRound) {
-                                animation.chart.data.datasets[0].data.push(rankData[currentAnimationFrameRound]);
-                                animation.chart.update('none'); // 'none' for smooth update
-                            }
-                            // This part is the core of advancing the animation frame by frame
-                            if (currentAnimationFrameRound < rankData.length - 1) {
-                                currentAnimationFrameRound++;
-                            } else {
-                                // Animation complete, hide message
-                                videoLoadingMessage.style.display = 'none';
-                            }
+                    aspectRatio: 1, 
+                    animation: false, // Disable default Chart.js animation
+                    plugins: {
+                        legend: {
+                            display: true // Re-enable default legend
                         },
-                        onComplete: (animation) => {
-                            // Ensure all data points are displayed when animation completes
-                            animation.chart.data.datasets[0].data = [...rankData];
-                            animation.chart.update();
-                            videoLoadingMessage.style.display = 'none';
+                        title: {
+                            display: true,
+                            text: 'Your Rank Journey Over Rounds',
+                            font: {
+                                size: window.innerWidth < 600 ? 14 : 18 // Smaller title on mobile
+                            }
                         }
                     },
                     scales: {
@@ -796,20 +789,27 @@
                             title: {
                                 display: true,
                                 text: 'Round Number',
-                                color: var(--spl-text-dark),
                                 font: {
-                                    size: 16,
-                                    family: 'Roboto',
-                                    weight: 'bold'
+                                    size: window.innerWidth < 600 ? 10 : 12 // Smaller axis title on mobile
                                 }
                             },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)',
-                            },
+                            min: 0,
+                            max: 34,
                             ticks: {
-                                color: var(--spl-text-medium),
+                                // Custom callback for X-axis labels (numbers only for both PC and Phone)
+                                callback: function(value, index, values) {
+                                    if (index === 0) { // 'Start' for Round 0
+                                        return 'Start';
+                                    } else if (index >= 1 && index <= 34 && index % 2 === 0) { // Even rounds
+                                        return `${index}`; // Just the number for both PC and Mobile
+                                    }
+                                    return null; // Hide odd rounds
+                                },
+                                autoSkip: false, // Ensure our custom callback is strictly followed
+                                maxRotation: 0, // No rotation needed with fewer labels
+                                minRotation: 0,
                                 font: {
-                                    family: 'Roboto'
+                                    size: window.innerWidth < 600 ? 7 : 11 // Smaller X-axis tick labels on mobile
                                 }
                             }
                         },
@@ -817,53 +817,21 @@
                             title: {
                                 display: true,
                                 text: 'Overall Rank',
-                                color: var(--spl-text-dark),
                                 font: {
-                                    size: 16,
-                                    family: 'Roboto',
-                                    weight: 'bold'
+                                    size: window.innerWidth < 600 ? 10 : 12 // Smaller axis title on mobile
                                 }
                             },
-                            min: 1, // Rank 1 is best
-                            max: overallYAxisMax, // Dynamically calculated max rank + buffer
-                            reverse: true, // Lower rank is better, so reverse the Y-axis
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)',
-                            },
+                            min: 1, // Fixed min
+                            max: overallYAxisMax, // Fixed max based on new logic
+                            reverse: true, // Rank 1 is at the top
                             ticks: {
-                                color: var(--spl-text-medium),
-                                font: {
-                                    family: 'Roboto'
+                                callback: function(value) {
+                                    return value.toLocaleString(); // Format with commas
                                 },
-                                callback: function(value, index, values) {
-                                    // Format tick labels to include commas for readability
-                                    return value.toLocaleString();
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            labels: {
-                                color: var(--spl-text-dark),
+                                autoSkip: true, // Keep auto-skip for Y-axis for readability if many ticks
+                                maxTicksLimit: 10,
                                 font: {
-                                    size: 14,
-                                    family: 'Roboto'
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        label += context.parsed.y.toLocaleString();
-                                    }
-                                    return label;
+                                    size: window.innerWidth < 600 ? 9 : 11 // Smaller tick labels on mobile
                                 }
                             }
                         }
@@ -871,10 +839,33 @@
                 }
             });
 
-            // Start the animation
-            if (rankData.length > 0) {
-                rankJourneyChartInstance.update();
+            // Animation Logic
+            const maxRounds = 34;
+
+            function animateRankJourney() {
+                if (currentAnimationFrameRound <= maxRounds) {
+                    // Update data for the current frame
+                    const animatedData = rankData.map((val, idx) => {
+                        if (idx <= currentAnimationFrameRound) {
+                            return val;
+                        }
+                        return null; // Don't show future points yet
+                    });
+
+                    rankJourneyChartInstance.data.datasets[0].data = animatedData;
+                    rankJourneyChartInstance.update();
+
+                    currentAnimationFrameRound++;
+                    setTimeout(animateRankJourney, animationSpeed); // Use the calculated animation speed
+                } else {
+                    videoLoadingMessage.style.display = 'none'; // Hide loading message
+                    // After animation, reset pointRadius to show all points
+                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3;
+                    rankJourneyChartInstance.update();
+                }
             }
+
+            animateRankJourney(); // Start the animation
         }
     </script>
 </body>
