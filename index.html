@@ -253,9 +253,13 @@
             /* Shorten input and button width by 10% on tablet */
             input[type="text"] {
                 width: calc(90% - 24px); /* 90% of container width, minus padding/border */
+                margin-left: auto; /* Center the input */
+                margin-right: auto; /* Center the input */
             }
             button {
                 width: 90%; /* 90% of container width */
+                margin-left: auto; /* Center the button */
+                margin-right: auto; /* Center the button */
             }
 
             h1 { font-size: 2em; }
@@ -290,7 +294,7 @@
 
             /* Adjust column widths for better fitting on tablets - general distribution */
             .rank-points-table th:nth-child(1) { width: 40%; }
-            .rank-            .rank-points-table th:nth-child(2) { width: 60%; }
+            .rank-points-table th:nth-child(2) { width: 60%; }
 
             /* Best Players & Worst Players Tables (5 players + 1 metric column) */
             /* Metric label column (e.g., 'Started') */
@@ -341,20 +345,23 @@
             body {
                 padding: 0; /* Removed padding for phone */
             }
-            input[type="text"], button {
+            input[type="text"] {
                 padding: 10px;
                 font-size: 1em;
+                width: calc(90% - 24px); /* 90% of container width, minus padding/border */
+                margin-left: auto; /* Center the input */
+                margin-right: auto; /* Center the input */
+            }
+            button {
+                padding: 10px;
+                font-size: 1em;
+                width: 90%; /* 90% of container width */
+                margin-left: auto; /* Center the button */
+                margin-right: auto; /* Center the button */
             }
             .container {
                 padding: 0; /* Removed padding for phone */
                 width: 105%; /* Container is 5% wider on phone */
-            }
-            /* Shorten input and button width by 10% on phone */
-            input[type="text"] {
-                width: calc(90% - 24px); /* 90% of container width, minus padding/border */
-            }
-            button {
-                width: 90%; /* 90% of container width */
             }
             /* Further reduce font size for all table cells and headers for phones */
             th, td {
@@ -706,8 +713,7 @@
                 }
 
                 // Create header row with player names (and an empty, visually hidden first cell)
-                const headerRow = tableHead.insertRow();
-                const emptyTh = headerRow.insertCell(); // Create the empty top-left <th>
+                const headerRow = tableHead.insertCell(); // Create the empty top-left <th>
                 emptyTh.classList.add('transposed-table-empty-header'); // Add class for styling
                 
                 playersData.forEach(player => {
