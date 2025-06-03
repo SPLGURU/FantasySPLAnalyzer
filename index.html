@@ -325,18 +325,26 @@
             }
 
             /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS --- */
-            /* Rank & Points Table: Make left column wider for one-line text */
-            .rank-points-table th:nth-child(1) { width: 55%; }
-            .rank-points-table th:nth-child(2) { width: 45%; }
-
             /* For transposed tables, the first column (metric labels) needs significant space */
             .captaincy-table th:first-child,
             .best-players-table th:first-child,
             .worst-players-table th:first-child {
-                width: 45%; /* Increased for phone to give more room to metric labels */
+                width: 25%; /* Reduced to give more room to player names */
             }
-            /* The remaining width (55%) will be divided among the player columns */
-            /* This is handled by table-layout: fixed and the browser distributing remaining space */
+            /* Apply nowrap and hidden overflow to player name headers and their data cells */
+            .captaincy-table th:not(.transposed-table-empty-header),
+            .best-players-table th:not(.transposed-table-empty-header),
+            .worst-players-table th:not(.transposed-table-empty-header),
+            .captaincy-table td:not(:first-child),
+            .best-players-table td:not(:first-child),
+            .worst-players-table td:not(:first-child) {
+                white-space: nowrap;
+                overflow: hidden;
+            }
+
+            /* Rank & Points Table: Make left column wider for one-line text */
+            .rank-points-table th:nth-child(1) { width: 55%; }
+            .rank-points-table th:nth-child(2) { width: 45%; }
 
             /* Missed Points table is NOT transposed here, so its widths are normal */
             .missed-points-table th:nth-child(1) { width: 45%; } /* Player Name */
@@ -626,6 +634,8 @@
                 playersData.forEach(player => {
                     const th = document.createElement('th');
                     th.textContent = player.name;
+                    // Add a class to player name headers for specific mobile styling
+                    th.classList.add('player-name-header'); 
                     headerRow.appendChild(th);
                 });
 
