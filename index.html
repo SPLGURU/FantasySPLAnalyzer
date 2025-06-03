@@ -278,7 +278,7 @@
                 padding: 4px 5px;
             }
 
-            /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS FOR TRANSPOSED TABLES --- */
+            /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS --- */
             /* Rank & Points Table: Make left column wider for one-line text */
             .rank-points-table th:nth-child(1) { width: 55%; }
             .rank-points-table th:nth-child(2) { width: 45%; }
@@ -335,8 +335,7 @@
             <div class="captaincy-table">
                 <h3>Top 3 Captains</h3>
                 <table>
-                    <thead>
-                        </thead>
+                    <thead id="captaincyTableHead"> </thead>
                     <tbody id="captaincyTableBody">
                         </tbody>
                 </table>
@@ -345,8 +344,7 @@
             <div class="best-players-table">
                 <h3>Best Players</h3>
                 <table>
-                    <thead>
-                        </thead>
+                    <thead id="bestPlayersTableHead"> </thead>
                     <tbody id="bestPlayersTableBody">
                         </tbody>
                 </table>
@@ -355,8 +353,7 @@
             <div class="worst-players-table">
                 <h3>Worst Players</h3>
                 <table>
-                    <thead>
-                        </thead>
+                    <thead id="worstPlayersTableHead"> </thead>
                     <tbody id="worstPlayersTableBody">
                         </tbody>
                 </table>
@@ -365,8 +362,7 @@
             <div class="missed-points-table">
                 <h3>Missed Points (Benched Players Points)</h3>
                 <table>
-                    <thead>
-                        </thead>
+                    <thead id="missedPointsTableHead"> </thead>
                     <tbody id="missedPointsTableBody">
                         </tbody>
                 </table>
@@ -401,6 +397,7 @@
             resultsDiv.style.display = 'none';
             rankJourneyVideoContainer.style.display = 'none'; // Hide video container
             document.getElementById('rankPointsTableBody').innerHTML = '';
+            // No need to clear thead directly, as createTransposedTable clears it
             document.getElementById('captaincyTableBody').innerHTML = '';
             document.getElementById('bestPlayersTableBody').innerHTML = '';
             document.getElementById('worstPlayersTableBody').innerHTML = '';
@@ -555,7 +552,9 @@
                 tableHead.innerHTML = ''; // Clear existing head
 
                 if (!playersData || playersData.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="' + (metrics.length + 1) + '">No data available.</td></tr>';
+                    // Calculate colspan for the "No data" message
+                    const colspan = metrics.length + 1; // 1 for Category column + number of metrics
+                    tableBody.innerHTML = `<tr><td colspan="${colspan}">No data available.</td></tr>`;
                     return;
                 }
 
@@ -625,13 +624,7 @@
                 { key: 'points', label: 'Points' },
                 { key: 'round', label: 'Round' }
             ];
-            // Need to adjust createTransposedTable or create a new function for this specific structure
-            // For now, let's keep it as is, or transpose if the user confirms this specific table needs transposing too.
-            // Given the prompt, it sounds like this one should also be transposed.
-            // The `playersData` for this table would be `data.top5MissedPoints` and each item is an "instance" not a player.
-            // The "names" for the columns would be "Instance 1", "Instance 2", etc.
-            // Let's modify `createTransposedTable` to handle this.
-
+            
             function createTransposedMissedPointsTable(tableBodyId, tableHeadId, instancesData, metrics) {
                 const tableBody = document.getElementById(tableBodyId);
                 const tableHead = document.getElementById(tableHeadId);
@@ -639,7 +632,9 @@
                 tableHead.innerHTML = '';
 
                 if (!instancesData || instancesData.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="' + (metrics.length + 1) + '">No data available.</td></tr>';
+                     // Calculate colspan for the "No data" message
+                    const colspan = metrics.length + 1; // 1 for Category column + number of metrics
+                    tableBody.innerHTML = `<tr><td colspan="${colspan}">No data available.</td></tr>`;
                     return;
                 }
 
