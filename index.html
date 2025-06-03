@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fantasy SPL Manager Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
@@ -229,16 +229,16 @@
             font-size: calc(0.9em * 0.9); /* 10% reduction from base 0.9em for specific headers */
         }
 
-        /* CSS for the visually "cropped" empty header cell in transposed tables */
+        /* CSS for the visually "hidden" empty header cell in transposed tables */
         .transposed-table-empty-header {
-            width: 0.001% !important; /* Extremely small width to make it almost invisible */
-            min-width: 0 !important;
-            max-width: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-            overflow: hidden !important;
-            visibility: hidden !important; /* Hide content but preserves structural space */
-            /* This ensures the first column (metric labels) still has its width defined by other means */
+            background-color: var(--spl-table-header-bg) !important; /* Match header background */
+            border-color: var(--spl-border-color) !important; /* Match border color */
+            color: transparent !important; /* Make any accidental text transparent */
+            padding: 12px 15px !important; /* Keep original padding to maintain spacing */
+            /* Ensure it takes up minimal but existing space */
+            min-width: 1px !important; /* Give it a tiny width to prevent collapse */
+            max-width: 1px !important;
+            overflow: hidden !important; /* Hide any overflow */
         }
 
 
