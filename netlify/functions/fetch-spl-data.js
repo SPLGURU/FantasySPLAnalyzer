@@ -4,10 +4,8 @@
 const fetch = require('node-fetch');
 
 exports.handler = async (event, context) => {
-    // Extract the manager ID from the query parameters
     const managerId = event.queryStringParameters.id;
 
-    // Basic validation: ensure managerId is provided
     if (!managerId) {
         return {
             statusCode: 400,
@@ -50,7 +48,10 @@ exports.handler = async (event, context) => {
 
         const playerMap = new Map();
         elements.forEach(player => {
-            playerMap.set(player.id, player.web_name || `${player.first_name} ${player.second_name}`);
+            playerMap.set(player.id, {
+                name: player.web_name || `${player.first_name} ${player.second_name}`,
+                element_type: player.element_type // Position type (1=GK, 2=DEF, 3=MID, 4=FWD)
+            });
         });
 
         // --- 3. Fetch Manager History Data ---
@@ -66,72 +67,11 @@ exports.handler = async (event, context) => {
         historyData = await historyResponse.json();
         console.log('Successfully fetched manager history data.');
 
-        // --- 4. Fetch Transfers Data and Calculate Total Transfers and Hits (Re-enabled) ---
-        let transfersRawData = [];
-        let totalTransfersCount = 'N/A';
-        let totalHitsPoints = 'N/A';
+        // --- Transfers Data (Still N/A) ---
+        const totalTransfersCount = 'N/A';
+        const totalHitsPoints = 'N/A';
 
-        try {
-            const transfersApiUrl = `https://en.fantasy.spl.com.sa/entry/${managerId}/transfers`;
-            console.log(`Attempting to fetch transfers data from: ${transfersApiUrl}`);
-            const transfersResponse = await fetch(transfersApiUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36',
-                    'Accept': 'application/json, text/plain, */*',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`,
-                    'DNT': '1',
-                    'Connection': 'keep-alive',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Sec-Fetch-Mode': 'cors',
-                    'Sec-Fetch-Dest': 'empty',
-                    'Sec-Fetch-Site': 'same-origin',
-                },
-            });
-
-            if (transfersResponse.ok) {
-                const responseText = await transfersResponse.text();
-                try {
-                    transfersRawData = JSON.parse(responseText);
-                    console.log('Successfully fetched and parsed transfers data.');
-
-                    totalTransfersCount = transfersRawData.length;
-
-                    let hitsCount = 0;
-                    const transfersPerEvent = {};
-
-                    transfersRawData.forEach(transfer => {
-                        if (!transfersPerEvent[transfer.event]) {
-                            transfersPerEvent[transfer.event] = 0;
-                        }
-                        transfersPerEvent[transfer.event]++;
-                    });
-
-                    for (const eventId in transfersPerEvent) {
-                        const transfersInThisEvent = transfersPerEvent[eventId];
-                        if (transfersInThisEvent > 1) {
-                            hitsCount += (transfersInThisEvent - 1);
-                        }
-                    }
-                    totalHitsPoints = hitsCount * -4;
-                    console.log(`Calculated totalTransfersCount: ${totalTransfersCount}, totalHitsPoints: ${totalHitsPoints}`);
-
-                } catch (jsonParseError) {
-                    console.error('Transfers API returned non-JSON content or malformed JSON. Response snippet:', responseText.substring(0, 500));
-                    console.error('Error parsing transfers JSON:', jsonParseError);
-                }
-            } else {
-                const errorText = await transfersResponse.text();
-                console.error(`Transfers fetch failed with status ${transfersResponse.status}: ${errorText.substring(0, 200)}...`);
-                if (transfersResponse.headers.get('location')) {
-                    console.error(`Redirect detected to: ${transfersResponse.headers.get('location')}`);
-                }
-            }
-        } catch (transfersFetchError) {
-            console.error('Error during transfers data fetch (network or unexpected issue):', transfersFetchError);
-        }
-
-        // --- 5. Process Other Data Points for Frontend ---
+        // --- 4. Process Data Points for Frontend ---
         const overallRank = (managerData && managerData.summary_overall_rank !== undefined) 
                             ? managerData.summary_overall_rank.toLocaleString() 
                             : 'N/A';
@@ -166,13 +106,150 @@ exports.handler = async (event, context) => {
         console.log(`Overall Rank History length: ${overallRankHistory.length}`);
         console.log(`Calculated averagePoints: ${averagePoints}`);
         
-        // Removed averagePointsFor1stPlace from backend response as it's hardcoded in frontend
-        // const averagePointsFor1stPlace = 'N/A'; 
+        // --- Calculate Top 3 Captains ---
+        const captaincyStats = {}; // { playerId: { times: N, successful: N, failed: N, totalCaptainedPoints: N, captainedRounds: [] } }
+        if (historyData && historyData.current) {
+            historyData.current.forEach(round => {
+                const captainPick = round.picks.find(p => p.is_captain);
+                const viceCaptainPick = round.picks.find(p => p.is_vice_captain);
 
-        const top3Captains = [];
-        const bestPlayers = [];
-        const worstPlayers = [];
-        const top5MissedPoints = [];
+                if (captainPick) {
+                    const captainId = captainPick.element;
+                    const captainPoints = round.entry_history.points; // Points for the captain in this round
+                    const captainName = playerMap.get(captainId)?.name || `Player ${captainId}`;
+
+                    if (!captaincyStats[captainId]) {
+                        captaincyStats[captainId] = {
+                            name: captainName,
+                            times: 0,
+                            successful: 0,
+                            failed: 0,
+                            totalCaptainedPoints: 0,
+                            captainedRounds: []
+                        };
+                    }
+                    captaincyStats[captainId].times++;
+                    captaincyStats[captainId].totalCaptainedPoints += captainPoints;
+                    captaincyStats[captainId].captainedRounds.push(round.event); // Add round number
+
+                    // Simple success/failure: if captain scored well (e.g., > 5 points), consider successful
+                    if (captainPoints > 5) { // Threshold can be adjusted
+                        captaincyStats[captainId].successful++;
+                    } else {
+                        captaincyStats[captainId].failed++;
+                    }
+                }
+                // Note: Vice-captain logic can be added here if needed, but often only captain points are tracked.
+            });
+        }
+
+        const top3Captains = Object.values(captaincyStats)
+            .sort((a, b) => b.totalCaptainedPoints - a.totalCaptainedPoints) // Sort by total points captained
+            .slice(0, 3); // Get top 3
+        console.log('Top 3 Captains:', top3Captains);
+
+        // --- Calculate Best Players and Worst Players ---
+        const playerSeasonStats = {}; // { playerId: { name: '', totalPoints: N, started: N, autoSubbed: N, benchedPoints: N } }
+
+        // Iterate through each round's picks to aggregate player stats
+        if (historyData && historyData.current) {
+            historyData.current.forEach(round => {
+                round.picks.forEach(pick => {
+                    const playerId = pick.element;
+                    const playerName = playerMap.get(playerId)?.name || `Player ${playerId}`;
+                    const playerType = playerMap.get(playerId)?.element_type; // Get player type/position
+
+                    if (!playerSeasonStats[playerId]) {
+                        playerSeasonStats[playerId] = {
+                            name: playerName,
+                            element_type: playerType, // Store player type
+                            totalPoints: 0,
+                            started: 0,
+                            autoSubbed: 0,
+                            benchedPoints: 0
+                        };
+                    }
+
+                    // Total points for the player across all rounds they were in the squad
+                    // Note: round.entry_history.points is total team points. We need player-specific points.
+                    // The 'stats' array within each pick in history.current.picks contains points for that player in that round.
+                    const playerPointsInRound = pick.stats.total_points || 0;
+                    playerSeasonStats[playerId].totalPoints += playerPointsInRound;
+
+                    // Check if player started (multiplier > 0)
+                    if (pick.multiplier > 0) {
+                        playerSeasonStats[playerId].started++;
+                    } else if (pick.multiplier === 0) { // Player was benched
+                        playerSeasonStats[playerId].benchedPoints += playerPointsInRound;
+                    }
+
+                    // Auto-subbed logic is complex and usually requires checking managerData.automatic_subs
+                    // For simplicity, we'll mark autoSubbed if they were on bench (multiplier 0) but still played (points > 0)
+                    // This is a simplification; true auto-sub logic is more involved.
+                    // A more accurate way would be to parse managerData.automatic_subs for each round.
+                    // For now, we'll use a simplified check:
+                    if (pick.multiplier === 0 && playerPointsInRound > 0) {
+                        playerSeasonStats[playerId].autoSubbed++;
+                    }
+                });
+            });
+        }
+
+        // Convert to array and filter for players currently in the squad (if managerData.picks is reliable)
+        const currentSquadPlayerIds = new Set(managerData.picks.map(p => p.element));
+        const relevantPlayers = Object.values(playerSeasonStats).filter(player => currentSquadPlayerIds.has(Object.keys(playerMap).find(key => playerMap.get(key).name === player.name))); // Filter by current squad
+
+        // Sort for Best Players (highest total points)
+        const bestPlayers = [...relevantPlayers]
+            .sort((a, b) => b.totalPoints - a.totalPoints)
+            .slice(0, 5) // Top 5
+            .map(player => ({
+                name: player.name,
+                started: player.started,
+                autoSubbed: player.autoSubbed,
+                pointsGained: player.totalPoints, // Renamed for clarity
+                benchedPoints: player.benchedPoints
+            }));
+        console.log('Best Players:', bestPlayers);
+
+        // Sort for Worst Players (lowest total points, excluding GKs and DEF if not relevant)
+        // This definition of "worst" can be subjective. Let's pick players with lowest points
+        // who have started at least once and are not GKs (as GKs often have lower points).
+        const worstPlayers = [...relevantPlayers]
+            .filter(player => player.started > 0 && player.element_type !== 1) // Must have started, not a GK
+            .sort((a, b) => a.totalPoints - b.totalPoints)
+            .slice(0, 5) // Bottom 5
+            .map(player => ({
+                name: player.name,
+                started: player.started,
+                autoSubbed: player.autoSubbed,
+                pointsGained: player.totalPoints,
+                benchedPoints: player.benchedPoints
+            }));
+        console.log('Worst Players:', worstPlayers);
+
+        // --- Calculate Missed Points (Benched Players Points) ---
+        const missedPoints = []; // { playerName: '', points: N, round: N }
+        if (historyData && historyData.current) {
+            historyData.current.forEach(round => {
+                round.picks.forEach(pick => {
+                    // If multiplier is 0, the player was on the bench
+                    // and if they scored points, those were "missed"
+                    const playerPointsInRound = pick.stats.total_points || 0;
+                    if (pick.multiplier === 0 && playerPointsInRound > 0) {
+                        missedPoints.push({
+                            playerName: playerMap.get(pick.element)?.name || `Player ${pick.element}`,
+                            points: playerPointsInRound,
+                            round: round.event
+                        });
+                    }
+                });
+            });
+        }
+        // Sort by points (descending) and get top 5
+        const top5MissedPoints = missedPoints.sort((a, b) => b.points - a.points).slice(0, 5);
+        console.log('Top 5 Missed Points:', top5MissedPoints);
+
 
         // --- 6. Return Combined Data as JSON ---
         return {
@@ -187,13 +264,13 @@ exports.handler = async (event, context) => {
                 bestOverallRank: bestOverallRank,
                 worstOverallRank: worstOverallRank,
                 averagePoints: averagePoints,
-                // averagePointsFor1stPlace: averagePointsFor1stPlace, // Removed from here
+                // averagePointsFor1stPlace is hardcoded in frontend
                 top3Captains: top3Captains,
                 bestPlayers: bestPlayers,
                 worstPlayers: worstPlayers,
                 top5MissedPoints: top5MissedPoints,
-                totalTransfersCount: totalTransfersCount,
-                totalHitsPoints: totalHitsPoints
+                totalTransfersCount: totalTransfersCount, // Still N/A
+                totalHitsPoints: totalHitsPoints      // Still N/A
             })
         };
 
