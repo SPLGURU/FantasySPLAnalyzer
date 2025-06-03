@@ -535,6 +535,20 @@
                 </table>
             </div>
 
+            <div class="transfers-summary-table">
+                <h3>Transfers</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transfersSummaryTableBody">
+                        </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 
@@ -570,6 +584,8 @@
             document.getElementById('worstPlayersTableBody').innerHTML = '';
             // For reverted table, clear body directly
             document.getElementById('missedPointsTableBody').innerHTML = '';
+            // NEW: Clear transfers summary table
+            document.getElementById('transfersSummaryTableBody').innerHTML = '';
             
             // Clear global rank history and reset animation state
             managerOverallRankHistory = [];
@@ -808,9 +824,28 @@
                 row.insertCell().textContent = item.round;
             });
 
+            // NEW: Display Transfers Summary
+            displayTransfersSummary(data.totalTransfersCount, data.totalHitsPoints);
 
             document.getElementById('results').style.display = 'block'; // Show results section
         }
+
+        // NEW: Function to display transfers summary
+        function displayTransfersSummary(totalTransfersCount, totalHitsPoints) {
+            const transfersSummaryTableBody = document.getElementById('transfersSummaryTableBody');
+            transfersSummaryTableBody.innerHTML = ''; // Clear previous content
+
+            // Helper to add a row to the summary table
+            const addSummaryRow = (metric, value) => {
+                const row = transfersSummaryTableBody.insertRow();
+                row.insertCell().textContent = metric;
+                row.insertCell().textContent = value;
+            };
+
+            addSummaryRow("Total Transfers", totalTransfersCount !== undefined && totalTransfersCount !== null ? totalTransfersCount : 'N/A');
+            addSummaryRow("Total Hits (Points Deducted)", totalHitsPoints !== undefined && totalHitsPoints !== null ? totalHitsPoints : 'N/A');
+        }
+
 
         function createRankJourneyVideo() {
             const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
