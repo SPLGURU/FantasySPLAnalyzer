@@ -244,10 +244,10 @@
         /* Responsive adjustments for smaller screens */
         @media (max-width: 768px) {
             body {
-                padding: 10px;
+                padding: 0; /* Removed padding for tablet */
             }
             .container {
-                padding: 15px;
+                padding: 0; /* Removed padding for tablet */
                 width: 105%; /* Make container 5% wider on tablet */
             }
             h1 { font-size: 2em; }
@@ -330,11 +330,15 @@
         }
 
         @media (max-width: 480px) {
+            body {
+                padding: 0; /* Removed padding for phone */
+            }
             input[type="text"], button {
                 padding: 10px;
                 font-size: 1em;
             }
             .container {
+                padding: 0; /* Removed padding for phone */
                 width: 105%; /* Make container 5% wider on phone */
             }
             /* Further reduce font size for all table cells and headers for phones */
@@ -405,7 +409,7 @@
                 overflow: visible;    /* Ensure no cutoff for all content */
             }
 
-            /* Missed Points table is NOT transposed here, so its widths are normal */
+            /* Missed Points table is NOT transposed here, so its widths is normal */
             /* This table remains untouched as per your request */
             .missed-points-table th:nth-child(1) { width: 45%; } /* Player Name */
             .missed-points-table th:nth-child(2) { width: 27.5%; } /* Points */
