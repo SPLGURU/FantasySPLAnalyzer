@@ -135,7 +135,7 @@
         }
 
         table {
-            width: 100%;
+            width: 100%; /* Default width for tables */
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 25px;
@@ -248,7 +248,11 @@
             }
             .container {
                 padding: 0; /* Removed padding for tablet */
-                width: 105%; /* Make container 5% wider on tablet */
+                width: 100%; /* Revert container to 100% width on tablet */
+            }
+            /* Make all tables wider than the container on tablet */
+            table {
+                width: 105%;
             }
             h1 { font-size: 2em; }
             h2 { font-size: 1.6em; }
@@ -339,7 +343,11 @@
             }
             .container {
                 padding: 0; /* Removed padding for phone */
-                width: 105%; /* Make container 5% wider on phone */
+                width: 100%; /* Revert container to 100% width on phone */
+            }
+            /* Make all tables wider than the container on phone */
+            table {
+                width: 105%;
             }
             /* Further reduce font size for all table cells and headers for phones */
             th, td {
