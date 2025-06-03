@@ -17,7 +17,7 @@ exports.handler = async (event, context) => {
 
     let managerData = null;
     let bootstrapData = null;
-    let historyData = null; // New variable for historical data
+    let historyData = null;
 
     try {
         // --- 1. Fetch Manager Details ---
@@ -32,7 +32,6 @@ exports.handler = async (event, context) => {
         }
         managerData = await managerResponse.json();
         console.log('Successfully fetched manager data.');
-        // console.log(JSON.stringify(managerData, null, 2)); // Keep for debugging if needed, but usually not necessary in production
 
         // --- 2. Fetch Global Bootstrap Data ---
         const bootstrapApiUrl = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
@@ -46,18 +45,15 @@ exports.handler = async (event, context) => {
         }
         bootstrapData = await bootstrapResponse.json();
         console.log('Successfully fetched bootstrap data.');
-        // console.log(JSON.stringify(bootstrapData, null, 2)); // Keep for debugging if needed
-
-        // Ensure elements exist before trying to map (from bootstrapData)
+        
         const elements = bootstrapData && bootstrapData.elements ? bootstrapData.elements : [];
 
-        // Create a Map for efficient player ID to name lookup (kept for other potential uses)
         const playerMap = new Map();
         elements.forEach(player => {
             playerMap.set(player.id, player.web_name || `${player.first_name} ${player.second_name}`);
         });
 
-        // --- 3. Fetch Manager History Data (NEW API CALL) ---
+        // --- 3. Fetch Manager History Data ---
         const historyApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/history/`;
         console.log(`Fetching manager history data from: ${historyApiUrl}`);
         const historyResponse = await fetch(historyApiUrl);
@@ -69,14 +65,73 @@ exports.handler = async (event, context) => {
         }
         historyData = await historyResponse.json();
         console.log('Successfully fetched manager history data.');
-        // console.log(JSON.stringify(historyData, null, 2)); // Keep for debugging if needed
 
-        // --- Transfers Data (Still N/A as per previous conclusion) ---
-        const totalTransfersCount = 'N/A';
-        const totalHitsPoints = 'N/A';
+        // --- 4. Fetch Transfers Data and Calculate Total Transfers and Hits (Re-enabled) ---
+        let transfersRawData = [];
+        let totalTransfersCount = 'N/A';
+        let totalHitsPoints = 'N/A';
 
-        // --- 4. Process Data Points for Frontend ---
-        // Corrected access for overallRank (directly from managerData)
+        try {
+            const transfersApiUrl = `https://en.fantasy.spl.com.sa/entry/${managerId}/transfers`;
+            console.log(`Attempting to fetch transfers data from: ${transfersApiUrl}`);
+            const transfersResponse = await fetch(transfersApiUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`,
+                    'DNT': '1',
+                    'Connection': 'keep-alive',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Site': 'same-origin',
+                },
+            });
+
+            if (transfersResponse.ok) {
+                const responseText = await transfersResponse.text();
+                try {
+                    transfersRawData = JSON.parse(responseText);
+                    console.log('Successfully fetched and parsed transfers data.');
+
+                    totalTransfersCount = transfersRawData.length;
+
+                    let hitsCount = 0;
+                    const transfersPerEvent = {};
+
+                    transfersRawData.forEach(transfer => {
+                        if (!transfersPerEvent[transfer.event]) {
+                            transfersPerEvent[transfer.event] = 0;
+                        }
+                        transfersPerEvent[transfer.event]++;
+                    });
+
+                    for (const eventId in transfersPerEvent) {
+                        const transfersInThisEvent = transfersPerEvent[eventId];
+                        if (transfersInThisEvent > 1) {
+                            hitsCount += (transfersInThisEvent - 1);
+                        }
+                    }
+                    totalHitsPoints = hitsCount * -4;
+                    console.log(`Calculated totalTransfersCount: ${totalTransfersCount}, totalHitsPoints: ${totalHitsPoints}`);
+
+                } catch (jsonParseError) {
+                    console.error('Transfers API returned non-JSON content or malformed JSON. Response snippet:', responseText.substring(0, 500));
+                    console.error('Error parsing transfers JSON:', jsonParseError);
+                }
+            } else {
+                const errorText = await transfersResponse.text();
+                console.error(`Transfers fetch failed with status ${transfersResponse.status}: ${errorText.substring(0, 200)}...`);
+                if (transfersResponse.headers.get('location')) {
+                    console.error(`Redirect detected to: ${transfersResponse.headers.get('location')}`);
+                }
+            }
+        } catch (transfersFetchError) {
+            console.error('Error during transfers data fetch (network or unexpected issue):', transfersFetchError);
+        }
+
+        // --- 5. Process Other Data Points for Frontend ---
         const overallRank = (managerData && managerData.summary_overall_rank !== undefined) 
                             ? managerData.summary_overall_rank.toLocaleString() 
                             : 'N/A';
@@ -87,45 +142,39 @@ exports.handler = async (event, context) => {
         let overallRankHistory = [];
         let averagePoints = 'N/A';
 
-        // Use historyData for rank history and average points
-        if (historyData && historyData.past && historyData.past.length > 0) {
-            // The 'past' array in history data contains overall_rank for each season
-            // However, for round-by-round history, we need the 'current' array
-            // Let's assume 'current' contains round-by-round history as per typical FPL APIs
-            const currentHistory = historyData.current || []; 
+        if (historyData && historyData.current && historyData.current.length > 0) {
+            const currentHistory = historyData.current; 
 
-            if (currentHistory.length > 0) {
-                overallRankHistory = currentHistory.map(h => ({
-                    round: h.event,
-                    rank: h.overall_rank
-                }));
+            overallRankHistory = currentHistory.map(h => ({
+                round: h.event,
+                rank: h.overall_rank
+            }));
 
-                const ranks = currentHistory.map(h => h.overall_rank).filter(rank => typeof rank === 'number');
-                if (ranks.length > 0) {
-                    bestOverallRank = Math.min(...ranks).toLocaleString();
-                    worstOverallRank = Math.max(...ranks).toLocaleString();
-                }
+            const ranks = currentHistory.map(h => h.overall_rank).filter(rank => typeof rank === 'number');
+            if (ranks.length > 0) {
+                bestOverallRank = Math.min(...ranks).toLocaleString();
+                worstOverallRank = Math.max(...ranks).toLocaleString();
+            }
 
-                const totalPoints = currentHistory.reduce((sum, h) => sum + (h.points || 0), 0);
-                const totalRoundsWithPoints = currentHistory.filter(h => h.points !== undefined).length;
-                if (totalRoundsWithPoints > 0) {
-                    averagePoints = (totalPoints / totalRoundsWithPoints).toFixed(2);
-                }
+            const totalPoints = currentHistory.reduce((sum, h) => sum + (h.points || 0), 0);
+            const totalRoundsWithPoints = currentHistory.filter(h => h.points !== undefined).length;
+            if (totalRoundsWithPoints > 0) {
+                averagePoints = (totalPoints / totalRoundsWithPoints).toFixed(2);
             }
         }
         console.log(`Calculated bestOverallRank: ${bestOverallRank}, worstOverallRank: ${worstOverallRank}`);
         console.log(`Overall Rank History length: ${overallRankHistory.length}`);
         console.log(`Calculated averagePoints: ${averagePoints}`);
         
-        const averagePointsFor1stPlace = 'N/A'; // Still needs a specific API if accurate data is desired
+        // Removed averagePointsFor1stPlace from backend response as it's hardcoded in frontend
+        // const averagePointsFor1stPlace = 'N/A'; 
 
-        // Placeholders for other tables (Captaincy, Best/Worst Players, Missed Points)
         const top3Captains = [];
         const bestPlayers = [];
         const worstPlayers = [];
         const top5MissedPoints = [];
 
-        // --- 5. Return Combined Data as JSON ---
+        // --- 6. Return Combined Data as JSON ---
         return {
             statusCode: 200,
             headers: {
@@ -138,7 +187,7 @@ exports.handler = async (event, context) => {
                 bestOverallRank: bestOverallRank,
                 worstOverallRank: worstOverallRank,
                 averagePoints: averagePoints,
-                averagePointsFor1stPlace: averagePointsFor1stPlace,
+                // averagePointsFor1stPlace: averagePointsFor1stPlace, // Removed from here
                 top3Captains: top3Captains,
                 bestPlayers: bestPlayers,
                 worstPlayers: worstPlayers,
