@@ -29,7 +29,8 @@ exports.handler = async (event, context) => {
             throw new Error(`Failed to fetch manager data: ${managerResponse.statusText}. Status: ${managerResponse.status}. Response: ${errorText.substring(0, 100)}...`);
         }
         managerData = await managerResponse.json();
-        console.log('Successfully fetched manager data.');
+        console.log('Successfully fetched manager data. Dumping content:');
+        console.log(JSON.stringify(managerData, null, 2)); // DUMP MANAGER DATA
 
         // --- 2. Fetch Global Bootstrap Data ---
         const bootstrapApiUrl = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
@@ -42,7 +43,8 @@ exports.handler = async (event, context) => {
             throw new Error(`Failed to fetch bootstrap data: ${bootstrapResponse.statusText}. Status: ${bootstrapResponse.status}. Response: ${errorText.substring(0, 100)}...`);
         }
         bootstrapData = await bootstrapResponse.json();
-        console.log('Successfully fetched bootstrap data.');
+        console.log('Successfully fetched bootstrap data. Dumping content:');
+        console.log(JSON.stringify(bootstrapData, null, 2)); // DUMP BOOTSTRAP DATA
         
         const elements = bootstrapData && bootstrapData.elements ? bootstrapData.elements : [];
 
@@ -65,9 +67,12 @@ exports.handler = async (event, context) => {
             throw new Error(`Failed to fetch manager history data: ${historyResponse.statusText}. Status: ${historyResponse.status}. Response: ${errorText.substring(0, 100)}...`);
         }
         historyData = await historyResponse.json();
-        console.log('Successfully fetched manager history data.');
+        console.log('Successfully fetched manager history data. Dumping content:');
+        console.log(JSON.stringify(historyData, null, 2)); // DUMP HISTORY DATA
 
         // --- Transfers Data (Still N/A) ---
+        // The transfers API is still consistently returning HTML, so these will remain 'N/A'
+        // unless a reliable JSON source is found.
         const totalTransfersCount = 'N/A';
         const totalHitsPoints = 'N/A';
 
@@ -107,21 +112,17 @@ exports.handler = async (event, context) => {
         console.log(`Calculated averagePoints: ${averagePoints}`);
         
         // --- Calculate Top 3 Captains ---
-        const captaincyStats = {}; // { playerId: { times: N, successful: N, failed: N, totalCaptainedPoints: N, captainedRounds: [] } }
-        if (currentHistory.length > 0) { // Ensure history data exists
+        const captaincyStats = {}; // { playerId: { name: '', times: N, successful: N, failed: N, totalCaptainedPoints: N, captainedRounds: [] } }
+        if (currentHistory.length > 0) {
             currentHistory.forEach(round => {
-                // Defensive check: ensure round.picks exists and is an array
                 if (round.picks && Array.isArray(round.picks)) {
                     const captainPick = round.picks.find(p => p.is_captain);
-                    // const viceCaptainPick = round.picks.find(p => p.is_vice_captain); // Not used for now
 
                     if (captainPick) {
                         const captainId = captainPick.element;
-                        // Use player-specific points if available, otherwise fallback to entry_history points
-                        // The 'stats' property is on the pick object within round.picks
                         const captainPoints = (captainPick.stats && captainPick.stats.total_points !== undefined) 
                                                 ? captainPick.stats.total_points 
-                                                : (round.entry_history && round.entry_history.points !== undefined ? round.entry_history.points : 0);
+                                                : 0; // Default to 0 if stats or total_points missing
                         const captainName = playerMap.get(captainId)?.name || `Player ${captainId}`;
 
                         if (!captaincyStats[captainId]) {
@@ -158,7 +159,7 @@ exports.handler = async (event, context) => {
 
         if (currentHistory.length > 0) {
             currentHistory.forEach(round => {
-                if (round.picks && Array.isArray(round.picks)) { // Defensive check
+                if (round.picks && Array.isArray(round.picks)) {
                     round.picks.forEach(pick => {
                         const playerId = pick.element;
                         const playerName = playerMap.get(playerId)?.name || `Player ${playerId}`;
@@ -184,7 +185,6 @@ exports.handler = async (event, context) => {
                             playerSeasonStats[playerId].benchedPoints += playerPointsInRound;
                         }
 
-                        // Simplified auto-subbed check (if benched but scored points)
                         if (pick.multiplier === 0 && playerPointsInRound > 0) {
                             playerSeasonStats[playerId].autoSubbed++;
                         }
@@ -193,9 +193,11 @@ exports.handler = async (event, context) => {
             });
         }
 
-        // Filter for players currently in the manager's squad (from managerData.picks)
         const currentSquadPlayerIds = new Set((managerData && managerData.picks) ? managerData.picks.map(p => p.element) : []);
-        const relevantPlayers = Object.values(playerSeasonStats).filter(player => currentSquadPlayerIds.has(Object.keys(playerMap).find(key => playerMap.get(key).name === player.name)));
+        // Filter players to only include those currently in the squad AND have stats
+        const relevantPlayers = Object.values(playerSeasonStats).filter(player => 
+            currentSquadPlayerIds.has(Object.keys(playerMap).find(key => playerMap.get(key).name === player.name)) && player.totalPoints > 0
+        );
 
         const bestPlayers = [...relevantPlayers]
             .sort((a, b) => b.totalPoints - a.totalPoints)
@@ -226,7 +228,7 @@ exports.handler = async (event, context) => {
         const missedPoints = [];
         if (currentHistory.length > 0) {
             currentHistory.forEach(round => {
-                if (round.picks && Array.isArray(round.picks)) { // Defensive check
+                if (round.picks && Array.isArray(round.picks)) {
                     round.picks.forEach(pick => {
                         const playerPointsInRound = (pick.stats && pick.stats.total_points !== undefined) ? pick.stats.total_points : 0;
                         if (pick.multiplier === 0 && playerPointsInRound > 0) {
