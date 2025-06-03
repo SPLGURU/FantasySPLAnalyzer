@@ -15,8 +15,9 @@ exports.handler = async (event, context) => {
         };
     }
 
-    let managerData = null; // Initialize managerData to null
-    let bootstrapData = null; // Initialize bootstrapData to null
+    let managerData = null;
+    let bootstrapData = null;
+    let historyData = null; // New variable for historical data
 
     try {
         // --- 1. Fetch Manager Details ---
@@ -30,8 +31,8 @@ exports.handler = async (event, context) => {
             throw new Error(`Failed to fetch manager data: ${managerResponse.statusText}. Status: ${managerResponse.status}. Response: ${errorText.substring(0, 100)}...`);
         }
         managerData = await managerResponse.json();
-        console.log('Successfully fetched manager data. Dumping content:');
-        console.log(JSON.stringify(managerData, null, 2)); // DUMP MANAGER DATA
+        console.log('Successfully fetched manager data.');
+        // console.log(JSON.stringify(managerData, null, 2)); // Keep for debugging if needed, but usually not necessary in production
 
         // --- 2. Fetch Global Bootstrap Data ---
         const bootstrapApiUrl = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
@@ -44,10 +45,10 @@ exports.handler = async (event, context) => {
             throw new Error(`Failed to fetch bootstrap data: ${bootstrapResponse.statusText}. Status: ${bootstrapResponse.status}. Response: ${errorText.substring(0, 100)}...`);
         }
         bootstrapData = await bootstrapResponse.json();
-        console.log('Successfully fetched bootstrap data. Dumping content:');
-        console.log(JSON.stringify(bootstrapData, null, 2)); // DUMP BOOTSTRAP DATA
-        
-        // Ensure elements exist before trying to map
+        console.log('Successfully fetched bootstrap data.');
+        // console.log(JSON.stringify(bootstrapData, null, 2)); // Keep for debugging if needed
+
+        // Ensure elements exist before trying to map (from bootstrapData)
         const elements = bootstrapData && bootstrapData.elements ? bootstrapData.elements : [];
 
         // Create a Map for efficient player ID to name lookup (kept for other potential uses)
@@ -56,57 +57,75 @@ exports.handler = async (event, context) => {
             playerMap.set(player.id, player.web_name || `${player.first_name} ${player.second_name}`);
         });
 
-        // --- REMOVED: Transfers Data Fetching and Calculation ---
+        // --- 3. Fetch Manager History Data (NEW API CALL) ---
+        const historyApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/history/`;
+        console.log(`Fetching manager history data from: ${historyApiUrl}`);
+        const historyResponse = await fetch(historyApiUrl);
+
+        if (!historyResponse.ok) {
+            const errorText = await historyResponse.text();
+            console.error(`Manager history data fetch failed with status ${historyResponse.status}: ${errorText.substring(0, 200)}...`);
+            throw new Error(`Failed to fetch manager history data: ${historyResponse.statusText}. Status: ${historyResponse.status}. Response: ${errorText.substring(0, 100)}...`);
+        }
+        historyData = await historyResponse.json();
+        console.log('Successfully fetched manager history data.');
+        // console.log(JSON.stringify(historyData, null, 2)); // Keep for debugging if needed
+
+        // --- Transfers Data (Still N/A as per previous conclusion) ---
         const totalTransfersCount = 'N/A';
         const totalHitsPoints = 'N/A';
 
-        // --- 3. Process Existing Data Points for Frontend ---
-        // Add robust checks for managerData and its nested properties
-        const overallRank = (managerData && managerData.entry && managerData.entry.overall_rank !== undefined) 
-                            ? managerData.entry.overall_rank.toLocaleString() 
+        // --- 4. Process Data Points for Frontend ---
+        // Corrected access for overallRank (directly from managerData)
+        const overallRank = (managerData && managerData.summary_overall_rank !== undefined) 
+                            ? managerData.summary_overall_rank.toLocaleString() 
                             : 'N/A';
-        console.log(`Calculated overallRank: ${overallRank}`); // Log calculated value
+        console.log(`Calculated overallRank: ${overallRank}`);
 
         let bestOverallRank = 'N/A';
         let worstOverallRank = 'N/A';
-        if (managerData && managerData.history && managerData.history.length > 0) {
-            const ranks = managerData.history.map(h => h.overall_rank).filter(rank => typeof rank === 'number');
-            if (ranks.length > 0) {
-                bestOverallRank = Math.min(...ranks).toLocaleString();
-                worstOverallRank = Math.max(...ranks).toLocaleString();
-            }
-        }
-        console.log(`Calculated bestOverallRank: ${bestOverallRank}, worstOverallRank: ${worstOverallRank}`); // Log calculated values
-
-        const overallRankHistory = (managerData && managerData.history) 
-                                   ? managerData.history.map(h => ({
-                                       round: h.event,
-                                       rank: h.overall_rank
-                                   })) 
-                                   : [];
-        console.log(`Overall Rank History length: ${overallRankHistory.length}`); // Log history length
-
+        let overallRankHistory = [];
         let averagePoints = 'N/A';
-        if (managerData && managerData.history && managerData.history.length > 0) {
-            const totalPoints = managerData.history.reduce((sum, h) => sum + (h.points || 0), 0);
-            const totalRoundsWithPoints = managerData.history.filter(h => h.points !== undefined).length;
-            if (totalRoundsWithPoints > 0) {
-                averagePoints = (totalPoints / totalRoundsWithPoints).toFixed(2);
+
+        // Use historyData for rank history and average points
+        if (historyData && historyData.past && historyData.past.length > 0) {
+            // The 'past' array in history data contains overall_rank for each season
+            // However, for round-by-round history, we need the 'current' array
+            // Let's assume 'current' contains round-by-round history as per typical FPL APIs
+            const currentHistory = historyData.current || []; 
+
+            if (currentHistory.length > 0) {
+                overallRankHistory = currentHistory.map(h => ({
+                    round: h.event,
+                    rank: h.overall_rank
+                }));
+
+                const ranks = currentHistory.map(h => h.overall_rank).filter(rank => typeof rank === 'number');
+                if (ranks.length > 0) {
+                    bestOverallRank = Math.min(...ranks).toLocaleString();
+                    worstOverallRank = Math.max(...ranks).toLocaleString();
+                }
+
+                const totalPoints = currentHistory.reduce((sum, h) => sum + (h.points || 0), 0);
+                const totalRoundsWithPoints = currentHistory.filter(h => h.points !== undefined).length;
+                if (totalRoundsWithPoints > 0) {
+                    averagePoints = (totalPoints / totalRoundsWithPoints).toFixed(2);
+                }
             }
         }
-        console.log(`Calculated averagePoints: ${averagePoints}`); // Log calculated value
+        console.log(`Calculated bestOverallRank: ${bestOverallRank}, worstOverallRank: ${worstOverallRank}`);
+        console.log(`Overall Rank History length: ${overallRankHistory.length}`);
+        console.log(`Calculated averagePoints: ${averagePoints}`);
         
-        const averagePointsFor1stPlace = 'N/A'; // This still needs a separate API if accurate data is desired
+        const averagePointsFor1stPlace = 'N/A'; // Still needs a specific API if accurate data is desired
 
         // Placeholders for other tables (Captaincy, Best/Worst Players, Missed Points)
-        // If these are expected to have data, their population logic needs to be added here.
-        // For now, they remain empty arrays.
         const top3Captains = [];
         const bestPlayers = [];
         const worstPlayers = [];
         const top5MissedPoints = [];
 
-        // --- 4. Return Combined Data as JSON ---
+        // --- 5. Return Combined Data as JSON ---
         return {
             statusCode: 200,
             headers: {
@@ -136,6 +155,8 @@ exports.handler = async (event, context) => {
             errorMessage = `Could not find manager data. Please check the Manager ID. (${error.message})`;
         } else if (error.message.includes('Failed to fetch bootstrap data')) {
             errorMessage = `Could not load global player data. (${error.message})`;
+        } else if (error.message.includes('Failed to fetch manager history data')) {
+            errorMessage = `Could not load manager history data. (${error.message})`;
         } else if (error.message.includes('Unexpected token')) {
             errorMessage = `Data format error from SPL API. (${error.message})`;
         }
