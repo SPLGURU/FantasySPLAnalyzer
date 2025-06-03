@@ -68,13 +68,23 @@ async function getManagerChipsAndCurrentEvent(managerId) {
         const entryRes = await fetchWithRetry(managerEntryUrl);
         const managerEntryData = await entryRes.json();
         
+        console.log('--- Inside getManagerChipsAndCurrentEvent ---'); // New Debug Marker
+        console.log('Full managerEntryData object:', JSON.stringify(managerEntryData, null, 2)); // DEBUG LOG: Full object
+        console.log('Type of managerEntryData:', typeof managerEntryData); // DEBUG LOG
+        console.log('Is managerEntryData an array?', Array.isArray(managerEntryData)); // DEBUG LOG
+        console.log('Keys of managerEntryData:', Object.keys(managerEntryData)); // DEBUG LOG
+        console.log('Value of managerEntryData.chips directly:', managerEntryData.chips); // DEBUG LOG
+        console.log('Value of managerEntryData.current_event directly:', managerEntryData.current_event); // DEBUG LOG
+        console.log('Value of managerEntryData.last_deadline_total_transfers directly:', managerEntryData.last_deadline_total_transfers); // DEBUG LOG
+
         // Directly extract chips and current_event
         const chips = managerEntryData.chips || [];
         const currentEvent = managerEntryData.current_event || 34; // Fallback to 34 if not available
 
-        console.log('Chips extracted by getManagerChipsAndCurrentEvent:', chips); // DEBUG LOG
-        console.log('Current Event extracted by getManagerChipsAndCurrentEvent:', currentEvent); // DEBUG LOG
-        console.log('last_deadline_total_transfers extracted:', managerEntryData.last_deadline_total_transfers); // DEBUG LOG
+        console.log('Chips extracted by getManagerChipsAndCurrentEvent (after || operator):', chips); // DEBUG LOG
+        console.log('Current Event extracted by getManagerChipsAndCurrentEvent (after || operator):', currentEvent); // DEBUG LOG
+        console.log('last_deadline_total_transfers extracted (after || operator):', managerEntryData.last_deadline_total_transfers); // DEBUG LOG
+        console.log('--- End getManagerChipsAndCurrentEvent ---'); // New Debug Marker
 
         return { 
             chips, 
@@ -105,6 +115,9 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerChi
 
     // Array to store overall rank for each round
     const overallRankHistory = [];
+
+    // FIX: Initialize missedPointsInstances array before the loop
+    const missedPointsInstances = []; 
 
     // Object to store stats for all players owned by the manager
     const playerSeasonStats = {}; // { playerId: { started: 0, autoSubbed: 0, pointsGained: 0, benchedPoints: 0, roundsInfo: {} } }
@@ -425,7 +438,7 @@ async function getTransfersData(managerId, managerChipsData) { // Now accepts ma
             const managerChips = managerChipsData?.chips || [];
             const currentEvent = managerChipsData?.currentEvent || 34; // Use currentEvent from managerStats, fallback to 34
 
-            console.log('Manager Chips received for hits calculation:', managerChips); // DEBUG LOG
+            console.log('Manager Chips received for hits calculation (inside getTransfersData):', managerChips); // DEBUG LOG
 
             const chipRounds = new Set();
             if (managerChips && Array.isArray(managerChips)) {
@@ -436,7 +449,7 @@ async function getTransfersData(managerId, managerChipsData) { // Now accepts ma
                     }
                 });
             }
-            console.log('Chip Rounds (where transfers are free):', Array.from(chipRounds)); // DEBUG LOG
+            console.log('Chip Rounds (where transfers are free, inside getTransfersData):', Array.from(chipRounds)); // DEBUG LOG
             
             // Group transfers by event for easier processing
             const transfersInEachRound = {};
@@ -450,7 +463,7 @@ async function getTransfersData(managerId, managerChipsData) { // Now accepts ma
                 const transfersMadeInRound = transfersInEachRound[round] || 0;
                 const chipPlayedInRound = chipRounds.has(round);
 
-                console.log(`--- Round ${round} ---`); // DEBUG LOG
+                console.log(`--- Round ${round} (Hits Calc) ---`); // DEBUG LOG
                 console.log(`  Transfers made: ${transfersMadeInRound}`); // DEBUG LOG
                 console.log(`  Chip played: ${chipPlayedInRound}`); // DEBUG LOG
                 console.log(`  Free transfers available (start of round): ${freeTransfersAvailable}`); // DEBUG LOG
@@ -530,11 +543,11 @@ exports.handler = async function(event, context) {
         try {
             managerChipsAndCurrentEvent = await getManagerChipsAndCurrentEvent(managerId);
             console.log('Manager Chips and Current Event fetched successfully.'); // DEBUG LOG
-            console.log('Chips from dedicated function:', managerChipsAndCurrentEvent.chips); // DEBUG LOG
-            console.log('Current Event from dedicated function:', managerChipsAndCurrentEvent.currentEvent); // DEBUG LOG
-            console.log('lastDeadlineTotalTransfers from dedicated function:', managerChipsAndCurrentEvent.lastDeadlineTotalTransfers); // DEBUG LOG
+            console.log('Chips from dedicated function (in handler):', managerChipsAndCurrentEvent.chips); // DEBUG LOG
+            console.log('Current Event from dedicated function (in handler):', managerChipsAndCurrentEvent.currentEvent); // DEBUG LOG
+            console.log('lastDeadlineTotalTransfers from dedicated function (in handler):', managerChipsAndCurrentEvent.lastDeadlineTotalTransfers); // DEBUG LOG
         } catch (error) {
-            console.error("getManagerChipsAndCurrentEvent failed:", error);
+            console.error("getManagerChipsAndCurrentEvent failed in handler:", error);
             managerChipsAndCurrentEvent = { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A' }; // Default on failure
         }
 
@@ -545,7 +558,7 @@ exports.handler = async function(event, context) {
             managerStats = await getManagerHistoryAndCaptains(managerId, playerMap, managerChipsAndCurrentEvent);
             console.log('Manager History and Captains fetched successfully.'); // DEBUG LOG
         } catch (error) {
-            console.error("getManagerHistoryAndCaptains failed:", error);
+            console.error("getManagerHistoryAndCaptains failed in handler:", error);
             managerStats = {
                 overallRankHistory: [],
                 overallRank: 'N/A',
@@ -567,7 +580,7 @@ exports.handler = async function(event, context) {
             transfersData = await getTransfersData(managerId, managerChipsAndCurrentEvent); // Pass the correct chips and currentEvent
             console.log('Transfers Data calculated successfully.'); // DEBUG LOG
         } catch (error) {
-            console.error("getTransfersData failed during calculation:", error);
+            console.error("getTransfersData failed during calculation in handler:", error);
             transfersData = {
                 totalTransfersCount: 'N/A',
                 totalHitsPoints: 'N/A'
