@@ -255,6 +255,7 @@
                 width: calc(90% - 24px); /* 90% of container width, minus padding/border */
                 margin-left: auto; /* Center the input */
                 margin-right: auto; /* Center the input */
+                display: block; /* Ensure it's a block-level element for margin:auto to work */
             }
             button {
                 width: 90%; /* 90% of container width */
@@ -351,6 +352,7 @@
                 width: calc(90% - 24px); /* 90% of container width, minus padding/border */
                 margin-left: auto; /* Center the input */
                 margin-right: auto; /* Center the input */
+                display: block; /* Ensure it's a block-level element for margin:auto to work */
             }
             button {
                 padding: 10px;
@@ -713,7 +715,8 @@
                 }
 
                 // Create header row with player names (and an empty, visually hidden first cell)
-                const headerRow = tableHead.insertCell(); // Create the empty top-left <th>
+                const headerRow = tableHead.insertRow();
+                const emptyTh = headerRow.insertCell(); // Create the empty top-left <th>
                 emptyTh.classList.add('transposed-table-empty-header'); // Add class for styling
                 
                 playersData.forEach(player => {
