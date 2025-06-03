@@ -410,11 +410,11 @@ async function getTransfersData(managerId, managerChipsData) { // Now accepts ma
             const responseText = await transfersResponse.text();
             const transfersRawData = JSON.parse(responseText);
             console.log('Successfully fetched and parsed transfers data.');
-            console.log('transfersRawData length:', transfersRawData.length); // DEBUG LOG
+            console.log('transfersRawData length (all individual transfers):', transfersRawData.length); // DEBUG LOG
 
             // --- Retrieve Total Transfers directly from managerChipsData ---
             totalTransfersCount = managerChipsData.lastDeadlineTotalTransfers;
-            console.log('Total Transfers (from last_deadline_total_transfers):', totalTransfersCount); // DEBUG LOG
+            console.log('Total Transfers (from last_deadline_total_transfers API field):', totalTransfersCount); // DEBUG LOG
 
 
             // --- Calculate Total Hits (Points Deducted) ---
