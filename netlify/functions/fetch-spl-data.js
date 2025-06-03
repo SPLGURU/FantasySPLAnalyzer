@@ -26,12 +26,13 @@ async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 200) {
                 await sleep(delay);
                 retries++;
             } else {
-                throw new Error(`Failed to fetch ${url}: HTTP status ${response.status}`);
+                // For non-OK responses that are not 429/5xx, throw immediately
+                throw new Error(`Failed to fetch ${url}: HTTP status ${response.status} - ${response.statusText}`);
             }
         } catch (error) {
             console.error(`Fetch error for ${url} (attempt ${retries + 1}/${maxRetries}):`, error.message);
             if (retries === maxRetries - 1) {
-                throw error;
+                throw error; // Re-throw if max retries reached
             }
             const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100;
             console.warn(`Retrying in ${delay.toFixed(0)}ms...`);
@@ -88,14 +89,22 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     // Fetch main manager entry data to get chips history and current event
     const managerEntryUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/`;
     let managerEntryData = null;
+    let managerChips = []; // Initialize here
+    let currentEvent = maxRounds; // Initialize here
+
     try {
         const entryRes = await fetchWithRetry(managerEntryUrl);
         managerEntryData = await entryRes.json();
+        console.log('Raw Manager Entry Data fetched:', JSON.stringify(managerEntryData, null, 2)); // DEBUG LOG: Raw data
+        managerChips = managerEntryData?.chips || []; // Extract chips, default to empty array
+        currentEvent = managerEntryData?.current_event || maxRounds; // Get current event, fallback to maxRounds
     } catch (error) {
-        console.warn(`Could not fetch main manager entry data for ${managerId}:`, error.message);
+        console.error(`CRITICAL: Failed to fetch main manager entry data for ${managerId} after retries:`, error.message);
+        // If this fails, we cannot get chips or currentEvent, which impacts transfers calculation
+        // The calling function (exports.handler) will handle this by providing default empty arrays/values.
     }
-    const managerChips = managerEntryData?.chips || []; // Extract chips, default to empty array
-    const currentEvent = managerEntryData?.current_event || maxRounds; // Get current event, fallback to maxRounds
+    console.log('Manager Chips extracted:', managerChips); // DEBUG LOG: Extracted chips
+    console.log('Current Event extracted:', currentEvent); // DEBUG LOG: Extracted current event
 
 
     // Fetch data for all rounds for the given manager concurrently with retries
@@ -404,9 +413,8 @@ async function getTransfersData(managerId, managerStats) { // Now accepts manage
             const chipRounds = new Set();
             if (managerChips && Array.isArray(managerChips)) {
                 managerChips.forEach(chip => {
-                    // Note: User mentioned "Loan Rangers" but API might be "loan_ranger" or "loan_rangers"
-                    // Checking for both "wildcard" and "loan" in name for robustness
-                    if (chip.name.includes('wildcard') || chip.name.includes('loan')) {
+                    // Refined check for chip names: 'wildcard' or 'loan_ranger' (exact match)
+                    if (chip.name === 'wildcard' || chip.name === 'loan_ranger') {
                         chipRounds.add(chip.event);
                     }
                 });
@@ -416,7 +424,7 @@ async function getTransfersData(managerId, managerStats) { // Now accepts manage
             // --- Calculate Total Transfers (excluding chip rounds) ---
             const nonChipTransfers = transfersRawData.filter(transfer => !chipRounds.has(transfer.event));
             totalTransfersCount = nonChipTransfers.length;
-            console.log('Non-chip transfers count:', totalTransfersCount); // DEBUG LOG
+            console.log('Non-chip transfers count (excluding chip rounds):', totalTransfersCount); // DEBUG LOG
 
 
             // --- Calculate Total Hits (Points Deducted) ---
@@ -451,12 +459,16 @@ async function getTransfersData(managerId, managerStats) { // Now accepts manage
                     console.log(`  Hits for round: ${hitsForRound}`); // DEBUG LOG
 
                     // Update free transfers for the next round
+                    // Special rule: "Round 1 & 34 not counted" for free transfer generation.
+                    // This means no rollover if no transfers were made in these specific rounds.
                     if (transfersMadeInRound > 0) { // If transfers were made, free transfers reset
                         freeTransfersAvailable = 1;
                         console.log('  Transfers made, free transfers reset to 1 for next round.'); // DEBUG LOG
-                    } else { // No transfers made, rollover
+                    } else if (round !== 1 && round !== 34) { // No transfers made, rollover, but NOT for Round 1 or 34
                         freeTransfersAvailable = Math.min(2, freeTransfersAvailable + 1);
                         console.log(`  No transfers, free transfers rolled over to: ${freeTransfersAvailable}`); // DEBUG LOG
+                    } else { // No transfers and it's Round 1 or 34, no rollover
+                        console.log('  No transfers in Round 1 or 34, no rollover applied.'); // DEBUG LOG
                     }
                 }
                 console.log(`  Total hits so far: ${totalHits}`); // DEBUG LOG
@@ -506,10 +518,11 @@ exports.handler = async function(event, context) {
         try {
             managerStats = await getManagerHistoryAndCaptains(managerId, playerMap);
             console.log('Manager Stats (including chips) fetched successfully.'); // DEBUG LOG
-            console.log('Manager Chips:', managerStats.chips); // DEBUG LOG
-            console.log('Manager Current Event:', managerStats.currentEvent); // DEBUG LOG
+            console.log('Manager Chips from getManagerHistoryAndCaptains:', managerStats.chips); // DEBUG LOG
+            console.log('Manager Current Event from getManagerHistoryAndCaptains:', managerStats.currentEvent); // DEBUG LOG
         } catch (error) {
             console.error("getManagerHistoryAndCaptains failed:", error);
+            // If managerStats fetch fails, provide a default structure to prevent subsequent errors
             managerStats = {
                 overallRankHistory: [],
                 overallRank: 'N/A',
@@ -531,7 +544,7 @@ exports.handler = async function(event, context) {
             transfersData = await getTransfersData(managerId, managerStats); // Pass the full managerStats object
             console.log('Transfers Data calculated successfully.'); // DEBUG LOG
         } catch (error) {
-            console.error("getTransfersData failed:", error);
+            console.error("getTransfersData failed during calculation:", error); // More specific error message
             transfersData = {
                 totalTransfersCount: 'N/A',
                 totalHitsPoints: 'N/A'
