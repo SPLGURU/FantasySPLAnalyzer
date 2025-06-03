@@ -60,7 +60,7 @@ async function getPlayerNameMap() {
     }
 }
 
-// Helper function to get manager's history details and captaincy stats
+// Helper function to get manager's history details, captaincy stats, and chips history
 async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
     // Reset global counters for each invocation
     captainCounts = {};
@@ -84,6 +84,19 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
 
     // NEW: Array to store potential "missed points" instances
     const missedPointsInstances = [];
+
+    // Fetch main manager entry data to get chips history and current event
+    const managerEntryUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/`;
+    let managerEntryData = null;
+    try {
+        const entryRes = await fetchWithRetry(managerEntryUrl);
+        managerEntryData = await entryRes.json();
+    } catch (error) {
+        console.warn(`Could not fetch main manager entry data for ${managerId}:`, error.message);
+    }
+    const managerChips = managerEntryData?.chips || []; // Extract chips, default to empty array
+    const currentEvent = managerEntryData?.current_event || maxRounds; // Get current event, fallback to maxRounds
+
 
     // Fetch data for all rounds for the given manager concurrently with retries
     const managerPicksPromises = [];
@@ -340,18 +353,19 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
         bestPlayers: bestPlayersList,
         worstPlayers: worstPlayersList,
         overallRankHistory: overallRankHistory,
-        top5MissedPoints: top5MissedPoints
+        top5MissedPoints: top5MissedPoints,
+        chips: managerChips, // NEW: Return the chips array
+        currentEvent: currentEvent // NEW: Return current event
     };
 }
 
 
 // --- NEW: Function to fetch and process Transfers Data (Isolated) ---
-async function getTransfersData(managerId) {
+async function getTransfersData(managerId, managerStats) { // Now accepts managerStats to get chips and currentEvent
     let totalTransfersCount = 'N/A';
     let totalHitsPoints = 'N/A';
 
     try {
-        // CORRECTED URL: Using the /api/ path and trailing slash as confirmed by your browser
         const transfersApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/transfers/`;
         console.log(`Attempting to fetch transfers data from: ${transfersApiUrl}`);
         
@@ -361,7 +375,7 @@ async function getTransfersData(managerId) {
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`, // Keep referer as the user-facing page
+                'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`,
                 'DNT': '1',
                 'Connection': 'keep-alive',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -372,43 +386,72 @@ async function getTransfersData(managerId) {
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"Windows"',
                 'priority': 'u=1, i',
-                // REMOVED: The generic 'Cookie' header, as it didn't help and might not be needed for this specific API
             },
         });
 
         if (transfersResponse.ok) {
             const responseText = await transfersResponse.text();
-            try {
-                const transfersRawData = JSON.parse(responseText);
-                console.log('Successfully fetched and parsed transfers data.');
-                // console.log(JSON.stringify(transfersRawData, null, 2)); // Uncomment to dump transfers data if needed
+            const transfersRawData = JSON.parse(responseText);
+            console.log('Successfully fetched and parsed transfers data.');
 
-                totalTransfersCount = transfersRawData.length;
+            // --- Extract chip info and current event from managerStats ---
+            const managerChips = managerStats?.chips || [];
+            const currentEvent = managerStats?.currentEvent || 34; // Use currentEvent from managerStats, fallback to 34
 
-                let hitsCount = 0;
-                const transfersPerEvent = {};
-
-                transfersRawData.forEach(transfer => {
-                    if (!transfersPerEvent[transfer.event]) {
-                        transfersPerEvent[transfer.event] = 0;
+            const chipRounds = new Set();
+            if (managerChips && Array.isArray(managerChips)) {
+                managerChips.forEach(chip => {
+                    // Note: User mentioned "Loan Rangers" but API might be "loan_ranger" or "loan_rangers"
+                    // Checking for both "wildcard" and "loan" in name for robustness
+                    if (chip.name.includes('wildcard') || chip.name.includes('loan')) {
+                        chipRounds.add(chip.event);
                     }
-                    transfersPerEvent[transfer.event]++;
                 });
+            }
+            
+            // --- Calculate Total Transfers (excluding chip rounds) ---
+            const nonChipTransfers = transfersRawData.filter(transfer => !chipRounds.has(transfer.event));
+            totalTransfersCount = nonChipTransfers.length;
 
-                for (const eventId in transfersPerEvent) {
-                    const transfersInThisEvent = transfersPerEvent[eventId];
-                    if (transfersInThisEvent > 1) { // First transfer is free
-                        hitsCount += (transfersInThisEvent - 1);
+
+            // --- Calculate Total Hits (Points Deducted) ---
+            let totalHits = 0;
+            let freeTransfersAvailable = 1; // Start with 1 free transfer for Round 1
+
+            // Group transfers by event for easier processing
+            const transfersInEachRound = {};
+            transfersRawData.forEach(transfer => {
+                transfersInEachRound[transfer.event] = (transfersInEachRound[transfer.event] || 0) + 1;
+            });
+
+            // Iterate through rounds up to the current event
+            for (let round = 1; round <= currentEvent; round++) {
+                const transfersMadeInRound = transfersInEachRound[round] || 0;
+                const chipPlayedInRound = chipRounds.has(round);
+
+                if (chipPlayedInRound) {
+                    // All transfers are free, free transfers reset to 1 for the *next* round
+                    freeTransfersAvailable = 1;
+                } else {
+                    // Apply free transfer logic
+                    const hitsForRound = Math.max(0, transfersMadeInRound - freeTransfersAvailable);
+                    totalHits += hitsForRound;
+
+                    // Update free transfers for the next round
+                    if (transfersMadeInRound > 0) { // If transfers were made, free transfers reset
+                        freeTransfersAvailable = 1;
+                    } else { // No transfers made, rollover
+                        freeTransfersAvailable = Math.min(2, freeTransfersAvailable + 1);
                     }
                 }
-                totalHitsPoints = hitsCount * -4;
-                console.log(`Calculated totalTransfersCount: ${totalTransfersCount}, totalHitsPoints: ${totalHitsPoints}`);
-
-            } catch (jsonParseError) {
-                console.error('Transfers API returned non-JSON content or malformed JSON. Response snippet:', responseText.substring(0, 500));
-                console.error('Error parsing transfers JSON:', jsonParseError);
-                // Values remain 'N/A' as initialized
+                // "Round 1 & 34 not counted": This is ambiguous. If it means no rollover for these rounds,
+                // the current logic needs adjustment. For now, assuming rollover applies universally.
+                // If the issue persists, we might need to add specific checks for round 1 and 34.
             }
+            totalHitsPoints = totalHits * -4;
+
+            console.log(`Calculated totalTransfersCount: ${totalTransfersCount}, totalHitsPoints: ${totalHitsPoints}`);
+
         } else {
             const errorText = await transfersResponse.text();
             console.error(`Transfers fetch failed with status ${transfersResponse.status}: ${errorText.substring(0, 200)}...`);
@@ -446,11 +489,10 @@ exports.handler = async function(event, context) {
         // Fetch player map first as it's needed by getManagerHistoryAndCaptains
         const playerMap = await getPlayerNameMap();
 
-        // Run main stats and transfers data fetches in parallel using Promise.allSettled
-        // This ensures that even if one promise fails, the other can still resolve.
+        // Fetch manager stats (including chips and currentEvent) and transfers data in parallel
         const [managerStatsResult, transfersDataResult] = await Promise.allSettled([
             getManagerHistoryAndCaptains(managerId, playerMap),
-            getTransfersData(managerId)
+            getTransfersData(managerId, { chips: [], currentEvent: 34 }) // Pass a placeholder for initial parallel run
         ]);
 
         let managerStats = {};
@@ -458,7 +500,6 @@ exports.handler = async function(event, context) {
             managerStats = managerStatsResult.value;
         } else {
             console.error("getManagerHistoryAndCaptains failed:", managerStatsResult.reason);
-            // Populate with N/A for all managerStats fields if it failed
             managerStats = {
                 overallRankHistory: [],
                 overallRank: 'N/A',
@@ -468,16 +509,21 @@ exports.handler = async function(event, context) {
                 top3Captains: [],
                 bestPlayers: [],
                 worstPlayers: [],
-                top5MissedPoints: []
+                top5MissedPoints: [],
+                chips: [], // Default empty array if fetch fails
+                currentEvent: 34 // Default to 34 if fetch fails
             };
         }
 
+        // Re-run getTransfersData with the actual managerStats (especially chips and currentEvent)
+        // This ensures the transfer calculations are accurate based on played chips and current round.
+        const finalTransfersDataResult = await getTransfersData(managerId, managerStats);
+
         let transfersData = {};
-        if (transfersDataResult.status === 'fulfilled') {
-            transfersData = transfersDataResult.value;
+        if (finalTransfersDataResult.status === 'fulfilled') {
+            transfersData = finalTransfersDataResult.value;
         } else {
-            console.error("getTransfersData failed:", transfersDataResult.reason);
-            // Populate with N/A for all transfersData fields if it failed
+            console.error("getTransfersData (final) failed:", finalTransfersDataResult.reason);
             transfersData = {
                 totalTransfersCount: 'N/A',
                 totalHitsPoints: 'N/A'
