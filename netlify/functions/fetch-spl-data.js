@@ -356,10 +356,9 @@ async function getTransfersData(managerId) {
         
         const transfersResponse = await fetch(transfersApiUrl, {
             headers: {
-                // IMPORTANT: Updated User-Agent and added Client Hint headers from your successful browser request
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
                 'Accept': 'application/json, text/plain, */*',
-                'Accept-Encoding': 'gzip, deflate, br, zstd', // Added from your request
+                'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`,
                 'DNT': '1',
@@ -368,11 +367,12 @@ async function getTransfersData(managerId) {
                 'Sec-Fetch-Mode': 'cors',
                 'Sec-Fetch-Dest': 'empty',
                 'Sec-Fetch-Site': 'same-origin',
-                // New Client Hint Headers from your browser's request
                 'sec-ch-ua': '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"Windows"',
-                'priority': 'u=1, i' // Added from your request
+                'priority': 'u=1, i',
+                // NEW: Add a generic Cookie header
+                'Cookie': '' // Sending an empty string for the Cookie header
             },
         });
 
