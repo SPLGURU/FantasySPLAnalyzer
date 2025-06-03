@@ -351,7 +351,8 @@ async function getTransfersData(managerId) {
     let totalHitsPoints = 'N/A';
 
     try {
-        const transfersApiUrl = `https://en.fantasy.spl.com.sa/entry/${managerId}/transfers`;
+        // CORRECTED URL: Using the /api/ path and trailing slash as confirmed by your browser
+        const transfersApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/transfers/`;
         console.log(`Attempting to fetch transfers data from: ${transfersApiUrl}`);
         
         const transfersResponse = await fetch(transfersApiUrl, {
@@ -360,7 +361,7 @@ async function getTransfersData(managerId) {
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Encoding': 'gzip, deflate, br, zstd',
                 'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`,
+                'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`, // Keep referer as the user-facing page
                 'DNT': '1',
                 'Connection': 'keep-alive',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -371,8 +372,7 @@ async function getTransfersData(managerId) {
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"Windows"',
                 'priority': 'u=1, i',
-                // NEW: Add a generic Cookie header
-                'Cookie': '' // Sending an empty string for the Cookie header
+                // REMOVED: The generic 'Cookie' header, as it didn't help and might not be needed for this specific API
             },
         });
 
