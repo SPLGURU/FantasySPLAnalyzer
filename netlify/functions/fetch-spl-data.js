@@ -82,9 +82,9 @@ exports.handler = async (event, context) => {
         let overallRankHistory = [];
         let averagePoints = 'N/A';
 
-        if (historyData && historyData.current && historyData.current.length > 0) {
-            const currentHistory = historyData.current; 
+        const currentHistory = (historyData && historyData.current) ? historyData.current : [];
 
+        if (currentHistory.length > 0) {
             overallRankHistory = currentHistory.map(h => ({
                 round: h.event,
                 rank: h.overall_rank
@@ -108,117 +108,111 @@ exports.handler = async (event, context) => {
         
         // --- Calculate Top 3 Captains ---
         const captaincyStats = {}; // { playerId: { times: N, successful: N, failed: N, totalCaptainedPoints: N, captainedRounds: [] } }
-        if (historyData && historyData.current) {
-            historyData.current.forEach(round => {
-                const captainPick = round.picks.find(p => p.is_captain);
-                const viceCaptainPick = round.picks.find(p => p.is_vice_captain);
+        if (currentHistory.length > 0) { // Ensure history data exists
+            currentHistory.forEach(round => {
+                // Defensive check: ensure round.picks exists and is an array
+                if (round.picks && Array.isArray(round.picks)) {
+                    const captainPick = round.picks.find(p => p.is_captain);
+                    // const viceCaptainPick = round.picks.find(p => p.is_vice_captain); // Not used for now
 
-                if (captainPick) {
-                    const captainId = captainPick.element;
-                    const captainPoints = round.entry_history.points; // Points for the captain in this round
-                    const captainName = playerMap.get(captainId)?.name || `Player ${captainId}`;
+                    if (captainPick) {
+                        const captainId = captainPick.element;
+                        // Use player-specific points if available, otherwise fallback to entry_history points
+                        // The 'stats' property is on the pick object within round.picks
+                        const captainPoints = (captainPick.stats && captainPick.stats.total_points !== undefined) 
+                                                ? captainPick.stats.total_points 
+                                                : (round.entry_history && round.entry_history.points !== undefined ? round.entry_history.points : 0);
+                        const captainName = playerMap.get(captainId)?.name || `Player ${captainId}`;
 
-                    if (!captaincyStats[captainId]) {
-                        captaincyStats[captainId] = {
-                            name: captainName,
-                            times: 0,
-                            successful: 0,
-                            failed: 0,
-                            totalCaptainedPoints: 0,
-                            captainedRounds: []
-                        };
-                    }
-                    captaincyStats[captainId].times++;
-                    captaincyStats[captainId].totalCaptainedPoints += captainPoints;
-                    captaincyStats[captainId].captainedRounds.push(round.event); // Add round number
+                        if (!captaincyStats[captainId]) {
+                            captaincyStats[captainId] = {
+                                name: captainName,
+                                times: 0,
+                                successful: 0,
+                                failed: 0,
+                                totalCaptainedPoints: 0,
+                                captainedRounds: []
+                            };
+                        }
+                        captaincyStats[captainId].times++;
+                        captaincyStats[captainId].totalCaptainedPoints += captainPoints;
+                        captaincyStats[captainId].captainedRounds.push(round.event);
 
-                    // Simple success/failure: if captain scored well (e.g., > 5 points), consider successful
-                    if (captainPoints > 5) { // Threshold can be adjusted
-                        captaincyStats[captainId].successful++;
-                    } else {
-                        captaincyStats[captainId].failed++;
+                        if (captainPoints > 5) { // Threshold can be adjusted
+                            captaincyStats[captainId].successful++;
+                        } else {
+                            captaincyStats[captainId].failed++;
+                        }
                     }
                 }
-                // Note: Vice-captain logic can be added here if needed, but often only captain points are tracked.
             });
         }
 
         const top3Captains = Object.values(captaincyStats)
-            .sort((a, b) => b.totalCaptainedPoints - a.totalCaptainedPoints) // Sort by total points captained
-            .slice(0, 3); // Get top 3
+            .sort((a, b) => b.totalCaptainedPoints - a.totalCaptainedPoints)
+            .slice(0, 3);
         console.log('Top 3 Captains:', top3Captains);
 
         // --- Calculate Best Players and Worst Players ---
-        const playerSeasonStats = {}; // { playerId: { name: '', totalPoints: N, started: N, autoSubbed: N, benchedPoints: N } }
+        const playerSeasonStats = {}; // { playerId: { name: '', totalPoints: N, started: N, autoSubbed: N, benchedPoints: N, element_type: N } }
 
-        // Iterate through each round's picks to aggregate player stats
-        if (historyData && historyData.current) {
-            historyData.current.forEach(round => {
-                round.picks.forEach(pick => {
-                    const playerId = pick.element;
-                    const playerName = playerMap.get(playerId)?.name || `Player ${playerId}`;
-                    const playerType = playerMap.get(playerId)?.element_type; // Get player type/position
+        if (currentHistory.length > 0) {
+            currentHistory.forEach(round => {
+                if (round.picks && Array.isArray(round.picks)) { // Defensive check
+                    round.picks.forEach(pick => {
+                        const playerId = pick.element;
+                        const playerName = playerMap.get(playerId)?.name || `Player ${playerId}`;
+                        const playerType = playerMap.get(playerId)?.element_type;
 
-                    if (!playerSeasonStats[playerId]) {
-                        playerSeasonStats[playerId] = {
-                            name: playerName,
-                            element_type: playerType, // Store player type
-                            totalPoints: 0,
-                            started: 0,
-                            autoSubbed: 0,
-                            benchedPoints: 0
-                        };
-                    }
+                        if (!playerSeasonStats[playerId]) {
+                            playerSeasonStats[playerId] = {
+                                name: playerName,
+                                element_type: playerType,
+                                totalPoints: 0,
+                                started: 0,
+                                autoSubbed: 0,
+                                benchedPoints: 0
+                            };
+                        }
 
-                    // Total points for the player across all rounds they were in the squad
-                    // Note: round.entry_history.points is total team points. We need player-specific points.
-                    // The 'stats' array within each pick in history.current.picks contains points for that player in that round.
-                    const playerPointsInRound = pick.stats.total_points || 0;
-                    playerSeasonStats[playerId].totalPoints += playerPointsInRound;
+                        const playerPointsInRound = (pick.stats && pick.stats.total_points !== undefined) ? pick.stats.total_points : 0;
+                        playerSeasonStats[playerId].totalPoints += playerPointsInRound;
 
-                    // Check if player started (multiplier > 0)
-                    if (pick.multiplier > 0) {
-                        playerSeasonStats[playerId].started++;
-                    } else if (pick.multiplier === 0) { // Player was benched
-                        playerSeasonStats[playerId].benchedPoints += playerPointsInRound;
-                    }
+                        if (pick.multiplier > 0) {
+                            playerSeasonStats[playerId].started++;
+                        } else if (pick.multiplier === 0) {
+                            playerSeasonStats[playerId].benchedPoints += playerPointsInRound;
+                        }
 
-                    // Auto-subbed logic is complex and usually requires checking managerData.automatic_subs
-                    // For simplicity, we'll mark autoSubbed if they were on bench (multiplier 0) but still played (points > 0)
-                    // This is a simplification; true auto-sub logic is more involved.
-                    // A more accurate way would be to parse managerData.automatic_subs for each round.
-                    // For now, we'll use a simplified check:
-                    if (pick.multiplier === 0 && playerPointsInRound > 0) {
-                        playerSeasonStats[playerId].autoSubbed++;
-                    }
-                });
+                        // Simplified auto-subbed check (if benched but scored points)
+                        if (pick.multiplier === 0 && playerPointsInRound > 0) {
+                            playerSeasonStats[playerId].autoSubbed++;
+                        }
+                    });
+                }
             });
         }
 
-        // Convert to array and filter for players currently in the squad (if managerData.picks is reliable)
-        const currentSquadPlayerIds = new Set(managerData.picks.map(p => p.element));
-        const relevantPlayers = Object.values(playerSeasonStats).filter(player => currentSquadPlayerIds.has(Object.keys(playerMap).find(key => playerMap.get(key).name === player.name))); // Filter by current squad
+        // Filter for players currently in the manager's squad (from managerData.picks)
+        const currentSquadPlayerIds = new Set((managerData && managerData.picks) ? managerData.picks.map(p => p.element) : []);
+        const relevantPlayers = Object.values(playerSeasonStats).filter(player => currentSquadPlayerIds.has(Object.keys(playerMap).find(key => playerMap.get(key).name === player.name)));
 
-        // Sort for Best Players (highest total points)
         const bestPlayers = [...relevantPlayers]
             .sort((a, b) => b.totalPoints - a.totalPoints)
-            .slice(0, 5) // Top 5
+            .slice(0, 5)
             .map(player => ({
                 name: player.name,
                 started: player.started,
                 autoSubbed: player.autoSubbed,
-                pointsGained: player.totalPoints, // Renamed for clarity
+                pointsGained: player.totalPoints,
                 benchedPoints: player.benchedPoints
             }));
         console.log('Best Players:', bestPlayers);
 
-        // Sort for Worst Players (lowest total points, excluding GKs and DEF if not relevant)
-        // This definition of "worst" can be subjective. Let's pick players with lowest points
-        // who have started at least once and are not GKs (as GKs often have lower points).
         const worstPlayers = [...relevantPlayers]
             .filter(player => player.started > 0 && player.element_type !== 1) // Must have started, not a GK
             .sort((a, b) => a.totalPoints - b.totalPoints)
-            .slice(0, 5) // Bottom 5
+            .slice(0, 5)
             .map(player => ({
                 name: player.name,
                 started: player.started,
@@ -229,29 +223,28 @@ exports.handler = async (event, context) => {
         console.log('Worst Players:', worstPlayers);
 
         // --- Calculate Missed Points (Benched Players Points) ---
-        const missedPoints = []; // { playerName: '', points: N, round: N }
-        if (historyData && historyData.current) {
-            historyData.current.forEach(round => {
-                round.picks.forEach(pick => {
-                    // If multiplier is 0, the player was on the bench
-                    // and if they scored points, those were "missed"
-                    const playerPointsInRound = pick.stats.total_points || 0;
-                    if (pick.multiplier === 0 && playerPointsInRound > 0) {
-                        missedPoints.push({
-                            playerName: playerMap.get(pick.element)?.name || `Player ${pick.element}`,
-                            points: playerPointsInRound,
-                            round: round.event
-                        });
-                    }
-                });
+        const missedPoints = [];
+        if (currentHistory.length > 0) {
+            currentHistory.forEach(round => {
+                if (round.picks && Array.isArray(round.picks)) { // Defensive check
+                    round.picks.forEach(pick => {
+                        const playerPointsInRound = (pick.stats && pick.stats.total_points !== undefined) ? pick.stats.total_points : 0;
+                        if (pick.multiplier === 0 && playerPointsInRound > 0) {
+                            missedPoints.push({
+                                playerName: playerMap.get(pick.element)?.name || `Player ${pick.element}`,
+                                points: playerPointsInRound,
+                                round: round.event
+                            });
+                        }
+                    });
+                }
             });
         }
-        // Sort by points (descending) and get top 5
         const top5MissedPoints = missedPoints.sort((a, b) => b.points - a.points).slice(0, 5);
         console.log('Top 5 Missed Points:', top5MissedPoints);
 
 
-        // --- 6. Return Combined Data as JSON ---
+        // --- 5. Return Combined Data as JSON ---
         return {
             statusCode: 200,
             headers: {
@@ -264,13 +257,12 @@ exports.handler = async (event, context) => {
                 bestOverallRank: bestOverallRank,
                 worstOverallRank: worstOverallRank,
                 averagePoints: averagePoints,
-                // averagePointsFor1stPlace is hardcoded in frontend
                 top3Captains: top3Captains,
                 bestPlayers: bestPlayers,
                 worstPlayers: worstPlayers,
                 top5MissedPoints: top5MissedPoints,
-                totalTransfersCount: totalTransfersCount, // Still N/A
-                totalHitsPoints: totalHitsPoints      // Still N/A
+                totalTransfersCount: totalTransfersCount,
+                totalHitsPoints: totalHitsPoints
             })
         };
 
