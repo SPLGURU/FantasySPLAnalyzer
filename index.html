@@ -582,9 +582,7 @@
             document.getElementById('captaincyTableBody').innerHTML = '';
             document.getElementById('bestPlayersTableBody').innerHTML = '';
             document.getElementById('worstPlayersTableBody').innerHTML = '';
-            // For reverted table, clear body directly
             document.getElementById('missedPointsTableBody').innerHTML = '';
-            // NEW: Clear transfers summary table
             document.getElementById('transfersSummaryTableBody').innerHTML = '';
             
             // Clear global rank history and reset animation state
@@ -709,7 +707,8 @@
             }
 
             addRow("Average Points", data.averagePoints);
-            addRow("Average Points for 1st Place", data.averagePointsFor1stPlace);
+            // Hardcode "Average Points for 1st Place" to 75
+            addRow("Average Points for 1st Place", 75);
             
             // Add new rows for arrow counts with NEW EMOJIS
             addRow("Number of Green Arrows", greenArrows + ' 🟢');
@@ -824,7 +823,7 @@
                 row.insertCell().textContent = item.round;
             });
 
-            // NEW: Display Transfers Summary
+            // NEW: Display Transfers Summary Table (Re-added)
             displayTransfersSummary(data.totalTransfersCount, data.totalHitsPoints);
 
             document.getElementById('results').style.display = 'block'; // Show results section
@@ -937,9 +936,9 @@
 
                             if (currentRank < previousRank) { // Rank improved (lower number is better)
                                 return 'green';
-                            } else if (currentRank > previousRank) { // Rank worsened (higher number is worse)
+                            } else if (currentRank > previousRank) {
                                 return 'red';
-                            } else { // Rank unchanged
+                            } else {
                                 return 'grey';
                             }
                         },
