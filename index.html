@@ -218,6 +218,18 @@
             margin-top: 10px;
         }
 
+        /* Adjustments for Best Players and Worst Players tables font size (10% reduction) */
+        .best-players-table th, .best-players-table td,
+        .worst-players-table th, .worst-players-table td {
+            font-size: calc(0.95em * 0.9); /* 10% reduction from base 0.95em */
+        }
+        /* Specific header font size for these tables, also reduced by 10% */
+        .best-players-table th,
+        .worst-players-table th {
+            font-size: calc(0.9em * 0.9); /* 10% reduction from base 0.9em for specific headers */
+        }
+
+
         /* Responsive adjustments for smaller screens */
         @media (max-width: 768px) {
             body {
@@ -240,23 +252,34 @@
             .best-players-table th,
             .worst-players-table th,
             .missed-points-table th {
-                font-size: 0.75em; /* Slightly larger to improve readability after new widths */
+                font-size: 0.75em;
                 padding: 6px 8px;
+            }
+
+            /* Apply 10% reduction on top of tablet base font sizes for Best/Worst Players */
+            .best-players-table th, .best-players-table td,
+            .worst-players-table th, .worst-players-table td {
+                font-size: calc(0.8em * 0.9); /* 10% reduction from tablet 0.8em */
+            }
+            .best-players-table th,
+            .worst-players-table th {
+                font-size: calc(0.75em * 0.9); /* 10% reduction from tablet 0.75em for specific headers */
             }
 
             /* Adjust column widths for better fitting on tablets - general distribution */
             .rank-points-table th:nth-child(1) { width: 40%; }
             .rank-points-table th:nth-child(2) { width: 60%; }
 
-            /* Transposed tables will automatically handle widths better due to new structure */
-            /* We'll set a min-width for the first column (category) and let others flex */
+            /* For transposed tables, the first column (category) needs significant space */
             .captaincy-table th:first-child,
             .best-players-table th:first-child,
-            .worst-players-table th:first-child,
-            .missed-points-table th:first-child {
+            .worst-players-table th:first-child {
                 width: 35%; /* Give more space to the category name column */
             }
-            /* Remaining columns will share 65% of width, divided among players */
+            /* Missed Points table is NOT transposed here, so its widths are normal */
+            .missed-points-table th:nth-child(1) { width: 40%; }
+            .missed-points-table th:nth-child(2) { width: 30%; }
+            .missed-points-table th:nth-child(3) { width: 30%; }
         }
 
         @media (max-width: 480px) {
@@ -267,15 +290,25 @@
             /* Further reduce font size for all table cells and headers for phones */
             th, td {
                 padding: 5px 6px;
-                font-size: 0.7em; /* Target: ~25% reduction from desktop 0.95em (0.95 * 0.75 = 0.7125) */
+                font-size: 0.7em; /* Target: ~25% reduction from desktop 0.95em */
             }
             /* Specific header types for phones, also reduced */
             .captaincy-table th,
             .best-players-table th,
             .worst-players-table th,
             .missed-points-table th {
-                font-size: 0.65em; /* Target: ~25% reduction from desktop 0.9em (0.9 * 0.75 = 0.675) */
+                font-size: 0.65em; /* Target: ~25% reduction from desktop 0.9em */
                 padding: 4px 5px;
+            }
+
+            /* Apply 10% reduction on top of phone base font sizes for Best/Worst Players */
+            .best-players-table th, .best-players-table td,
+            .worst-players-table th, .worst-players-table td {
+                font-size: calc(0.7em * 0.9); /* 10% reduction from phone 0.7em */
+            }
+            .best-players-table th,
+            .worst-players-table th {
+                font-size: calc(0.65em * 0.9); /* 10% reduction from phone 0.65em for specific headers */
             }
 
             /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS --- */
@@ -286,12 +319,13 @@
             /* For transposed tables, the first column (category) needs significant space */
             .captaincy-table th:first-child,
             .best-players-table th:first-child,
-            .worst-players-table th:first-child,
-            .missed-points-table th:first-child {
+            .worst-players-table th:first-child {
                 width: 40%; /* Adjusted for phone to give more room to category names */
             }
-            /* The remaining width (60%) will be divided among the player columns */
-            /* This is handled by table-layout: fixed and the browser distributing remaining space */
+            /* Missed Points table is NOT transposed here, so its widths are normal */
+            .missed-points-table th:nth-child(1) { width: 45%; }
+            .missed-points-table th:nth-child(2) { width: 27.5%; }
+            .missed-points-table th:nth-child(3) { width: 27.5%; }
         }
     </style>
 </head>
@@ -335,7 +369,8 @@
             <div class="captaincy-table">
                 <h3>Top 3 Captains</h3>
                 <table>
-                    <thead id="captaincyTableHead"> </thead>
+                    <thead id="captaincyTableHead">
+                        </thead>
                     <tbody id="captaincyTableBody">
                         </tbody>
                 </table>
@@ -344,7 +379,8 @@
             <div class="best-players-table">
                 <h3>Best Players</h3>
                 <table>
-                    <thead id="bestPlayersTableHead"> </thead>
+                    <thead id="bestPlayersTableHead">
+                        </thead>
                     <tbody id="bestPlayersTableBody">
                         </tbody>
                 </table>
@@ -353,7 +389,8 @@
             <div class="worst-players-table">
                 <h3>Worst Players</h3>
                 <table>
-                    <thead id="worstPlayersTableHead"> </thead>
+                    <thead id="worstPlayersTableHead">
+                        </thead>
                     <tbody id="worstPlayersTableBody">
                         </tbody>
                 </table>
@@ -362,7 +399,13 @@
             <div class="missed-points-table">
                 <h3>Missed Points (Benched Players Points)</h3>
                 <table>
-                    <thead id="missedPointsTableHead"> </thead>
+                    <thead>
+                        <tr>
+                            <th>Player Name</th>
+                            <th>Points</th>
+                            <th>Round</th>
+                        </tr>
+                    </thead>
                     <tbody id="missedPointsTableBody">
                         </tbody>
                 </table>
@@ -397,10 +440,11 @@
             resultsDiv.style.display = 'none';
             rankJourneyVideoContainer.style.display = 'none'; // Hide video container
             document.getElementById('rankPointsTableBody').innerHTML = '';
-            // No need to clear thead directly, as createTransposedTable clears it
+            // For transposed tables, clearing the body is enough, thead is cleared by the function
             document.getElementById('captaincyTableBody').innerHTML = '';
             document.getElementById('bestPlayersTableBody').innerHTML = '';
             document.getElementById('worstPlayersTableBody').innerHTML = '';
+            // For reverted table, clear body directly
             document.getElementById('missedPointsTableBody').innerHTML = '';
             
             // Clear global rank history and reset animation state
@@ -542,7 +586,7 @@
             videoButtonCell.appendChild(videoButton);
 
 
-            // --- TRANSPOSED TABLES ---
+            // --- TRANSPOSED TABLES (Captaincy, Best Players, Worst Players) ---
 
             // Helper function to create a transposed table
             function createTransposedTable(tableBodyId, tableHeadId, playersData, metrics) {
@@ -553,15 +597,14 @@
 
                 if (!playersData || playersData.length === 0) {
                     // Calculate colspan for the "No data" message
-                    const colspan = metrics.length + 1; // 1 for Category column + number of metrics
+                    const colspan = playersData.length + 1; // 1 for metric label column + number of players
                     tableBody.innerHTML = `<tr><td colspan="${colspan}">No data available.</td></tr>`;
                     return;
                 }
 
-                // Create header row with player names
+                // Create header row with player names (empty first cell)
                 const headerRow = tableHead.insertRow();
-                headerRow.insertCell().textContent = 'Category'; // First cell is for the metric name
-
+                headerRow.insertCell(); // This creates the empty top-left <th>
                 playersData.forEach(player => {
                     const th = document.createElement('th');
                     th.textContent = player.name;
@@ -572,7 +615,6 @@
                 metrics.forEach(metric => {
                     const row = tableBody.insertRow();
                     row.insertCell().textContent = metric.label; // First cell is the metric label
-
                     playersData.forEach(player => {
                         const cell = row.insertCell();
                         let value = player[metric.key];
@@ -614,54 +656,28 @@
             ];
             createTransposedTable('worstPlayersTableBody', 'worstPlayersTableHead', data.worstPlayers, worstPlayersMetrics);
 
-            // Missed Points Table (This one is slightly different as it's already "per instance")
-            // It needs to be transposed if it's showing multiple players' single best scores.
-            // The current data structure for top5MissedPoints is: [{playerName, points, round}, ...]
-            // If we transpose it, the "Player Name", "Points", "Round" become row headers, and each "instance" becomes a column.
-            // Let's assume for this table, we'll transpose it to show the top 5 instances as columns.
-            const missedPointsMetrics = [
-                { key: 'playerName', label: 'Player Name' },
-                { key: 'points', label: 'Points' },
-                { key: 'round', label: 'Round' }
-            ];
-            
-            function createTransposedMissedPointsTable(tableBodyId, tableHeadId, instancesData, metrics) {
-                const tableBody = document.getElementById(tableBodyId);
-                const tableHead = document.getElementById(tableHeadId);
-                tableBody.innerHTML = '';
-                tableHead.innerHTML = '';
-
-                if (!instancesData || instancesData.length === 0) {
-                     // Calculate colspan for the "No data" message
-                    const colspan = metrics.length + 1; // 1 for Category column + number of metrics
-                    tableBody.innerHTML = `<tr><td colspan="${colspan}">No data available.</td></tr>`;
-                    return;
-                }
-
-                // Create header row with instance labels (e.g., "Instance 1", "Instance 2")
-                const headerRow = tableHead.insertRow();
-                headerRow.insertCell().textContent = 'Category'; // First cell is for the metric name
-
-                instancesData.forEach((instance, index) => {
-                    const th = document.createElement('th');
-                    th.textContent = `Instance ${index + 1}`; // e.g., "Instance 1"
-                    headerRow.appendChild(th);
-                });
-
-                // Create data rows for each metric
-                metrics.forEach(metric => {
-                    const row = tableBody.insertRow();
-                    row.insertCell().textContent = metric.label; // First cell is the metric label
-
-                    instancesData.forEach(instance => {
-                        const cell = row.insertCell();
-                        let value = instance[metric.key];
-                        cell.textContent = value !== undefined && value !== null ? value : 'N/A';
-                    });
-                });
+            // --- REVERTED MISSED POINTS TABLE ---
+            // Display Missed Points Table (REVERTED TO ORIGINAL NON-TRANSPOSED)
+            const missedPointsTableBody = document.getElementById('missedPointsTableBody');
+            missedPointsTableBody.innerHTML = ''; // Clear previous content
+            // Ensure thead is also reset to its static HTML content
+            const missedPointsTableHead = document.querySelector('.missed-points-table thead');
+            if (missedPointsTableHead) {
+                missedPointsTableHead.innerHTML = `
+                    <tr>
+                        <th>Player Name</th>
+                        <th>Points</th>
+                        <th>Round</th>
+                    </tr>
+                `;
             }
 
-            createTransposedMissedPointsTable('missedPointsTableBody', 'missedPointsTableHead', data.top5MissedPoints, missedPointsMetrics);
+            data.top5MissedPoints.forEach(item => {
+                const row = missedPointsTableBody.insertRow();
+                row.insertCell().textContent = item.playerName;
+                row.insertCell().textContent = item.points;
+                row.insertCell().textContent = item.round;
+            });
 
 
             document.getElementById('results').style.display = 'block'; // Show results section
