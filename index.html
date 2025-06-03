@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial=1.0">
     <title>Fantasy SPL Manager Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
@@ -229,6 +229,18 @@
             font-size: calc(0.9em * 0.9); /* 10% reduction from base 0.9em for specific headers */
         }
 
+        /* CSS for the visually "cropped" empty header cell in transposed tables */
+        .transposed-table-empty-header {
+            width: 0.001% !important; /* Extremely small width to make it almost invisible */
+            min-width: 0 !important;
+            max-width: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            overflow: hidden !important;
+            visibility: hidden !important; /* Hide content but preserves structural space */
+            /* This ensures the first column (metric labels) still has its width defined by other means */
+        }
+
 
         /* Responsive adjustments for smaller screens */
         @media (max-width: 768px) {
@@ -270,7 +282,7 @@
             .rank-points-table th:nth-child(1) { width: 40%; }
             .rank-points-table th:nth-child(2) { width: 60%; }
 
-            /* For transposed tables, the first column (category) needs significant space */
+            /* For transposed tables, the first column (category/metric label) needs significant space */
             .captaincy-table th:first-child,
             .best-players-table th:first-child,
             .worst-players-table th:first-child {
@@ -316,16 +328,19 @@
             .rank-points-table th:nth-child(1) { width: 55%; }
             .rank-points-table th:nth-child(2) { width: 45%; }
 
-            /* For transposed tables, the first column (category) needs significant space */
+            /* For transposed tables, the first column (metric labels) needs significant space */
             .captaincy-table th:first-child,
             .best-players-table th:first-child,
             .worst-players-table th:first-child {
-                width: 40%; /* Adjusted for phone to give more room to category names */
+                width: 45%; /* Increased for phone to give more room to metric labels */
             }
+            /* The remaining width (55%) will be divided among the player columns */
+            /* This is handled by table-layout: fixed and the browser distributing remaining space */
+
             /* Missed Points table is NOT transposed here, so its widths are normal */
-            .missed-points-table th:nth-child(1) { width: 45%; }
-            .missed-points-table th:nth-child(2) { width: 27.5%; }
-            .missed-points-table th:nth-child(3) { width: 27.5%; }
+            .missed-points-table th:nth-child(1) { width: 45%; } /* Player Name */
+            .missed-points-table th:nth-child(2) { width: 27.5%; } /* Points */
+            .missed-points-table th:nth-child(3) { width: 27.5%; } /* Round */
         }
     </style>
 </head>
@@ -602,9 +617,11 @@
                     return;
                 }
 
-                // Create header row with player names (empty first cell)
+                // Create header row with player names (and an empty, visually hidden first cell)
                 const headerRow = tableHead.insertRow();
-                headerRow.insertCell(); // This creates the empty top-left <th>
+                const emptyTh = headerRow.insertCell(); // Create the empty top-left <th>
+                emptyTh.classList.add('transposed-table-empty-header'); // Add class for styling
+                
                 playersData.forEach(player => {
                     const th = document.createElement('th');
                     th.textContent = player.name;
@@ -614,7 +631,8 @@
                 // Create data rows for each metric
                 metrics.forEach(metric => {
                     const row = tableBody.insertRow();
-                    row.insertCell().textContent = metric.label; // First cell is the metric label
+                    row.insertCell().textContent = metric.label; // First cell is the metric label (<td> by default)
+
                     playersData.forEach(player => {
                         const cell = row.insertCell();
                         let value = player[metric.key];
