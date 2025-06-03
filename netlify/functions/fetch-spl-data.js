@@ -28,8 +28,7 @@ exports.handler = async (event, context) => {
         if (!bootstrapResponse.ok) {
             throw new Error(`Failed to fetch bootstrap data: ${bootstrapResponse.statusText}`);
         }
-        // FIX: Corrected variable name from bootstrapData to bootstrapResponse
-        const bootstrapData = await bootstrapResponse.json();
+        const bootstrapData = await bootstrapResponse.json(); // Corrected this line in previous fix
         const elements = bootstrapData.elements;
 
         // Create a Map for efficient player ID to name lookup
@@ -38,12 +37,15 @@ exports.handler = async (event, context) => {
             playerMap.set(player.id, player.web_name || `${player.first_name} ${player.second_name}`);
         });
 
-        // --- 3. Fetch Transfers Data with User-Agent Header ---
+        // --- 3. Fetch Transfers Data with MORE Comprehensive Headers ---
         const transfersResponse = await fetch(`https://en.fantasy.spl.com.sa/entry/${managerId}/transfers`, {
             headers: {
-                // Mimic a common browser User-Agent string
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36',
-                'Accept': 'application/json', // Explicitly ask for JSON
+                'Accept': 'application/json, text/plain, */*', // More common Accept header
+                'Accept-Language': 'en-US,en;q=0.9', // Common Accept-Language
+                'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`, // Mimic referrer from the page
+                'DNT': '1', // Do Not Track header
+                'Connection': 'keep-alive', // Keep connection alive
             }
         });
 
@@ -52,7 +54,7 @@ exports.handler = async (event, context) => {
             // If not OK, log the status and potentially the response text for debugging
             const errorText = await transfersResponse.text(); // Get response body as text
             console.error(`Transfers fetch failed with status ${transfersResponse.status}: ${errorText}`);
-            throw new Error(`Failed to fetch transfers data: ${transfersResponse.statusText}. Response: ${errorText.substring(0, 100)}...`);
+            throw new Error(`Failed to fetch transfers data: ${transfersResponse.statusText}. Response: ${errorText.substring(0, 200)}...`); // Log more of the response
         }
 
         // Attempt to parse JSON. If it fails, the 'invalid json' error will be caught.
