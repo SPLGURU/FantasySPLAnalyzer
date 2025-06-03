@@ -8,7 +8,7 @@ let captainedRoundsTracker = {};
 
 // Helper function to introduce a delay
 function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms)); // Corrected setTimeout usage
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Helper function to fetch data with retries and exponential backoff
@@ -356,8 +356,10 @@ async function getTransfersData(managerId) {
         
         const transfersResponse = await fetch(transfersApiUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36',
+                // IMPORTANT: Updated User-Agent and added Client Hint headers from your successful browser request
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
                 'Accept': 'application/json, text/plain, */*',
+                'Accept-Encoding': 'gzip, deflate, br, zstd', // Added from your request
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': `https://en.fantasy.spl.com.sa/entry/${managerId}/`,
                 'DNT': '1',
@@ -366,6 +368,11 @@ async function getTransfersData(managerId) {
                 'Sec-Fetch-Mode': 'cors',
                 'Sec-Fetch-Dest': 'empty',
                 'Sec-Fetch-Site': 'same-origin',
+                // New Client Hint Headers from your browser's request
+                'sec-ch-ua': '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                'priority': 'u=1, i' // Added from your request
             },
         });
 
@@ -501,8 +508,6 @@ exports.handler = async function(event, context) {
     } catch (error) {
         console.error(`Critical error in Netlify function handler for manager ${managerId}:`, error);
         let errorMessage = 'An unexpected error occurred. Please try again later.';
-        // This catch block should ideally only be hit for truly unrecoverable errors
-        // as individual API call failures are now handled gracefully within their functions.
         
         return {
             statusCode: 500,
