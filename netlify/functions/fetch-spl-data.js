@@ -28,7 +28,8 @@ exports.handler = async (event, context) => {
         if (!bootstrapResponse.ok) {
             throw new Error(`Failed to fetch bootstrap data: ${bootstrapResponse.statusText}`);
         }
-        const bootstrapData = await bootstrapData.json();
+        // FIX: Corrected variable name from bootstrapData to bootstrapResponse
+        const bootstrapData = await bootstrapResponse.json();
         const elements = bootstrapData.elements;
 
         // Create a Map for efficient player ID to name lookup
@@ -101,7 +102,7 @@ exports.handler = async (event, context) => {
         if (managerData.history && managerData.history.length > 0) {
             const totalPoints = managerData.history.reduce((sum, h) => sum + (h.points || 0), 0);
             const totalRoundsWithPoints = managerData.history.filter(h => h.points !== undefined).length;
-            if (totalRroundsWithPoints > 0) {
+            if (totalRoundsWithPoints > 0) {
                 averagePoints = (totalPoints / totalRoundsWithPoints).toFixed(2);
             }
         }
