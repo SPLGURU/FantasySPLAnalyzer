@@ -1,260 +1,385 @@
 // netlify/functions/fetch-spl-data.js
-
 const fetch = require('node-fetch');
 
-exports.handler = async (event, context) => {
+// --- GLOBAL VARIABLES ---
+let captainCounts = {};
+let captainedRoundsTracker = {};
+// --- END GLOBAL VARIABLES ---
+
+// Helper function to introduce a delay
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(ms, ms));
+}
+
+// Helper function to fetch data with retries and exponential backoff
+async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 200) {
+    let retries = 0;
+    while (retries < maxRetries) {
+        try {
+            const response = await fetch(url);
+
+            if (response.ok) { // Status 200-299
+                return response;
+            } else if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
+                const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100;
+                console.warn(`Attempt ${retries + 1}/${maxRetries} failed for ${url} with status ${response.status}. Retrying in ${delay.toFixed(0)}ms...`);
+                await sleep(delay);
+                retries++;
+            } else {
+                throw new Error(`Failed to fetch ${url}: HTTP status ${response.status}`);
+            }
+        } catch (error) {
+            console.error(`Fetch error for ${url} (attempt ${retries + 1}/${maxRetries}):`, error.message);
+            if (retries === maxRetries - 1) {
+                throw error;
+            }
+            const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100;
+            console.warn(`Retrying in ${delay.toFixed(0)}ms...`);
+            retries++;
+        }
+    }
+    throw new Error(`Failed to fetch ${url} after ${maxRetries} retries.`);
+}
+
+
+// Helper function to fetch player names and create a map (from bootstrap-static API)
+async function getPlayerNameMap() {
+    const url = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
+    try {
+        const response = await fetchWithRetry(url);
+        const data = await response.json();
+        const playerMap = {};
+        data.elements.forEach(player => {
+            playerMap[player.id] = player.web_name;
+        });
+        console.log("Player name map created successfully.");
+        return playerMap;
+    } catch (error) {
+        console.error("Error in getPlayerNameMap:", error);
+        return {};
+    }
+}
+
+// Helper function to get manager's history details and captaincy stats
+async function getManagerHistoryAndCaptains(managerId, playerNameMap) {
+    // Reset global counters for each invocation
+    captainCounts = {};
+    captainedRoundsTracker = {};
+
+    let minOverallRank = Infinity;
+    let minOverallRankRound = 'N/A';
+    let maxOverallRank = -Infinity;
+    let maxOverallRankRound = 'N/A';
+    let totalPointsSum = 0;
+    let roundsProcessed = 0;
+
+    const maxRounds = 34; // Total number of rounds in the season
+
+    // Array to store overall rank for each round
+    const overallRankHistory = [];
+
+    // Object to store stats for all players owned by the manager
+    const playerSeasonStats = {}; // { playerId: { started: 0, autoSubbed: 0, pointsGained: 0, benchedPoints: 0, roundsInfo: {} } }
+    const uniquePlayerIdsInSquad = new Set();
+
+    // NEW: Array to store potential "missed points" instances
+    const missedPointsInstances = [];
+
+    // Fetch data for all rounds for the given manager concurrently with retries
+    const managerPicksPromises = [];
+    for (let round = 1; round <= maxRounds; round++) {
+        const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`;
+        managerPicksPromises.push(
+            (async () => {
+                try {
+                    const res = await fetchWithRetry(picksUrl);
+                    return { round, data: await res.json() }; // Return round number with data
+                } catch (error) {
+                    console.warn(`Skipping round ${round} for manager ${managerId} due to persistent fetch error: ${error.message}`);
+                    return { round, data: null };
+                }
+            })()
+        );
+    }
+    // Use Promise.allSettled to ensure all promises are handled, even if some fail
+    const allManagerPicksResults = await Promise.allSettled(managerPicksPromises);
+
+    // Sort results by round number to ensure correct order for history
+    const sortedManagerPicksData = allManagerPicksResults
+        .filter(result => result.status === 'fulfilled' && result.value.data !== null)
+        .map(result => result.value)
+        .sort((a, b) => a.round - b.round);
+
+
+    // Process collected manager picks data to populate overall stats and identify all unique players
+    let latestOverallRank = 'N/A';
+    for (const { round, data } of sortedManagerPicksData) {
+        roundsProcessed++;
+
+        // --- Update for Rank & Points Table ---
+        const currentOverallRank = data.entry_history.overall_rank;
+        const currentRoundPoints = data.entry_history.points;
+
+        // Store overall rank for this round
+        overallRankHistory.push({ round: round, rank: currentOverallRank });
+
+        if (currentOverallRank !== null && currentOverallRank !== undefined) {
+            if (currentOverallRank < minOverallRank) {
+                minOverallRank = currentOverallRank;
+                minOverallRankRound = round;
+            }
+            if (currentOverallRank > maxOverallRank) {
+                maxOverallRank = currentOverallRank;
+                maxOverallRankRound = round;
+            }
+            latestOverallRank = currentOverallRank;
+        }
+        if (currentRoundPoints !== undefined) {
+            totalPointsSum += currentRoundPoints;
+        }
+
+        // --- Update for Captaincy Table ---
+        const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3); // Keep 3 for safety, though only 2 applies in SPL
+
+        if (captainPick) {
+            const captainId = captainPick.element;
+            captainCounts[captainId] = (captainCounts[captainId] || 0) + 1;
+            if (!captainedRoundsTracker[captainId]) {
+                captainedRoundsTracker[captainId] = [];
+            }
+            captainedRoundsTracker[captainId].push(round);
+        }
+
+        // Process data for Best/Worst Players Table AND Missed Points Table
+        const automaticSubs = data.automatic_subs || [];
+        const subbedOutPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_out));
+        const subbedInPlayersThisRound = new Set(automaticSubs.map(sub => sub.element_in));
+
+        data.picks.forEach(pick => {
+            const playerId = pick.element;
+            uniquePlayerIdsInSquad.add(playerId); // Add all players ever in squad
+
+            if (!playerSeasonStats[playerId]) {
+                playerSeasonStats[playerId] = {
+                    started: 0,
+                    autoSubbed: 0,
+                    pointsGained: 0,
+                    benchedPoints: 0,
+                    roundsInfo: {} // To store position and multiplier for each round
+                };
+            }
+
+            // Track 'Started' and 'Auto subbed' counts
+            const isSubbedOut = subbedOutPlayersThisRound.has(playerId);
+            const isSubbedIn = subbedInPlayersThisRound.has(playerId);
+
+            if (pick.position >= 1 && pick.position <= 11 && !isSubbedOut) {
+                // Player was in initial starting XI and not subbed out
+                playerSeasonStats[playerId].started++;
+            } else if (isSubbedIn) {
+                // Player was auto-subbed in (counts as starting for points purposes)
+                playerSeasonStats[playerId].started++; // Counts as started for this specific round's context
+                playerSeasonStats[playerId].autoSubbed++;
+            }
+            // Store pick details for later point calculation
+            playerSeasonStats[playerId].roundsInfo[round] = {
+                position: pick.position,
+                multiplier: pick.multiplier,
+                isSubbedOut: isSubbedOut,
+                isSubbedIn: isSubbedIn
+            };
+        });
+    }
+
+    const averagePoints = roundsProcessed > 0 ? Math.round(totalPointsSum / roundsProcessed) : 'N/A';
+
+    // Fetch Player Summaries for ALL unique players in the squad
+    const allPlayerSummaryPromises = Array.from(uniquePlayerIdsInSquad).map(async playerId => {
+        try {
+            const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${playerId}/`;
+            const response = await fetchWithRetry(playerSummaryUrl);
+            return { playerId: parseInt(playerId), summary: await response.json() };
+        } catch (error) {
+            console.warn(`Could not fetch summary for player ${playerId} due to persistent error: ${error.message}`);
+            return { playerId: parseInt(playerId), summary: null };
+        }
+    });
+    const allPlayerSummariesResults = await Promise.all(allPlayerSummaryPromises);
+    const allPlayerSummariesMap = new Map(allPlayerSummariesResults.filter(p => p.summary).map(p => [p.playerId, p.summary]));
+
+
+    // Calculate "Points Gained" and "Benched Points" for all players
+    for (const playerId of uniquePlayerIdsInSquad) {
+        const playerSummary = allPlayerSummariesMap.get(playerId);
+        if (!playerSummary) continue; // Skip if player summary could not be fetched
+
+        const playerHistory = playerSummary.history || [];
+        const playerStats = playerSeasonStats[playerId];
+
+        for (const round of Object.keys(playerStats.roundsInfo)) {
+            const roundNum = parseInt(round);
+            const { position, multiplier, isSubbedOut, isSubbedIn } = playerStats.roundsInfo[roundNum];
+
+            // NEW LOGIC: Filter to get ALL history entries for this specific round number
+            const allRoundStatsEntries = playerHistory.filter(h => h.round === roundNum);
+
+            // Sum the total_points from all relevant entries for this round
+            // This handles double gameweeks where a player might have multiple entries for the same round number
+            const playerPointsForRound = allRoundStatsEntries.reduce((sum, entry) => sum + entry.total_points, 0);
+
+            // Points Gained: Player was in starting XI (1-11) and not subbed out, OR was subbed in
+            if ((position >= 1 && position <= 11 && !isSubbedOut) || isSubbedIn) {
+                playerStats.pointsGained += (playerPointsForRound * multiplier);
+            } else {
+                // Benched Points: Player was on bench (12-15) OR was subbed out
+                playerStats.benchedPoints += playerPointsForRound; // Raw points from bench
+
+                // NEW LOGIC for Missed Points Table:
+                // Check if the player was on the bench (position 12-15) AND NOT subbed in
+                if (position >= 12 && position <= 15 && !isSubbedIn) {
+                    missedPointsInstances.push({
+                        playerId: playerId,
+                        points: playerPointsForRound,
+                        round: roundNum
+                    });
+                }
+            }
+        }
+    }
+
+    // Sort missed points instances by points in descending order and take top 5
+    const top5MissedPoints = missedPointsInstances
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 5)
+        .map(item => ({
+            playerName: playerNameMap[item.playerId] || `Unknown (ID:${item.playerId})`,
+            points: item.points,
+            round: item.round
+        }));
+
+
+    const top3CaptainsStats = [];
+    const sortedCaptains = Object.entries(captainCounts)
+        .sort(([, countA], [, countB]) => countB - countA)
+        .slice(0, 3);
+
+    for (const [captainIdStr, timesCaptained] of sortedCaptains) {
+        const captainId = parseInt(captainIdStr);
+        const playerSummary = allPlayerSummariesMap.get(captainId); // Use the comprehensive map
+        const playerHistory = playerSummary ? playerSummary.history : [];
+
+        let successfulCaptaincies = 0;
+        let failedCaptaincies = 0;
+        let totalCaptainedPoints = 0;
+
+        if (playerHistory && captainedRoundsTracker[captainId]) {
+            captainedRoundsTracker[captainId].forEach(captainedRound => {
+                // NEW LOGIC for Captaincy Table: Sum points for captains in double gameweeks as well
+                const captainRoundStatsEntries = playerHistory.filter(h => h.round === captainedRound);
+                const captainPointsForRound = captainRoundStatsEntries.reduce((sum, entry) => sum + entry.total_points, 0);
+
+                if (captainPointsForRound >= 5) {
+                    successfulCaptaincies++;
+                } else {
+                    failedCaptaincies++;
+                }
+                totalCaptainedPoints += captainPointsForRound;
+            });
+        }
+        top3CaptainsStats.push({
+            id: captainId,
+            name: playerNameMap[captainId] || `Unknown (ID:${captainId})`,
+            times: timesCaptained,
+            successful: successfulCaptaincies,
+            failed: failedCaptaincies,
+            totalCaptainedPoints: totalCaptainedPoints,
+            captainedRounds: captainedRoundsTracker[captainId]
+        });
+    }
+
+    // Prepare Best Players Table Data
+    const bestPlayersList = Object.entries(playerSeasonStats)
+        .filter(([, stats]) => stats.pointsGained > 0 || stats.benchedPoints > 0) // Only include players who gained points
+        .sort(([, statsA], [, statsB]) => statsB.pointsGained - statsA.pointsGained) // Sort by Points Gained DESC
+        .slice(0, 5) // Take top 5
+        .map(([playerId, stats]) => ({
+            name: playerNameMap[parseInt(playerId)] || `Unknown (ID:${playerId})`,
+            started: stats.started,
+            autoSubbed: stats.autoSubbed,
+            pointsGained: stats.pointsGained,
+            benchedPoints: stats.benchedPoints
+        }));
+
+    // Prepare Worst Players Table Data
+    const worstPlayersList = Object.entries(playerSeasonStats)
+        .filter(([, stats]) => stats.started > 0) // Only include players who started at least once
+        .sort(([, statsA], [, statsB]) => statsA.pointsGained - statsB.pointsGained) // Sort by Points Gained ASC
+        .slice(0, 5) // Take bottom 5 from the filtered list
+        .map(([playerId, stats]) => ({
+            name: playerNameMap[parseInt(playerId)] || `Unknown (ID:${playerId})`,
+            started: stats.started,
+            autoSubbed: stats.autoSubbed,
+            pointsGained: stats.pointsGained,
+            benchedPoints: stats.benchedPoints
+        }));
+
+
+    return {
+        overallRank: latestOverallRank,
+        bestOverallRank: minOverallRank !== Infinity ? `${minOverallRank} (R${minOverallRankRound})` : 'N/A',
+        worstOverallRank: maxOverallRank !== -Infinity ? `${maxOverallRank} (R${maxOverallRankRound})` : 'N/A',
+        averagePoints: averagePoints,
+        top3Captains: top3CaptainsStats,
+        bestPlayers: bestPlayersList,
+        worstPlayers: worstPlayersList,
+        overallRankHistory: overallRankHistory,
+        top5MissedPoints: top5MissedPoints // NEW: Include in response
+    };
+}
+
+
+// --- Netlify Function Handler (Main entry point) ---
+exports.handler = async function(event, context) {
     const managerId = event.queryStringParameters.id;
 
-    if (!managerId) {
+    if (!managerId || typeof managerId !== 'string' || !/^\d+$/.test(managerId)) {
+        console.error('Invalid managerId received:', managerId);
         return {
             statusCode: 400,
-            body: JSON.stringify({ error: 'Manager ID is required.' }),
+            body: JSON.stringify({ error: 'Manager ID is required and must be a valid number.' }),
+            headers: { "Content-Type": "application/json" }
         };
     }
 
-    let managerData = null;
-    let bootstrapData = null;
-    let historyData = null;
-
     try {
-        // --- 1. Fetch Manager Details ---
-        const managerApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/`;
-        console.log(`Fetching manager data from: ${managerApiUrl}`);
-        const managerResponse = await fetch(managerApiUrl);
-        
-        if (!managerResponse.ok) {
-            const errorText = await managerResponse.text();
-            console.error(`Manager data fetch failed with status ${managerResponse.status}: ${errorText.substring(0, 200)}...`);
-            throw new Error(`Failed to fetch manager data: ${managerResponse.statusText}. Status: ${managerResponse.status}. Response: ${errorText.substring(0, 100)}...`);
-        }
-        managerData = await managerResponse.json();
-        console.log('Successfully fetched manager data. Dumping content:');
-        console.log(JSON.stringify(managerData, null, 2));
+        const playerNameMap = await getPlayerNameMap();
+        const managerStats = await getManagerHistoryAndCaptains(managerId, playerNameMap);
 
-        // --- 2. Fetch Global Bootstrap Data ---
-        const bootstrapApiUrl = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
-        console.log(`Fetching bootstrap data from: ${bootstrapApiUrl}`);
-        const bootstrapResponse = await fetch(bootstrapApiUrl);
-        
-        if (!bootstrapResponse.ok) {
-            const errorText = await bootstrapResponse.text();
-            console.error(`Bootstrap data fetch failed with status ${bootstrapResponse.status}: ${errorText.substring(0, 200)}...`);
-            throw new Error(`Failed to fetch bootstrap data: ${bootstrapResponse.statusText}. Status: ${bootstrapResponse.status}. Response: ${errorText.substring(0, 100)}...`);
-        }
-        bootstrapData = await bootstrapResponse.json();
-        console.log('Successfully fetched bootstrap data. Dumping content:');
-        console.log(JSON.stringify(bootstrapData, null, 2));
-        
-        const elements = bootstrapData && bootstrapData.elements ? bootstrapData.elements : [];
+        const averagePointsFor1stPlace = 75; // This is a static value, you might want to fetch this dynamically if possible
 
-        const playerMap = new Map();
-        elements.forEach(player => {
-            playerMap.set(player.id, {
-                name: player.web_name || `${player.first_name} ${player.second_name}`,
-                element_type: player.element_type, // Position type (1=GK, 2=DEF, 3=MID, 4=FWD)
-                total_points: player.total_points || 0 // Season total points from bootstrap
-            });
-        });
-
-        // --- 3. Fetch Manager History Data ---
-        const historyApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/history/`;
-        console.log(`Fetching manager history data from: ${historyApiUrl}`);
-        const historyResponse = await fetch(historyApiUrl);
-
-        if (!historyResponse.ok) {
-            const errorText = await historyResponse.text();
-            console.error(`Manager history data fetch failed with status ${historyResponse.status}: ${errorText.substring(0, 200)}...`);
-            throw new Error(`Failed to fetch manager history data: ${historyResponse.statusText}. Status: ${historyResponse.status}. Response: ${errorText.substring(0, 100)}...`);
-        }
-        historyData = await historyResponse.json();
-        console.log('Successfully fetched manager history data. Dumping content:');
-        console.log(JSON.stringify(historyData, null, 2));
-
-        // --- Transfers Data ---
-        // totalTransfersCount from managerData.last_deadline_total_transfers
-        let totalTransfersCount = (managerData && managerData.last_deadline_total_transfers !== undefined) 
-                                  ? managerData.last_deadline_total_transfers 
-                                  : 'N/A';
-        
-        // totalHitsPoints from summing event_transfers_cost in historyData.current
-        let totalHitsPoints = 'N/A';
-        if (historyData && historyData.current) {
-            totalHitsPoints = historyData.current.reduce((sum, round) => sum + (round.event_transfers_cost || 0), 0);
-        }
-
-        // --- 4. Process Data Points for Frontend ---
-        const overallRank = (managerData && managerData.summary_overall_rank !== undefined) 
-                            ? managerData.summary_overall_rank.toLocaleString() 
-                            : 'N/A';
-        console.log(`Calculated overallRank: ${overallRank}`);
-
-        let bestOverallRank = 'N/A';
-        let worstOverallRank = 'N/A';
-        let overallRankHistory = [];
-        let averagePoints = 'N/A';
-
-        const currentHistory = (historyData && historyData.current) ? historyData.current : [];
-
-        if (currentHistory.length > 0) {
-            overallRankHistory = currentHistory.map(h => ({
-                round: h.event,
-                rank: h.overall_rank
-            }));
-
-            const ranks = currentHistory.map(h => h.overall_rank).filter(rank => typeof rank === 'number');
-            if (ranks.length > 0) {
-                bestOverallRank = Math.min(...ranks).toLocaleString();
-                worstOverallRank = Math.max(...ranks).toLocaleString();
-            }
-
-            const totalPoints = currentHistory.reduce((sum, h) => sum + (h.points || 0), 0);
-            const totalRoundsWithPoints = currentHistory.filter(h => h.points !== undefined).length;
-            if (totalRoundsWithPoints > 0) {
-                averagePoints = (totalPoints / totalRoundsWithPoints).toFixed(2);
-            }
-        }
-        console.log(`Calculated bestOverallRank: ${bestOverallRank}, worstOverallRank: ${worstOverallRank}`);
-        console.log(`Overall Rank History length: ${overallRankHistory.length}`);
-        console.log(`Calculated averagePoints: ${averagePoints}`);
-        
-        // --- Calculate Top 3 Captains ---
-        const captaincyStats = {}; // { playerId: { name: '', times: N, successful: N, failed: N, totalCaptainedPoints: N, captainedRounds: [] } }
-        if (currentHistory.length > 0) {
-            currentHistory.forEach(round => {
-                if (round.picks && Array.isArray(round.picks)) {
-                    const captainPick = round.picks.find(p => p.is_captain);
-
-                    if (captainPick) {
-                        const captainId = captainPick.element;
-                        // Use player-specific points for the captain in that round
-                        const captainPoints = (captainPick.stats && captainPick.stats.total_points !== undefined) 
-                                                ? captainPick.stats.total_points 
-                                                : 0; // Default to 0 if stats or total_points missing
-                        const captainName = playerMap.get(captainId)?.name || `Player ${captainId}`;
-
-                        if (!captaincyStats[captainId]) {
-                            captaincyStats[captainId] = {
-                                name: captainName,
-                                times: 0,
-                                successful: 0,
-                                failed: 0,
-                                totalCaptainedPoints: 0,
-                                captainedRounds: []
-                            };
-                        }
-                        captaincyStats[captainId].times++;
-                        captaincyStats[captainId].totalCaptainedPoints += captainPoints;
-                        captaincyStats[captainId].captainedRounds.push(round.event);
-
-                        if (captainPoints > 5) { // Arbitrary threshold for 'successful' captaincy
-                            captaincyStats[captainId].successful++;
-                        } else {
-                            captaincyStats[captainId].failed++;
-                        }
-                    }
-                }
-            });
-        }
-
-        const top3Captains = Object.values(captaincyStats)
-            .sort((a, b) => b.totalCaptainedPoints - a.totalCaptainedPoints)
-            .slice(0, 3);
-        console.log('Top 3 Captains:', top3Captains);
-
-        // --- Calculate Best Players and Worst Players (using bootstrapData.elements.total_points) ---
-        // The current squad is the 'picks' array of the LATEST round in historyData.current.
-        const latestRoundPicks = currentHistory.length > 0 ? currentHistory[currentHistory.length - 1].picks : [];
-        const currentSquadPlayerIds = new Set(latestRoundPicks.map(p => p.element));
-        
-        // Filter elements from bootstrapData to only include players currently in the squad
-        const relevantPlayers = elements.filter(player => currentSquadPlayerIds.has(player.id));
-
-        const bestPlayers = [...relevantPlayers]
-            .sort((a, b) => b.total_points - a.total_points) // Sort by season total_points
-            .slice(0, 5)
-            .map(player => ({
-                name: playerMap.get(player.id)?.name || `Player ${player.id}`,
-                pointsGained: player.total_points,
-                // These fields (started, autoSubbed, benchedPoints) are not directly available
-                // in bootstrapData.elements. They would require iterating historyData.
-                // For simplicity and direct data access, we'll omit them for now or mark as N/A.
-                started: 'N/A', 
-                autoSubbed: 'N/A', 
-                benchedPoints: 'N/A' 
-            }));
-        console.log('Best Players:', bestPlayers);
-
-        const worstPlayers = [...relevantPlayers]
-            .filter(player => player.element_type !== 1) // Exclude Goalkeepers
-            .sort((a, b) => a.total_points - b.total_points) // Sort by season total_points ascending
-            .slice(0, 5)
-            .map(player => ({
-                name: playerMap.get(player.id)?.name || `Player ${player.id}`,
-                pointsGained: player.total_points,
-                started: 'N/A',
-                autoSubbed: 'N/A',
-                benchedPoints: 'N/A'
-            }));
-        console.log('Worst Players:', worstPlayers);
-
-        // --- Calculate Missed Points (Benched Players Points) ---
-        // Directly use 'points_on_bench' from each round in historyData.current
-        const top5MissedPoints = [];
-        if (currentHistory.length > 0) {
-            currentHistory.forEach(round => {
-                if (round.points_on_bench !== undefined && round.points_on_bench > 0) {
-                    top5MissedPoints.push({
-                        round: round.event,
-                        points: round.points_on_bench
-                        // Player names are not directly available for 'points_on_bench' without more complex parsing
-                        // For now, just show round and points.
-                    });
-                }
-            });
-            // Sort by points (descending) and get top 5
-            top5MissedPoints.sort((a, b) => b.points - a.points).slice(0, 5);
-        }
-        console.log('Top 5 Missed Points:', top5MissedPoints);
-
-
-        // --- 5. Return Combined Data as JSON ---
         return {
             statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
             body: JSON.stringify({
-                overallRankHistory: overallRankHistory,
-                overallRank: overallRank,
-                bestOverallRank: bestOverallRank,
-                worstOverallRank: worstOverallRank,
-                averagePoints: averagePoints,
-                top3Captains: top3Captains,
-                bestPlayers: bestPlayers,
-                worstPlayers: worstPlayers,
-                top5MissedPoints: top5MissedPoints,
-                totalTransfersCount: totalTransfersCount,
-                totalHitsPoints: totalHitsPoints
-            })
+                overallRank: managerStats.overallRank,
+                bestOverallRank: managerStats.bestOverallRank,
+                worstOverallRank: managerStats.worstOverallRank,
+                averagePoints: managerStats.averagePoints,
+                averagePointsFor1stPlace: averagePointsFor1stPlace,
+                top3Captains: managerStats.top3Captains,
+                bestPlayers: managerStats.bestPlayers,
+                worstPlayers: managerStats.worstPlayers,
+                overallRankHistory: managerStats.overallRankHistory,
+                top5MissedPoints: managerStats.top5MissedPoints // NEW: Include in response
+            }),
+            headers: { "Content-Type": "application/json" }
         };
 
     } catch (error) {
-        console.error('Error in Netlify function (main try-catch):', error);
-        let errorMessage = 'An unexpected error occurred. Please try again later.';
-        if (error.message.includes('Failed to fetch manager data')) {
-            errorMessage = `Could not find manager data. Please check the Manager ID. (${error.message})`;
-        } else if (error.message.includes('Failed to fetch bootstrap data')) {
-            errorMessage = `Could not load global player data. (${error.message})`;
-        } else if (error.message.includes('Failed to fetch manager history data')) {
-            errorMessage = `Could not load manager history data. (${error.message})`;
-        } else if (error.message.includes('Unexpected token')) {
-            errorMessage = `Data format error from SPL API. (${error.message})`;
-        }
-        
+        console.error(`Error in Netlify function handler for manager ${managerId}:`, error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: errorMessage, details: error.message }),
+            body: JSON.stringify({ error: `Failed to fetch data: ${error.message}. This might be due to a network issue, an invalid Manager ID, or a temporary API problem. Please try again.` }),
+            headers: { "Content-Type": "application/json" }
         };
     }
 };
