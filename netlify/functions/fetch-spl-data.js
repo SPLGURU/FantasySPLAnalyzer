@@ -30,7 +30,8 @@ exports.handler = async (event, context) => {
             throw new Error(`Failed to fetch manager data: ${managerResponse.statusText}. Status: ${managerResponse.status}. Response: ${errorText.substring(0, 100)}...`);
         }
         managerData = await managerResponse.json();
-        console.log('Successfully fetched manager data.');
+        console.log('Successfully fetched manager data. Dumping content:');
+        console.log(JSON.stringify(managerData, null, 2)); // DUMP MANAGER DATA
 
         // --- 2. Fetch Global Bootstrap Data ---
         const bootstrapApiUrl = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
@@ -43,7 +44,8 @@ exports.handler = async (event, context) => {
             throw new Error(`Failed to fetch bootstrap data: ${bootstrapResponse.statusText}. Status: ${bootstrapResponse.status}. Response: ${errorText.substring(0, 100)}...`);
         }
         bootstrapData = await bootstrapResponse.json();
-        console.log('Successfully fetched bootstrap data.');
+        console.log('Successfully fetched bootstrap data. Dumping content:');
+        console.log(JSON.stringify(bootstrapData, null, 2)); // DUMP BOOTSTRAP DATA
         
         // Ensure elements exist before trying to map
         const elements = bootstrapData && bootstrapData.elements ? bootstrapData.elements : [];
@@ -55,8 +57,6 @@ exports.handler = async (event, context) => {
         });
 
         // --- REMOVED: Transfers Data Fetching and Calculation ---
-        // As confirmed, this API endpoint is not reliably accessible from Netlify functions.
-        // We will set these values to 'N/A' or 0.
         const totalTransfersCount = 'N/A';
         const totalHitsPoints = 'N/A';
 
@@ -65,6 +65,7 @@ exports.handler = async (event, context) => {
         const overallRank = (managerData && managerData.entry && managerData.entry.overall_rank !== undefined) 
                             ? managerData.entry.overall_rank.toLocaleString() 
                             : 'N/A';
+        console.log(`Calculated overallRank: ${overallRank}`); // Log calculated value
 
         let bestOverallRank = 'N/A';
         let worstOverallRank = 'N/A';
@@ -75,6 +76,7 @@ exports.handler = async (event, context) => {
                 worstOverallRank = Math.max(...ranks).toLocaleString();
             }
         }
+        console.log(`Calculated bestOverallRank: ${bestOverallRank}, worstOverallRank: ${worstOverallRank}`); // Log calculated values
 
         const overallRankHistory = (managerData && managerData.history) 
                                    ? managerData.history.map(h => ({
@@ -82,6 +84,7 @@ exports.handler = async (event, context) => {
                                        rank: h.overall_rank
                                    })) 
                                    : [];
+        console.log(`Overall Rank History length: ${overallRankHistory.length}`); // Log history length
 
         let averagePoints = 'N/A';
         if (managerData && managerData.history && managerData.history.length > 0) {
@@ -91,9 +94,13 @@ exports.handler = async (event, context) => {
                 averagePoints = (totalPoints / totalRoundsWithPoints).toFixed(2);
             }
         }
+        console.log(`Calculated averagePoints: ${averagePoints}`); // Log calculated value
         
         const averagePointsFor1stPlace = 'N/A'; // This still needs a separate API if accurate data is desired
 
+        // Placeholders for other tables (Captaincy, Best/Worst Players, Missed Points)
+        // If these are expected to have data, their population logic needs to be added here.
+        // For now, they remain empty arrays.
         const top3Captains = [];
         const bestPlayers = [];
         const worstPlayers = [];
@@ -117,14 +124,13 @@ exports.handler = async (event, context) => {
                 bestPlayers: bestPlayers,
                 worstPlayers: worstPlayers,
                 top5MissedPoints: top5MissedPoints,
-                totalTransfersCount: totalTransfersCount, // Will be N/A
-                totalHitsPoints: totalHitsPoints      // Will be N/A
+                totalTransfersCount: totalTransfersCount,
+                totalHitsPoints: totalHitsPoints
             })
         };
 
     } catch (error) {
         console.error('Error in Netlify function (main try-catch):', error);
-        // Provide a more user-friendly error message for the frontend
         let errorMessage = 'An unexpected error occurred. Please try again later.';
         if (error.message.includes('Failed to fetch manager data')) {
             errorMessage = `Could not find manager data. Please check the Manager ID. (${error.message})`;
