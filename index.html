@@ -838,26 +838,30 @@
             const minRank = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
             const maxRank = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114000; // Default max if no valid ranks
 
-            // Dynamic Y-axis max calculation based on NEW logic
+            // Dynamic Y-axis max calculation based on NEW logic for visual fit
             let overallYAxisMax;
-            if (managerCurrentOverallRank >= 1 && managerCurrentOverallRank <= 102) { 
-                overallYAxisMax = maxRank + 10; 
-            } else if (managerCurrentOverallRank >= 103 && managerCurrentOverallRank <= 300) { 
-                overallYAxisMax = maxRank + 25; 
-            } else if (managerCurrentOverallRank > 300) {
-                overallYAxisMax = maxRank + 100; 
+            const decisionRank = managerCurrentOverallRank !== null ? managerCurrentOverallRank : maxRank;
+
+            if (decisionRank >= 1 && decisionRank <= 100) {
+                overallYAxisMax = maxRank + 10;
+            } else if (decisionRank > 100 && decisionRank <= 3000) {
+                overallYAxisMax = maxRank + 50;
+            } else if (decisionRank > 3000) {
+                overallYAxisMax = maxRank + 200;
             } else {
-                // Fallback if managerCurrentOverallRank is not set or invalid
-                overallYAxisMax = maxRank + 100; // Default to highest buffer
+                // Fallback if decisionRank is not valid, use a general buffer
+                overallYAxisMax = maxRank + 100;
             }
-            // Ensure a reasonable minimum for the Y-axis max
-            overallYAxisMax = Math.max(overallYAxisMax, 200);
+
+            // Ensure overallYAxisMax is not less than minRank + a small constant buffer
+            // And also ensure it's not too small if maxRank is very low (e.g., constant top 1)
+            overallYAxisMax = Math.max(overallYAxisMax, maxRank + 10, 200); // Minimum max of 200 to always show some range
 
             console.log(`Chart Y-axis Debug: Min Rank (History): ${minRank}, Max Rank (History): ${maxRank}, Current Overall Rank: ${managerCurrentOverallRank}, Calculated Y-axis Max: ${overallYAxisMax}`);
 
 
-            // Animation speed for 5 seconds total (adjust as needed)
-            const totalAnimationDurationMs = 5000;
+            // Animation speed: Add 5 seconds to the previous 5 seconds, making it 10 seconds total
+            const totalAnimationDurationMs = 10000; // Increased to 10 seconds
             const numberOfAnimationSteps = labels.length - 1; // Number of segments to animate
             const animationSpeed = numberOfAnimationSteps > 0 ? totalAnimationDurationMs / numberOfAnimationSteps : 0;
 
@@ -993,10 +997,24 @@
                             }
                         },
                         y: {
-                            // Removed title, ticks, min, max, and count to hide labels
-                            display: false, // Hide the entire Y-axis
+                            display: true, // Re-enable Y-axis display
+                            title: {
+                                display: true,
+                                text: 'Overall Rank (Lower is Better)',
+                                color: '#495057'
+                            },
+                            reverse: true, // Lower rank is better, so reverse the Y-axis
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            min: 1, // Always start from rank 1
+                            max: overallYAxisMax, // Use dynamically calculated max
+                            ticks: {
+                                color: '#495057',
+                                callback: function(value, index, values) {
+                                    return new Intl.NumberFormat().format(value);
+                                },
+                                count: 15 // Set to 15 labels
                             }
                         }
                     }
