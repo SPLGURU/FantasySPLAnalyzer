@@ -818,15 +818,15 @@
             // Sort data by round number to ensure correct chart progression
             fullRankHistoryData.sort((a, b) => a.round - b.round);
 
-            // Prepare labels and ranks, filling gaps with null for Chart.js
-            const maxRound = Math.max(...fullRankHistoryData.map(d => d.round));
-            const labels = Array.from({ length: maxRound + 1 }, (_, i) => `Round ${i}`);
-            const ranks = Array(maxRound + 1).fill(null);
-            const points = Array(maxRound + 1).fill(null);
-            const transfersCost = Array(maxRound + 1).fill(null);
+            // Always ensure chart goes up to round 34
+            const fixedMaxRound = 34; 
+            const labels = Array.from({ length: fixedMaxRound + 1 }, (_, i) => `Round ${i}`);
+            const ranks = Array(fixedMaxRound + 1).fill(null);
+            const points = Array(fixedMaxRound + 1).fill(null);
+            const transfersCost = Array(fixedMaxRound + 1).fill(null);
 
             fullRankHistoryData.forEach(d => {
-                if (d.round <= maxRound) {
+                if (d.round >= 1 && d.round <= fixedMaxRound) { // Ensure rounds are within bounds
                     ranks[d.round] = d.rank;
                     points[d.round] = d.points;
                     transfersCost[d.round] = d.transfersCost;
@@ -835,33 +835,35 @@
 
             // Filter out 'N/A' or null ranks for determining min/max for Y-axis scaling
             const validRanksForScaling = ranks.filter(rank => typeof rank === 'number' && !isNaN(rank));
-            const minRank = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
-            const maxRank = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114000; // Default max if no valid ranks
+            const minRankInHistory = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
+            const maxRankInHistory = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114154; // Use a realistic max total rank (approximate)
 
             // Dynamic Y-axis max calculation based on NEW logic for visual fit
             let overallYAxisMax;
-            const decisionRank = managerCurrentOverallRank !== null ? managerCurrentOverallRank : maxRank;
+            // Use managerCurrentOverallRank for decision, but fall back to maxRankInHistory if current is null/N/A
+            const decisionRank = managerCurrentOverallRank !== null ? managerCurrentOverallRank : maxRankInHistory;
 
             if (decisionRank >= 1 && decisionRank <= 100) {
-                overallYAxisMax = maxRank + 10;
+                overallYAxisMax = maxRankInHistory + 10;
             } else if (decisionRank > 100 && decisionRank <= 3000) {
-                overallYAxisMax = maxRank + 50;
+                overallYAxisMax = maxRankInHistory + 50;
             } else if (decisionRank > 3000) {
-                overallYAxisMax = maxRank + 200;
+                overallYAxisMax = maxRankInHistory + 200;
             } else {
-                // Fallback if decisionRank is not valid, use a general buffer
-                overallYAxisMax = maxRank + 100;
+                // Fallback if decisionRank is not valid, use a general buffer based on maxRankInHistory
+                overallYAxisMax = maxRankInHistory + 100;
             }
 
-            // Ensure overallYAxisMax is not less than minRank + a small constant buffer
-            // And also ensure it's not too small if maxRank is very low (e.g., constant top 1)
-            overallYAxisMax = Math.max(overallYAxisMax, maxRank + 10, 200); // Minimum max of 200 to always show some range
+            // Ensure overallYAxisMax is not less than minRankInHistory + a small constant buffer
+            // Also ensure it's not too small if maxRankInHistory is very low (e.g., constant top 1)
+            // And ensure it doesn't go beyond the absolute maximum possible rank (approx. 114154)
+            overallYAxisMax = Math.min(Math.max(overallYAxisMax, minRankInHistory + 10, 200), 114154); 
 
-            console.log(`Chart Y-axis Debug: Min Rank (History): ${minRank}, Max Rank (History): ${maxRank}, Current Overall Rank: ${managerCurrentOverallRank}, Calculated Y-axis Max: ${overallYAxisMax}`);
+            console.log(`Chart Y-axis Debug: Min Rank (History): ${minRankInHistory}, Max Rank (History): ${maxRankInHistory}, Current Overall Rank (for decision): ${decisionRank}, Calculated Y-axis Max: ${overallYAxisMax}`);
 
 
-            // Animation speed: Add 5 seconds to the previous 5 seconds, making it 10 seconds total
-            const totalAnimationDurationMs = 10000; // Increased to 10 seconds
+            // Animation speed: 10 seconds total
+            const totalAnimationDurationMs = 10000; 
             const numberOfAnimationSteps = labels.length - 1; // Number of segments to animate
             const animationSpeed = numberOfAnimationSteps > 0 ? totalAnimationDurationMs / numberOfAnimationSteps : 0;
 
@@ -1014,7 +1016,7 @@
                                 callback: function(value, index, values) {
                                     return new Intl.NumberFormat().format(value);
                                 },
-                                count: 15 // Set to 15 labels
+                                // Removed 'count' to let Chart.js determine optimal stepSize
                             }
                         }
                     }
