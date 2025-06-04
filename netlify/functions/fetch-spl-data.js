@@ -106,8 +106,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     let totalPointsSum = 0;
     let roundsProcessed = 0;
     let totalTransfersCost = 0; // Initialize total transfers cost for hits calculation
-    let isNonActiveManager = false; // Flag for non-active manager status
-    let consecutiveZeroTC = 0; // Counter for consecutive zero transfer costs
+    // Removed: isNonActiveManager and consecutiveZeroTC variables
 
     const maxRounds = 34; // Total number of rounds in the season
 
@@ -123,10 +122,10 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     const managerChips = managerBasicData?.chips || []; // Keep chips for other potential uses, not for hits calc
     const currentEvent = managerBasicData?.currentEvent || maxRounds;
 
-    // NEW: Array to store all transfers with calculated profit/loss
+    // Array to store all transfers with calculated profit/loss
     const allTransfersAnalysis = [];
 
-    // NEW: Fetch all transfers data once at the beginning of this function
+    // Fetch all transfers data once at the beginning of this function
     let transfersRawData = [];
     try {
         const transfersApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/transfers/`;
@@ -178,16 +177,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         // Calculate total hits by summing 'event_transfers_cost' from each round's entry_history
         totalTransfersCost += currentRoundTransfersCost;
 
-        // Check for Non-Active Manager status
-        if (currentRoundTransfersCost === 0) {
-            consecutiveZeroTC++;
-        } else {
-            consecutiveZeroTC = 0; // Reset if a transfer was made
-        }
-
-        if (consecutiveZeroTC >= 4) {
-            isNonActiveManager = true; // Found 4 consecutive rounds with 0 TC
-        }
+        // Removed: Non-Active Manager status check logic
 
         // Store overall rank for this round
         overallRankHistory.push({ round: round, rank: currentOverallRank });
@@ -256,7 +246,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             };
         });
 
-        // NEW LOGIC: Collect and analyze transfers for "Most Profitable/Loss-making Transfers"
+        // Collect and analyze transfers for "Most Profitable/Loss-making Transfers"
         if (transfersMadeInRound > 0) {
             const transfersForThisRound = transfersRawData.filter(t => t.event === round);
             // Take only the number of transfers that 'counted' for this round's TM
@@ -308,7 +298,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
     const top3CaptainsStats = [];
     const sortedCaptains = Object.entries(captainCounts)
-        .sort(([, countA], [, countB]) => countB - countA)
+        .sort(([, countA], [, countB]) => b.totalCaptainedPoints - a.totalCaptainedPoints)
         .slice(0, 3);
 
     for (const [captainIdStr, timesCaptained] of sortedCaptains) {
@@ -438,10 +428,10 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             benchedPoints: stats.benchedPoints
         }));
 
-    // NEW: Sort allTransfersAnalysis for top 5 profitable and loss-making
+    // Sort allTransfersAnalysis for top 5 profitable and loss-making
     const sortedByProfitLoss = [...allTransfersAnalysis].sort((a, b) => b.profitLoss - a.profitLoss);
     const top5ProfitableTransfers = sortedByProfitLoss.slice(0, 5);
-    const top5LossMakingTransfers = sortedByProfitLoss.slice(-5).reverse(); // Get last 5 (smallest profit/largest loss) and reverse for ascending order
+    const top5LossMakingTransfers = sortedByProfitLoss.slice(-5).reverse(); 
 
     return {
         overallRank: latestOverallRank,
@@ -456,18 +446,15 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         chips: managerBasicData.chips, 
         currentEvent: managerBasicData.currentEvent,
         totalHitsPoints: totalTransfersCost * -1, 
-        isNonActiveManager: isNonActiveManager,
-        top5ProfitableTransfers: top5ProfitableTransfers, // NEW: Add to return
-        top5LossMakingTransfers: top5LossMakingTransfers // NEW: Add to return
+        // Removed: isNonActiveManager
+        top5ProfitableTransfers: top5ProfitableTransfers, 
+        top5LossMakingTransfers: top5LossMakingTransfers 
     };
 }
 
 
 // --- Simplified getTransfersData function (no longer used for main calculations) ---
-// This function is kept for structural consistency but its return values are now
-// derived from managerBasicData and managerStats in the handler.
 async function getTransfersData(managerId, managerBasicData, managerStats) { 
-    // Use the pre-calculated values from managerBasicData and managerStats
     const totalTransfersCount = managerBasicData.lastDeadlineTotalTransfers;
     const totalHitsPoints = managerStats.totalHitsPoints; 
 
@@ -507,7 +494,7 @@ exports.handler = async function(event, context) {
             managerBasicData = { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A' }; // Default on failure
         }
 
-        // Step 2: Fetch manager history and captaincy stats, and calculate total hits AND non-active status AND transfer analysis
+        // Step 2: Fetch manager history and captaincy stats, and calculate total hits AND transfer analysis
         let managerStats = {};
         try {
             managerStats = await getManagerHistoryAndCaptains(managerId, playerMap, managerBasicData);
@@ -527,9 +514,9 @@ exports.handler = async function(event, context) {
                 chips: managerBasicData.chips, 
                 currentEvent: managerBasicData.currentEvent,
                 totalHitsPoints: 'N/A', 
-                isNonActiveManager: 'N/A',
-                top5ProfitableTransfers: [], // Default to empty array
-                top5LossMakingTransfers: [] // Default to empty array
+                // Removed: isNonActiveManager
+                top5ProfitableTransfers: [], 
+                top5LossMakingTransfers: [] 
             };
         }
 
@@ -563,9 +550,9 @@ exports.handler = async function(event, context) {
                 top5MissedPoints: managerStats.top5MissedPoints,
                 totalTransfersCount: transfersData.totalTransfersCount,
                 totalHitsPoints: transfersData.totalHitsPoints,
-                isNonActiveManager: managerStats.isNonActiveManager,
-                top5ProfitableTransfers: managerStats.top5ProfitableTransfers, // NEW: Include in response
-                top5LossMakingTransfers: managerStats.top5LossMakingTransfers // NEW: Include in response
+                // Removed: isNonActiveManager
+                top5ProfitableTransfers: managerStats.top5ProfitableTransfers, 
+                top5LossMakingTransfers: managerStats.top5LossMakingTransfers 
             }),
             headers: { "Content-Type": "application/json" }
         };
