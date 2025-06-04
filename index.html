@@ -445,7 +445,7 @@
 </head>
 <body>
     <div id="logo-container">
-        <img src="https://placehold.co/300x100/034667/FFFFFF?text=FANTASY+SPL%0ADATA+CENTER" alt="Fantasy SPL Data Center Logo" onerror="this.onerror=null; this.src='https://placehold.co/300x100/034667/FFFFFF?text=FANTASY+SPL%0ADATA+CENTER';">
+        <img src="unnamed.jpg" alt="Fantasy SPL Data Center Logo" onerror="this.onerror=null; this.src='https://placehold.co/300x100/034667/FFFFFF?text=FANTASY+SPL%0ADATA+CENTER';">
     </div>
     <div class="container">
         <h1>Fantasy SPL Manager Analyzer</h1>
@@ -1116,8 +1116,8 @@
                                     if (!isMobile && value % 2 === 0 && Number.isInteger(value)) {
                                         return labels[value].replace('Round ', '');
                                     }
-                                    // Mobile version: Display labels for every 4th round (adjust as needed)
-                                    if (isMobile && value % 4 === 0 && Number.isInteger(value)) {
+                                    // Mobile version: Display labels for every 2nd round (increased density)
+                                    if (isMobile && value % 2 === 0 && Number.isInteger(value)) {
                                         return labels[value].replace('Round ', '');
                                     }
                                     return null;
@@ -1146,7 +1146,7 @@
                                 callback: function(value, index, values) {
                                     return new Intl.NumberFormat().format(value);
                                 },
-                                maxTicksLimit: isMobile ? 20 : 10, // More ticks for mobile (increased from 12 to 20)
+                                maxTicksLimit: isMobile ? 20 : 10, // More ticks for mobile
                                 font: {
                                     size: isMobile ? 9 : 12 // Smaller font for mobile
                                 }
