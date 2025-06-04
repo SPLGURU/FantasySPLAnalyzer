@@ -183,10 +183,11 @@
         }
 
         #rankJourneyChart {
-            /* Set a base size for the chart, will be scaled by 10% */
-            width: 800px; /* Base width */
-            height: 440px; /* Base height + 10% (400 * 1.1) */
-            max-width: 100%; /* Ensure it's responsive */
+            /* Remove explicit height here. Let Chart.js handle it with aspectRatio */
+            width: 100%; /* Ensure it takes full width of its container */
+            max-width: 900px; /* Limit max width to prevent it from being too wide on very large screens */
+            height: auto; /* Let height be determined by aspect ratio */
+            box-sizing: border-box; /* Crucial for consistent sizing */
         }
 
         .table-section {
@@ -268,10 +269,6 @@
             th, td {
                 padding: 10px;
                 font-size: 0.85em;
-            }
-
-            #rankJourneyChart {
-                height: 330px; /* Base height + 10% (300 * 1.1) for mobile */
             }
         }
 
@@ -467,7 +464,7 @@
         const averagePointsFor1stPlaceElem = document.getElementById('averagePointsFor1stPlace');
         const totalTransfersCountElem = document.getElementById('totalTransfersCount');
         const totalHitsPointsElem = document.getElementById('totalHitsPoints');
-        // Removed: nonActiveManagerStatusElem declaration
+        // Removed: nonActiveManagerStatusElem declaration from here
 
         const topCaptainsTableBody = document.querySelector('#topCaptainsTable tbody');
         const bestPlayersTableBody = document.querySelector('#bestPlayersTable tbody');
@@ -523,7 +520,7 @@
                     totalTransfersCountElem.textContent = data.totalTransfersCount;
                     totalHitsPointsElem.textContent = data.totalHitsPoints;
                     
-                    // Removed: Non-Active Manager Status display logic
+                    // Removed: Non-Active Manager Status display logic from here
 
 
                     // Populate Top 3 Captains Table
@@ -698,7 +695,8 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true, // Set to true to control aspect ratio
+                    aspectRatio: 2.5, // Make it significantly wider than tall (e.g., 2.5:1 ratio)
                     animation: false, // Disable Chart.js built-in animation for custom animation
                     plugins: {
                         legend: {
