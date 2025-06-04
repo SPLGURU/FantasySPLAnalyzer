@@ -158,12 +158,15 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     }
     // Use Promise.allSettled to ensure all promises are handled, even if some fail
     const allManagerPicksResults = await Promise.allSettled(managerPicksPromises);
+    console.log(`All Manager Picks Results (status of each round fetch):`, allManagerPicksResults.map(r => r.status));
+
 
     // Sort results by round number to ensure correct order for history
     const sortedManagerPicksData = allManagerPicksResults
         .filter(result => result.status === 'fulfilled' && result.value.data !== null)
         .map(result => result.value)
         .sort((a, b) => a.round - b.round);
+    console.log(`Sorted Manager Picks Data (after filtering):`, sortedManagerPicksData.length > 0 ? `Contains data for ${sortedManagerPicksData.length} rounds.` : `Is EMPTY!`);
 
     let bestRoundPoints = -Infinity;
     let bestRoundDeductions = 0;
@@ -400,7 +403,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             const { position, multiplier, isSubbedOut, isSubbedIn } = playerStats.roundsInfo[roundNum];
 
             const allRoundStatsEntries = playerHistory.filter(h => h.round === roundNum);
-            const playerPointsForRound = allRoundStatsEntries.reduce((sum, entry) => sum + entry.total_points, 0);
+            const playerPointsForRound = allRoundStatsEntries.reduce((sum, entry => sum + entry.total_points, 0);
 
             if ((position >= 1 && pick.position <= 11 && !isSubbedOut) || isSubbedIn) {
                 playerStats.pointsGained += (playerPointsForRound * multiplier);
@@ -506,6 +509,7 @@ async function getTransfersData(managerId, managerBasicData, managerStats) {
 // --- Netlify Function Handler (Main entry point) ---
 exports.handler = async function(event, context) {
     const managerId = event.queryStringParameters.id;
+    console.log(`Received request for managerId: ${managerId}`); // Added logging
 
     if (!managerId || typeof managerId !== 'string' || !/^\d+$/.test(managerId)) {
         console.error('Invalid managerId received:', managerId);
@@ -535,6 +539,7 @@ exports.handler = async function(event, context) {
         try {
             managerStats = await getManagerHistoryAndCaptains(managerId, playerMap, managerBasicData);
             console.log('Manager History and Captains fetched successfully.'); // DEBUG LOG
+            console.log('Manager Stats (in handler):', JSON.stringify(managerStats, null, 2)); // Added detailed logging
         } catch (error) {
             console.error("getManagerHistoryAndCaptains failed in handler:", error);
             managerStats = {
@@ -572,27 +577,30 @@ exports.handler = async function(event, context) {
 
         const averagePointsFor1stPlace = 75; // Hardcoded as requested
 
+        const finalResponse = {
+            overallRankHistory: managerStats.overallRankHistory,
+            overallRank: managerStats.overallRank,
+            bestOverallRank: managerStats.bestOverallRank,
+            worstOverallRank: managerStats.worstOverallRank,
+            averagePoints: managerStats.averagePoints,
+            averagePointsFor1stPlace: averagePointsFor1stPlace,
+            top3Captains: managerStats.top3Captains,
+            bestPlayers: managerStats.bestPlayers,
+            worstPlayers: managerStats.worstPlayers,
+            top5MissedPoints: managerStats.top5MissedPoints,
+            totalTransfersCount: transfersData.totalTransfersCount,
+            totalHitsPoints: transfersData.totalHitsPoints,
+            top5ProfitableTransfers: managerStats.top5ProfitableTransfers, 
+            top5LossMakingTransfers: managerStats.top5LossMakingTransfers,
+            managerName: managerBasicData.managerName, // Pass managerName from basic data
+            bestRound: managerStats.bestRound,
+            worstRound: managerStats.worstRound
+        };
+        console.log('Final JSON response body:', JSON.stringify(finalResponse, null, 2)); // Added final response logging
+
         return {
             statusCode: 200,
-            body: JSON.stringify({
-                overallRankHistory: managerStats.overallRankHistory,
-                overallRank: managerStats.overallRank,
-                bestOverallRank: managerStats.bestOverallRank,
-                worstOverallRank: managerStats.worstOverallRank,
-                averagePoints: managerStats.averagePoints,
-                averagePointsFor1stPlace: averagePointsFor1stPlace,
-                top3Captains: managerStats.top3Captains,
-                bestPlayers: managerStats.bestPlayers,
-                worstPlayers: managerStats.worstPlayers,
-                top5MissedPoints: managerStats.top5MissedPoints,
-                totalTransfersCount: transfersData.totalTransfersCount,
-                totalHitsPoints: transfersData.totalHitsPoints,
-                top5ProfitableTransfers: managerStats.top5ProfitableTransfers, 
-                top5LossMakingTransfers: managerStats.top5LossMakingTransfers,
-                managerName: managerBasicData.managerName, // Pass managerName from basic data
-                bestRound: managerStats.bestRound,
-                worstRound: managerStats.worstRound
-            }),
+            body: JSON.stringify(finalResponse),
             headers: { "Content-Type": "application/json" }
         };
 

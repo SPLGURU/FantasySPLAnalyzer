@@ -19,7 +19,7 @@
 
             --spl-text-dark: #212529; /* Dark text for primary content */
             --spl-text-medium: #495057; /* Medium dark grey for secondary text */
-            --spl-accent-blue: #007BFF; /* Primary accent blue */
+            --spl-primary-accent: #007BFF; /* Primary accent blue */
             --spl-accent-green: #28A745; /* Green for positive indicators */
             --spl-accent-red: #DC3545; /* Red for negative indicators */
             --spl-border-light: #CED4DA; /* Light border for elements */
@@ -53,7 +53,7 @@
 
         h1, h2, h3 {
             font-family: 'Oswald', sans-serif;
-            color: var(--spl-accent-blue);
+            color: var(--spl-primary-accent);
             text-align: center;
             margin-top: 0;
             margin-bottom: 20px;
@@ -65,9 +65,10 @@
             line-height: 1.3;
             margin-bottom: 30px;
             color: var(--spl-text-dark); /* Darker text for main header */
+            text-align: center; /* Ensure it's centered */
         }
         #managerName span {
-            color: var(--spl-accent-blue); /* Accent color for the actual name */
+            color: var(--spl-primary-accent); /* Accent color for the actual name */
         }
 
 
@@ -97,7 +98,7 @@
         }
 
         .input-section button, .chart-button { /* Added .chart-button class */
-            background-color: var(--spl-accent-blue);
+            background-color: var(--spl-primary-accent);
             color: white;
             padding: 12px 25px;
             border: none;
@@ -163,7 +164,7 @@
         }
 
         .stat-card h3 {
-            color: var(--spl-accent-blue);
+            color: var(--spl-primary-accent);
             margin-top: 0;
             font-size: 1.3em;
             margin-bottom: 10px;
@@ -619,7 +620,7 @@
                     }
 
                     // Populate main stats and header
-                    managerNameElem.innerHTML = `Team Name: <span style="color: var(--spl-accent-blue);">${data.managerName || `Manager ID: ${managerId}`}</span><br>Rank & Points`;
+                    managerNameElem.innerHTML = `Team Name: <span style="color: var(--spl-primary-accent);">${data.managerName || `Manager ID: ${managerId}`}</span><br>Rank & Points`;
                     overallRankElem.textContent = data.overallRank;
                     bestOverallRankElem.textContent = data.bestOverallRank;
                     worstOverallRankElem.textContent = data.worstOverallRank;
