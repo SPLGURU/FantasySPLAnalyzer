@@ -276,6 +276,45 @@
         }
 
         /* Responsive Adjustments */
+        /* PC Version (Default styles) */
+        @media (min-width: 769px) {
+            /* Ensure PC specific table layouts are maintained */
+            #topCaptainsTable th:nth-child(1), #topCaptainsTable td:nth-child(1) { width: auto; }
+            #topCaptainsTable th:nth-child(2), #topCaptainsTable td:nth-child(2) { width: auto; }
+            #topCaptainsTable th:nth-child(3), #topCaptainsTable td:nth-child(3) { width: auto; }
+            #topCaptainsTable th:nth-child(4), #topCaptainsTable td:nth-child(4) { width: auto; }
+            #topCaptainsTable th:nth-child(5), #topCaptainsTable td:nth-child(5) { width: auto; }
+            #topCaptainsTable th:nth-child(6), #topCaptainsTable td:nth-child(6) { width: auto; }
+
+            #bestPlayersTable th:nth-child(1), #bestPlayersTable td:nth-child(1) { width: auto; }
+            #bestPlayersTable th:nth-child(2), #bestPlayersTable td:nth-child(2) { width: auto; }
+            #bestPlayersTable th:nth-child(3), #bestPlayersTable td:nth-child(3) { width: auto; }
+            #bestPlayersTable th:nth-child(4), #bestPlayersTable td:nth-child(4) { width: auto; }
+            #bestPlayersTable th:nth-child(5), #bestPlayersTable td:nth-child(5) { width: auto; }
+
+            #worstPlayersTable th:nth-child(1), #worstPlayersTable td:nth-child(1) { width: auto; }
+            #worstPlayersTable th:nth-child(2), #worstPlayersTable td:nth-child(2) { width: auto; }
+            #worstPlayersTable th:nth-child(3), #worstPlayersTable td:nth-child(3) { width: auto; }
+            #worstPlayersTable th:nth-child(4), #worstPlayersTable td:nth-child(4) { width: auto; }
+            #worstPlayersTable th:nth-child(5), #worstPlayersTable td:nth-child(5) { width: auto; }
+
+            #missedPointsTable th:nth-child(1), #missedPointsTable td:nth-child(1) { width: auto; }
+            #missedPointsTable th:nth-child(2), #missedPointsTable td:nth-child(2) { width: auto; }
+            #missedPointsTable th:nth-child(3), #missedPointsTable td:nth-child(3) { width: auto; }
+
+            #profitableTransfersTable th:nth-child(1), #profitableTransfersTable td:nth-child(1) { width: auto; }
+            #profitableTransfersTable th:nth-child(2), #profitableTransfersTable td:nth-child(2) { width: auto; }
+            #profitableTransfersTable th:nth-child(3), #profitableTransfersTable td:nth-child(3) { width: auto; }
+            #profitableTransfersTable th:nth-child(4), #profitableTransfersTable td:nth-child(4) { width: auto; }
+
+            #lossMakingTransfersTable th:nth-child(1), #lossMakingTransfersTable td:nth-child(1) { width: auto; }
+            #lossMakingTransfersTable th:nth-child(2), #lossMakingTransfersTable td:nth-child(2) { width: auto; }
+            #lossMakingTransfersTable th:nth-child(3), #lossMakingTransfersTable td:nth-child(3) { width: auto; }
+            #lossMakingTransfersTable th:nth-child(4), #lossMakingTransfersTable td:nth-child(4) { width: auto; }
+        }
+
+
+        /* Mobile Version */
         @media (max-width: 768px) {
             body {
                 padding: 15px;
@@ -300,45 +339,64 @@
             }
 
             /* Tables specific adjustments for mobile */
-            th, td {
-                padding: 8px 10px;
-                font-size: 0.75em; /* Smaller font size for all table cells */
+            /* Apply to all tables except #missedPointsTable */
+            table:not(#missedPointsTable) {
+                border: 0;
             }
 
-            /* Top 3 Captains Table */
-            #topCaptainsTable th:nth-child(1), #topCaptainsTable td:nth-child(1) { width: 25%; } /* Player */
-            #topCaptainsTable th:nth-child(2), #topCaptainsTable td:nth-child(2) { width: 15%; } /* Times Captained */
-            #topCaptainsTable th:nth-child(3), #topCaptainsTable td:nth-child(3) { width: 10%; } /* Success */
-            #topCaptainsTable th:nth-child(4), #topCaptainsTable td:nth-child(4) { width: 10%; } /* Failed */
-            #topCaptainsTable th:nth-child(5), #topCaptainsTable td:nth-child(5) { width: 20%; } /* Captained Points */
-            #topCaptainsTable th:nth-child(6), #topCaptainsTable td:nth-child(6) { width: 20%; } /* Captained Rounds */
+            table:not(#missedPointsTable) thead {
+                display: none; /* Hide table headers */
+            }
 
-            /* Top 5 Best/Worst Players Tables */
-            #bestPlayersTable th:nth-child(1), #bestPlayersTable td:nth-child(1),
-            #worstPlayersTable th:nth-child(1), #worstPlayersTable td:nth-child(1) { width: 25%; } /* Player */
-            #bestPlayersTable th:nth-child(2), #bestPlayersTable td:nth-child(2),
-            #worstPlayersTable th:nth-child(2), #worstPlayersTable td:nth-child(2) { width: 15%; } /* Started */
-            #bestPlayersTable th:nth-child(3), #bestPlayersTable td:nth-child(3),
-            #worstPlayersTable th:nth-child(3), #worstPlayersTable td:nth-child(3) { width: 20%; } /* Auto Subbed In */
-            #bestPlayersTable th:nth-child(4), #bestPlayersTable td:nth-child(4),
-            #worstPlayersTable th:nth-child(4), #worstPlayersTable td:nth-child(4) { width: 20%; } /* Points Gained */
-            #bestPlayersTable th:nth-child(5), #bestPlayersTable td:nth-child(5),
-            #worstPlayersTable th:nth-child(5), #worstPlayersTable td:nth-child(5) { width: 20%; } /* Benched Points */
+            table:not(#missedPointsTable) tr {
+                display: block;
+                margin-bottom: 10px;
+                border: 1px solid var(--spl-border-light);
+                border-radius: 8px;
+                background-color: var(--spl-container-bg); /* Card background */
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                padding: 10px;
+            }
 
-            /* Top 5 Missed Points Table */
+            table:not(#missedPointsTable) td {
+                display: block;
+                text-align: right;
+                padding: 8px 10px;
+                border: none; /* Remove cell borders */
+                border-bottom: 1px solid var(--spl-table-row-even); /* Separator for cells */
+                position: relative; /* For pseudo-element positioning */
+                font-size: 0.9em; /* Adjust font size for mobile cells */
+                padding-left: 50%; /* Make space for the label */
+            }
+
+            table:not(#missedPointsTable) td:last-child {
+                border-bottom: 0; /* No border on the last cell */
+            }
+
+            table:not(#missedPointsTable) td::before {
+                content: attr(data-label); /* Use data-label for content */
+                position: absolute;
+                left: 10px;
+                width: calc(50% - 20px); /* Adjust width to fit */
+                text-align: left;
+                font-weight: bold;
+                color: var(--spl-text-medium);
+                font-size: 0.85em; /* Smaller font for labels */
+                white-space: nowrap; /* Prevent label wrapping */
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* Specific adjustments for #missedPointsTable (smaller, keeps table structure) */
+            #missedPointsTable th, #missedPointsTable td {
+                padding: 8px 10px;
+                font-size: 0.8em; /* Slightly smaller font for this table */
+            }
+
+            /* Adjust column widths for #missedPointsTable on mobile if needed */
             #missedPointsTable th:nth-child(1), #missedPointsTable td:nth-child(1) { width: 40%; } /* Player */
             #missedPointsTable th:nth-child(2), #missedPointsTable td:nth-child(2) { width: 30%; } /* Points */
             #missedPointsTable th:nth-child(3), #missedPointsTable td:nth-child(3) { width: 30%; } /* Round */
-
-            /* Profitable/Loss-making Transfers Tables */
-            #profitableTransfersTable th:nth-child(1), #profitableTransfersTable td:nth-child(1),
-            #lossMakingTransfersTable th:nth-child(1), #lossMakingTransfersTable td:nth-child(1) { width: 25%; } /* IN */
-            #profitableTransfersTable th:nth-child(2), #profitableTransfersTable td:nth-child(2),
-            #lossMakingTransfersTable th:nth-child(2), #lossMakingTransfersTable td:nth-child(2) { width: 25%; } /* OUT */
-            #profitableTransfersTable th:nth-child(3), #profitableTransfersTable td:nth-child(3),
-            #lossMakingTransfersTable th:nth-child(3), #lossMakingTransfersTable td:nth-child(3) { width: 20%; } /* Round */
-            #profitableTransfersTable th:nth-child(4), #profitableTransfersTable td:nth-child(4),
-            #lossMakingTransfersTable th:nth-child(4), #lossMakingTransfersTable td:nth-child(4) { width: 30%; } /* Profit/Loss */
         }
 
         @media (max-width: 480px) {
@@ -351,9 +409,15 @@
             .input-section {
                 gap: 10px;
             }
-            th, td {
-                font-size: 0.65em; /* Even smaller font size for very small screens */
-                padding: 6px 8px;
+            /* Further reduce font size for very small screens if necessary */
+            table:not(#missedPointsTable) td {
+                font-size: 0.85em;
+            }
+            table:not(#missedPointsTable) td::before {
+                font-size: 0.8em;
+            }
+            #missedPointsTable th, #missedPointsTable td {
+                font-size: 0.7em;
             }
         }
 
@@ -739,16 +803,24 @@
                     
                     createRankJourneyButton.style.display = 'block';
 
+                    // Populate tables
+                    // Top 3 Captains Table
                     topCaptainsTableBody.innerHTML = '';
                     if (data.top3Captains && data.top3Captains.length > 0) {
                         data.top3Captains.forEach(captain => {
                             const row = topCaptainsTableBody.insertRow();
                             row.insertCell().textContent = captain.name;
+                            row.cells[0].setAttribute('data-label', 'Player');
                             row.insertCell().textContent = captain.times;
+                            row.cells[1].setAttribute('data-label', 'Times Captained');
                             row.insertCell().textContent = captain.successful;
+                            row.cells[2].setAttribute('data-label', 'Success');
                             row.insertCell().textContent = captain.failed;
+                            row.cells[3].setAttribute('data-label', 'Failed');
                             row.insertCell().textContent = captain.totalCaptainedPoints;
+                            row.cells[4].setAttribute('data-label', 'Captained Points');
                             row.insertCell().textContent = captain.captainedRounds ? captain.captainedRounds.join(', ') : 'N/A';
+                            row.cells[5].setAttribute('data-label', 'Captained Rounds');
                         });
                     } else {
                         const row = topCaptainsTableBody.insertRow();
@@ -756,15 +828,21 @@
                         row.cells[0].colSpan = 6;
                     }
 
+                    // Top 5 Best Players Table
                     bestPlayersTableBody.innerHTML = '';
                     if (data.bestPlayers && data.bestPlayers.length > 0) {
                         data.bestPlayers.forEach(player => {
                             const row = bestPlayersTableBody.insertRow();
                             row.insertCell().textContent = player.name;
+                            row.cells[0].setAttribute('data-label', 'Player');
                             row.insertCell().textContent = player.started;
+                            row.cells[1].setAttribute('data-label', 'Started');
                             row.insertCell().textContent = player.autoSubbed;
+                            row.cells[2].setAttribute('data-label', 'Auto Subbed In');
                             row.insertCell().textContent = player.pointsGained;
+                            row.cells[3].setAttribute('data-label', 'Points Gained');
                             row.insertCell().textContent = player.benchedPoints;
+                            row.cells[4].setAttribute('data-label', 'Benched Points');
                         });
                     } else {
                         const row = bestPlayersTableBody.insertRow();
@@ -772,15 +850,21 @@
                         row.cells[0].colSpan = 5;
                     }
 
+                    // Top 5 Worst Players Table
                     worstPlayersTableBody.innerHTML = '';
                     if (data.worstPlayers && data.worstPlayers.length > 0) {
                         data.worstPlayers.forEach(player => {
                             const row = worstPlayersTableBody.insertRow();
                             row.insertCell().textContent = player.name;
+                            row.cells[0].setAttribute('data-label', 'Player');
                             row.insertCell().textContent = player.started;
+                            row.cells[1].setAttribute('data-label', 'Started');
                             row.insertCell().textContent = player.autoSubbed;
+                            row.cells[2].setAttribute('data-label', 'Auto Subbed In');
                             row.insertCell().textContent = player.pointsGained;
+                            row.cells[3].setAttribute('data-label', 'Points Gained');
                             row.insertCell().textContent = player.benchedPoints;
+                            row.cells[4].setAttribute('data-label', 'Benched Points');
                         });
                     } else {
                         const row = worstPlayersTableBody.insertRow();
@@ -788,6 +872,7 @@
                         row.cells[0].colSpan = 5;
                     }
 
+                    // Top 5 Missed Points Table (no data-label needed as it retains table structure)
                     missedPointsTableBody.innerHTML = '';
                     if (data.top5MissedPoints && data.top5MissedPoints.length > 0) {
                         data.top5MissedPoints.forEach(item => {
@@ -802,16 +887,21 @@
                         row.cells[0].colSpan = 3;
                     }
 
+                    // Most Profitable Transfers Table
                     profitableTransfersTableBody.innerHTML = '';
                     if (data.top5ProfitableTransfers && data.top5ProfitableTransfers.length > 0) {
                         data.top5ProfitableTransfers.forEach(transfer => {
                             const row = profitableTransfersTableBody.insertRow();
                             row.insertCell().textContent = transfer.playerInName;
+                            row.cells[0].setAttribute('data-label', 'IN');
                             row.insertCell().textContent = transfer.playerOutName;
+                            row.cells[1].setAttribute('data-label', 'OUT');
                             row.insertCell().textContent = transfer.round;
+                            row.cells[2].setAttribute('data-label', 'Round');
                             const profitLossCell = row.insertCell();
                             profitLossCell.textContent = transfer.profitLoss;
                             profitLossCell.classList.add(transfer.profitLoss >= 0 ? 'positive' : 'negative');
+                            profitLossCell.setAttribute('data-label', 'Profit/Loss');
                         });
                     } else {
                         const row = profitableTransfersTableBody.insertRow();
@@ -819,16 +909,21 @@
                         row.cells[0].colSpan = 4;
                     }
 
+                    // Most Loss-making Transfers Table
                     lossMakingTransfersTableBody.innerHTML = '';
                     if (data.top5LossMakingTransfers && data.top5LossMakingTransfers.length > 0) {
                         data.top5LossMakingTransfers.forEach(transfer => {
                             const row = lossMakingTransfersTableBody.insertRow();
                             row.insertCell().textContent = transfer.playerInName;
+                            row.cells[0].setAttribute('data-label', 'IN');
                             row.insertCell().textContent = transfer.playerOutName;
+                            row.cells[1].setAttribute('data-label', 'OUT');
                             row.insertCell().textContent = transfer.round;
+                            row.cells[2].setAttribute('data-label', 'Round');
                             const profitLossCell = row.insertCell();
                             profitLossCell.textContent = transfer.profitLoss;
                             profitLossCell.classList.add(transfer.profitLoss >= 0 ? 'positive' : 'negative');
+                            profitLossCell.setAttribute('data-label', 'Profit/Loss');
                         });
                     } else {
                         const row = lossMakingTransfersTableBody.insertRow();
@@ -1112,7 +1207,7 @@
                 }
 
                 // Debugging console log
-                console.log(`Progress: ${progress.toFixed(2)}, currentRoundForDot: ${currentRoundForDot.toFixed(2)}, interpolatedRank: ${interpolatedRank}`);
+                // console.log(`Progress: ${progress.toFixed(2)}, currentRoundForDot: ${currentRoundForDot.toFixed(2)}, interpolatedRank: ${interpolatedRank}`);
 
                 // Update the moving dot's position (Dataset 1)
                 if (interpolatedRank !== null) {
