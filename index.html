@@ -400,6 +400,7 @@
                 <canvas id="rankJourneyChart"></canvas>
             </div>
 
+            <!-- Transfers Summary section - MOVED HERE -->
             <div class="table-section">
                 <h2>Transfers Summary</h2>
                 <div class="stats-grid"> <!-- Changed to stats-grid -->
@@ -627,33 +628,35 @@
 
                     // Populate main stats and header
                     managerNameElem.innerHTML = `Team Name: <span style="color: var(--spl-primary-accent);">${data.managerName || `Manager ID: ${managerId}`}</span><br>Rank & Points`;
-                    overallRankElem.textContent = data.overallRank;
+                    
+                    // Overall Rank with emoji
+                    overallRankElem.textContent = `${data.overallRank} 🌏`;
                     
                     // Best Overall Rank (formatted)
                     let bestRankRaw = String(data.bestOverallRank);
                     let bestRankNumeric = bestRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
                     let bestRankRound = extractAndFormatRound(bestRankRaw);
-                    bestOverallRankElem.textContent = `${bestRankNumeric} ${bestRankRound}`;
+                    bestOverallRankElem.textContent = `${bestRankNumeric} 🌏 ${bestRankRound}`;
 
                     // Worst Overall Rank (formatted)
                     let worstRankRaw = String(data.worstOverallRank);
                     let worstRankNumeric = worstRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
                     let worstRankRound = extractAndFormatRound(worstRankRaw);
-                    worstOverallRankElem.textContent = `${worstRankNumeric} ${worstRankRound}`;
+                    worstOverallRankElem.textContent = `${worstRankNumeric} 🌏 ${worstRankRound}`;
 
                     averagePointsElem.textContent = data.averagePoints;
                     averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
                     
-                    // Best Round
+                    // Best Round with "Points"
                     const bestRound = data.bestRound;
                     bestRoundDisplayElem.textContent = bestRound.points !== 'N/A' 
-                        ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(-${bestRound.deductions})` : ''} in Round ${bestRound.round}`
+                        ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(-${bestRound.deductions})` : ''} Points in Round ${bestRound.round}`
                         : 'N/A';
 
-                    // Worst Round
+                    // Worst Round with "Points"
                     const worstRound = data.worstRound;
                     worstRoundDisplayElem.textContent = worstRound.points !== 'N/A' 
-                        ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(-${worstRound.deductions})` : ''} in Round ${worstRound.round}`
+                        ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(-${worstRound.deductions})` : ''} Points in Round ${worstRound.round}`
                         : 'N/A';
 
                     // Populate Total Transfers and Total Hits in the new section (now in cards)
@@ -825,14 +828,14 @@
             const minRank = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
             const maxRank = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114000; // Default max if no valid ranks
 
-            // Dynamic Y-axis max calculation based on new logic
+            // Dynamic Y-axis max calculation based on NEW logic
             let overallYAxisMax;
-            if (managerCurrentOverallRank >= 1 && managerCurrentOverallRank <= 101) {
-                overallYAxisMax = maxRank + 25;
-            } else if (managerCurrentOverallRank >= 102 && managerCurrentOverallRank <= 300) {
-                overallYAxisMax = maxRank + 50;
+            if (managerCurrentOverallRank >= 1 && managerCurrentOverallRank <= 102) { 
+                overallYAxisMax = maxRank + 10; 
+            } else if (managerCurrentOverallRank >= 103 && managerCurrentOverallRank <= 300) { 
+                overallYAxisMax = maxRank + 25; 
             } else if (managerCurrentOverallRank > 300) {
-                overallYAxisMax = maxRank + 100;
+                overallYAxisMax = maxRank + 100; 
             } else {
                 // Fallback if managerCurrentOverallRank is not set or invalid
                 overallYAxisMax = maxRank + 100; // Default to highest buffer
