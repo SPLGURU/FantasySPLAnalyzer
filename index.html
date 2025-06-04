@@ -556,34 +556,30 @@
         const rankJourneyChartContainer = document.getElementById('rankJourneyChartContainer');
         const videoLoadingMessage = document.getElementById('videoLoadingMessage');
         const createRankJourneyButton = document.getElementById('createRankJourneyButton');
-        const replayRankJourneyButton = document.getElementById('replayRankJourneyButton'); // New replay button
-        let rankJourneyChartInstance = null; // To store the Chart.js instance
+        const replayRankJourneyButton = document.getElementById('replayRankJourneyButton');
+        let rankJourneyChartInstance = null;
 
-        let managerOverallRankHistory = []; // Global variable to store rank history
-        let managerCurrentOverallRank = null; // Global variable for current overall rank
-        let globalWorstOverallRank = 114000; // Global for worst rank, default to 114k (used as fallback/initial)
-        let currentAnimationFrameRound = 0; // Global to be accessible by Chart.js callbacks
-
-
+        let managerOverallRankHistory = [];
+        let managerCurrentOverallRank = null;
+        
         // Event Listeners
         analyzeButton.addEventListener('click', fetchManagerData);
         managerIdInput.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 fetchManagerData();
-                managerIdInput.blur(); // Hide keyboard on Enter
+                managerIdInput.blur();
             }
         });
 
         createRankJourneyButton.addEventListener('click', () => {
-            rankJourneyChartContainer.style.display = 'flex'; // Show the chart container
-            renderRankJourneyChart(managerOverallRankHistory); // Render the chart
-            createRankJourneyButton.style.display = 'none'; // Hide the create button
-            replayRankJourneyButton.style.display = 'block'; // Show the replay button
+            rankJourneyChartContainer.style.display = 'flex';
+            renderRankJourneyChart(managerOverallRankHistory);
+            createRankJourneyButton.style.display = 'none';
+            replayRankJourneyButton.style.display = 'block';
         });
 
         replayRankJourneyButton.addEventListener('click', () => {
-            currentAnimationFrameRound = 0; // Reset animation
-            renderRankJourneyChart(managerOverallRankHistory); // Re-render the chart
+            renderRankJourneyChart(managerOverallRankHistory); // Re-render the chart to restart animation
         });
 
 
@@ -599,12 +595,11 @@
             loadingMessage.style.display = 'block';
             errorMessage.style.display = 'none';
             managerStatsDiv.style.display = 'none';
-            rankJourneyChartContainer.style.display = 'none'; // Hide chart container initially
-            videoLoadingMessage.style.display = 'none'; // Hide video loading message initially
-            createRankJourneyButton.style.display = 'none'; // Hide create button until data is loaded
-            replayRankJourneyButton.style.display = 'none'; // Hide replay button until data is loaded
+            rankJourneyChartContainer.style.display = 'none';
+            videoLoadingMessage.style.display = 'none';
+            createRankJourneyButton.style.display = 'none';
+            replayRankJourneyButton.style.display = 'none';
 
-            // Destroy previous chart instance if it exists
             if (rankJourneyChartInstance) {
                 rankJourneyChartInstance.destroy();
                 rankJourneyChartInstance = null;
@@ -617,18 +612,8 @@
                 loadingMessage.style.display = 'none';
 
                 if (response.ok) {
-                    // Store global data needed for chart and other calculations
                     managerOverallRankHistory = data.overallRankHistory || [];
                     
-                    // Extract numeric worst overall rank for Y-axis max
-                    if (data.worstOverallRank && data.worstOverallRank !== 'N/A') {
-                        const match = String(data.worstOverallRank).match(/^(\d+)/); // Ensure it's a string before regex
-                        if (match && match[1]) {
-                            globalWorstOverallRank = parseInt(match[1], 10);
-                        }
-                    }
-
-                    // Store current overall rank for new Y-axis scaling logic
                     if (data.overallRank && data.overallRank !== 'N/A') {
                         const rankString = String(data.overallRank);
                         managerCurrentOverallRank = Math.round(parseFloat(rankString.replace(/,/g, '')));
@@ -636,19 +621,15 @@
                         managerCurrentOverallRank = null; 
                     }
 
-                    // Populate main stats and header
                     managerNameElem.innerHTML = `Team Name: <span style="color: var(--spl-primary-accent);">${data.managerName || `Manager ID: ${managerId}`}</span><br>Rank & Points`;
                     
-                    // Overall Rank with emoji
                     overallRankElem.textContent = `${data.overallRank} 🌏`;
                     
-                    // Best Overall Rank (formatted)
                     let bestRankRaw = String(data.bestOverallRank);
                     let bestRankNumeric = bestRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
                     let bestRankRound = extractAndFormatRound(bestRankRaw);
                     bestOverallRankElem.textContent = `${bestRankNumeric} 🌏 ${bestRankRound}`;
 
-                    // Worst Overall Rank (formatted)
                     let worstRankRaw = String(data.worstOverallRank);
                     let worstRankNumeric = worstRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
                     let worstRankRound = extractAndFormatRound(worstRankRaw);
@@ -657,27 +638,21 @@
                     averagePointsElem.textContent = data.averagePoints;
                     averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
                     
-                    // Best Round with "Points"
                     const bestRound = data.bestRound;
                     bestRoundDisplayElem.textContent = bestRound.points !== 'N/A' 
                         ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(-${bestRound.deductions})` : ''} Points in Round ${bestRound.round}`
                         : 'N/A';
 
-                    // Worst Round with "Points"
                     const worstRound = data.worstRound;
                     worstRoundDisplayElem.textContent = worstRound.points !== 'N/A' 
                         ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(-${worstRound.deductions})` : ''} Points in Round ${worstRound.round}`
                         : 'N/A';
 
-                    // Populate Total Transfers and Total Hits in the new section (now in cards)
                     totalTransfersCountElem.textContent = data.totalTransfersCount;
                     totalHitsPointsElem.textContent = data.totalHitsPoints;
                     
-                    // Show the "Create My Rank Journey" button
                     createRankJourneyButton.style.display = 'block';
 
-
-                    // Populate Top 3 Captains Table
                     topCaptainsTableBody.innerHTML = '';
                     if (data.top3Captains && data.top3Captains.length > 0) {
                         data.top3Captains.forEach(captain => {
@@ -695,7 +670,6 @@
                         row.cells[0].colSpan = 6;
                     }
 
-                    // Populate Best Players Table
                     bestPlayersTableBody.innerHTML = '';
                     if (data.bestPlayers && data.bestPlayers.length > 0) {
                         data.bestPlayers.forEach(player => {
@@ -712,7 +686,6 @@
                         row.cells[0].colSpan = 5;
                     }
 
-                    // Populate Worst Players Table
                     worstPlayersTableBody.innerHTML = '';
                     if (data.worstPlayers && data.worstPlayers.length > 0) {
                         data.worstPlayers.forEach(player => {
@@ -729,7 +702,6 @@
                         row.cells[0].colSpan = 5;
                     }
 
-                    // Populate Missed Points Table
                     missedPointsTableBody.innerHTML = '';
                     if (data.top5MissedPoints && data.top5MissedPoints.length > 0) {
                         data.top5MissedPoints.forEach(item => {
@@ -744,7 +716,6 @@
                         row.cells[0].colSpan = 3;
                     }
 
-                    // Populate Most Profitable Transfers Table
                     profitableTransfersTableBody.innerHTML = '';
                     if (data.top5ProfitableTransfers && data.top5ProfitableTransfers.length > 0) {
                         data.top5ProfitableTransfers.forEach(transfer => {
@@ -762,7 +733,6 @@
                         row.cells[0].colSpan = 4;
                     }
 
-                    // Populate Most Loss-making Transfers Table
                     lossMakingTransfersTableBody.innerHTML = '';
                     if (data.top5LossMakingTransfers && data.top5LossMakingTransfers.length > 0) {
                         data.top5LossMakingTransfers.forEach(transfer => {
@@ -796,17 +766,15 @@
             }
         }
 
-        // Helper function to extract and format the "In Round X" part
         function extractAndFormatRound(rankValueString) {
             if (typeof rankValueString !== 'string' || rankValueString === 'N/A') {
-                return ''; // Return empty string if not a string or N/A
+                return '';
             }
-            // Regex to find (R#) or (RD#) patterns, with optional space after R/RD
             const match = rankValueString.match(/\((R|RD)\s*(\d+)\)/i);
             if (match && match[2]) {
                 return `(In Round ${match[2]})`;
             }
-            return ''; // No round information found
+            return '';
         }
 
         function renderRankJourneyChart(fullRankHistoryData) {
@@ -815,10 +783,8 @@
                 return;
             }
 
-            // Sort data by round number to ensure correct chart progression
             fullRankHistoryData.sort((a, b) => a.round - b.round);
 
-            // Always ensure chart goes up to round 34
             const fixedMaxRound = 34; 
             const labels = Array.from({ length: fixedMaxRound + 1 }, (_, i) => `Round ${i}`);
             const ranks = Array(fixedMaxRound + 1).fill(null);
@@ -826,21 +792,18 @@
             const transfersCost = Array(fixedMaxRound + 1).fill(null);
 
             fullRankHistoryData.forEach(d => {
-                if (d.round >= 1 && d.round <= fixedMaxRound) { // Ensure rounds are within bounds
+                if (d.round >= 1 && d.round <= fixedMaxRound) {
                     ranks[d.round] = d.rank;
                     points[d.round] = d.points;
                     transfersCost[d.round] = d.transfersCost;
                 }
             });
 
-            // Filter out 'N/A' or null ranks for determining min/max for Y-axis scaling
             const validRanksForScaling = ranks.filter(rank => typeof rank === 'number' && !isNaN(rank));
             const minRankInHistory = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
-            const maxRankInHistory = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114154; // Use a realistic max total rank (approximate)
+            const maxRankInHistory = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114154; // Approximate total managers
 
-            // Dynamic Y-axis max calculation based on NEW logic for visual fit
             let overallYAxisMax;
-            // Use managerCurrentOverallRank for decision, but fall back to maxRankInHistory if current is null/N/A
             const decisionRank = managerCurrentOverallRank !== null ? managerCurrentOverallRank : maxRankInHistory;
 
             if (decisionRank >= 1 && decisionRank <= 100) {
@@ -850,30 +813,21 @@
             } else if (decisionRank > 3000) {
                 overallYAxisMax = maxRankInHistory + 200;
             } else {
-                // Fallback if decisionRank is not valid, use a general buffer based on maxRankInHistory
                 overallYAxisMax = maxRankInHistory + 100;
             }
 
-            // Ensure overallYAxisMax is not less than minRankInHistory + a small constant buffer
-            // Also ensure it's not too small if maxRankInHistory is very low (e.g., constant top 1)
-            // And ensure it doesn't go beyond the absolute maximum possible rank (approx. 114154)
             overallYAxisMax = Math.min(Math.max(overallYAxisMax, minRankInHistory + 10, 200), 114154); 
 
             console.log(`Chart Y-axis Debug: Min Rank (History): ${minRankInHistory}, Max Rank (History): ${maxRankInHistory}, Current Overall Rank (for decision): ${decisionRank}, Calculated Y-axis Max: ${overallYAxisMax}`);
 
+            const totalAnimationDurationMs = 10000; // 10 seconds total
+            let animationStartTime = null; // Renamed to avoid conflict with global currentAnimationFrameRound
 
-            // Animation speed: 10 seconds total
-            const totalAnimationDurationMs = 10000; 
-            const numberOfAnimationSteps = labels.length - 1; // Number of segments to animate
-            const animationSpeed = numberOfAnimationSteps > 0 ? totalAnimationDurationMs / numberOfAnimationSteps : 0;
-
-            currentAnimationFrameRound = 0; // Reset animation counter
-
-            videoLoadingMessage.style.display = 'block'; // Show loading message before animation
+            videoLoadingMessage.style.display = 'block';
 
             const ctx = rankJourneyChartCanvas.getContext('2d');
             if (rankJourneyChartInstance) {
-                rankJourneyChartInstance.destroy(); // Destroy existing chart instance
+                rankJourneyChartInstance.destroy();
             }
 
             rankJourneyChartInstance = new Chart(ctx, {
@@ -882,62 +836,54 @@
                     labels: labels,
                     datasets: [{
                         label: 'Overall Rank',
-                        data: Array(labels.length).fill(null), // Starts empty, will be populated by animation
-                        tension: 0.1, // Smooth curves
-                        spanGaps: true, // Connect gaps where data is null
-                        pointRadius: 3, // Always show points
-                        pointBackgroundColor: 'red', // Red dots
+                        data: Array(labels.length).fill(null), // Starts empty
+                        tension: 0.1,
+                        spanGaps: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: 'red',
                         pointBorderColor: 'white',
                         pointBorderWidth: 2,
-                        // Dynamic border color based on rank change (from old design)
                         borderColor: (context) => {
                             const currentDataIndex = context.dataIndex;
                             const previousDataIndex = currentDataIndex - 1;
-
-                            // Get the actual data points from the animated dataset
                             const currentRank = context.dataset.data[currentDataIndex];
                             const previousRank = context.dataset.data[previousDataIndex]; 
                             
-                            // If previous or current rank is not a valid number, use default color (e.g., for initial point or gaps)
                             if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
-                                return '#007BFF'; // Default blue
+                                return '#007BFF';
                             }
-
-                            if (currentRank < previousRank) { // Rank improved (lower number is better)
-                                return '#28A745'; // Green
-                            } else if (currentRank > previousRank) { // Rank worsened (higher number is worse)
-                                return '#DC3545'; // Red
-                            } else { // Rank unchanged
-                                return '#495057'; // Grey
+                            if (currentRank < previousRank) {
+                                return '#28A745';
+                            } else if (currentRank > previousRank) {
+                                return '#DC3545';
+                            } else {
+                                return '#495057';
                             }
                         },
-                        // Dynamic background color based on rank change (matching border)
                         backgroundColor: (context) => {
                             const currentDataIndex = context.dataIndex;
                             const previousDataIndex = currentDataIndex - 1;
-
                             const currentRank = context.dataset.data[currentDataIndex];
                             const previousRank = context.dataset.data[previousDataIndex];
 
                             if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
-                                return 'rgba(0, 123, 255, 0.1)'; // Default transparent blue
+                                return 'rgba(0, 123, 255, 0.1)';
                             }
-
                             if (currentRank < previousRank) {
-                                return 'rgba(40, 167, 69, 0.1)'; // Green transparent
+                                return 'rgba(40, 167, 69, 0.1)';
                             } else if (currentRank > previousRank) {
-                                return 'rgba(220, 53, 69, 0.1)'; // Red transparent
+                                return 'rgba(220, 53, 69, 0.1)';
                             } else {
-                                return 'rgba(73, 80, 87, 0.1)'; // Grey transparent
+                                return 'rgba(73, 80, 87, 0.1)';
                             }
                         },
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true, // Crucial for dynamic sizing based on aspect ratio
-                    aspectRatio: 2, // Adjust this value to control height relative to width (e.g., 2 for 2:1 width:height)
-                    animation: false, // Disable Chart.js built-in animation for custom animation
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    animation: false, // Disable Chart.js built-in animation
                     plugins: {
                         legend: {
                             display: true,
@@ -986,70 +932,80 @@
                             },
                             ticks: {
                                 color: '#495057',
-                                autoSkip: false, // Do not auto-skip
-                                maxRotation: 0, // No rotation
+                                autoSkip: false,
+                                maxRotation: 0,
                                 minRotation: 0,
                                 callback: function(value, index) {
-                                    // Show only even rounds (0, 2, 4, ..., 34)
                                     if (index % 2 === 0) {
-                                        return labels[index].replace('Round ', ''); // Just the number
+                                        return labels[index].replace('Round ', '');
                                     }
                                     return null;
                                 }
                             }
                         },
                         y: {
-                            display: true, // Re-enable Y-axis display
+                            display: true,
                             title: {
                                 display: true,
                                 text: 'Overall Rank (Lower is Better)',
                                 color: '#495057'
                             },
-                            reverse: true, // Lower rank is better, so reverse the Y-axis
+                            reverse: true,
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
-                            min: 1, // Always start from rank 1
-                            max: overallYAxisMax, // Use dynamically calculated max
+                            min: 1,
+                            max: overallYAxisMax,
                             ticks: {
                                 color: '#495057',
                                 callback: function(value, index, values) {
                                     return new Intl.NumberFormat().format(value);
                                 },
-                                // Removed 'count' to let Chart.js determine optimal stepSize
                             }
                         }
                     }
                 }
             });
 
-            // Animation Logic
-            const maxAnimationRound = labels.length - 1; // Animate up to the last round with data
+            // Animation Logic using requestAnimationFrame for smoother movement
+            function animateChart(timestamp) {
+                if (!animationStartTime) {
+                    animationStartTime = timestamp;
+                }
 
-            function animateRankJourney() {
-                if (currentAnimationFrameRound <= maxAnimationRound) {
-                    // Update data for the current frame
-                    const animatedData = ranks.map((val, idx) => {
-                        if (idx < currentAnimationFrameRound) { // Use < to ensure currentAnimationFrameRound is the *next* round to reveal
-                            return val;
-                        }
-                        return null; // Don't show future points yet
-                    });
+                const elapsedTime = timestamp - animationStartTime;
+                const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1); // Clamp between 0 and 1
 
-                    rankJourneyChartInstance.data.datasets[0].data = animatedData;
-                    rankJourneyChartInstance.update();
+                // Calculate how many rounds should be visible based on progress
+                // This ensures the dot reaches the last round (fixedMaxRound) by the end of animation
+                const roundsToDisplay = Math.floor(progress * fixedMaxRound);
 
-                    currentAnimationFrameRound++;
-                    setTimeout(animateRankJourney, animationSpeed); // Use the calculated animation speed
+                const animatedData = Array(fixedMaxRound + 1).fill(null);
+                for (let i = 0; i <= roundsToDisplay; i++) {
+                    animatedData[i] = ranks[i];
+                }
+
+                // Ensure the last point is drawn when animation is complete
+                if (progress === 1 && ranks[fixedMaxRound] !== null) {
+                    animatedData[fixedMaxRound] = ranks[fixedMaxRound];
+                }
+
+
+                rankJourneyChartInstance.data.datasets[0].data = animatedData;
+                rankJourneyChartInstance.update();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateChart);
                 } else {
-                    videoLoadingMessage.style.display = 'none'; // Hide loading message
-                    // After animation, reset pointRadius to show all points
+                    videoLoadingMessage.style.display = 'none';
+                    // Ensure all points are visible at the end of animation
                     rankJourneyChartInstance.data.datasets[0].pointRadius = 3;
                     rankJourneyChartInstance.update();
+                    animationStartTime = null; // Reset for next replay
                 }
             }
 
-            animateRankJourney(); // Start the animation
+            requestAnimationFrame(animateChart); // Start the animation
         }
     </script>
 </body>
