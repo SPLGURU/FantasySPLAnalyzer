@@ -858,8 +858,7 @@
             const fixedMaxRound = 34; 
             const labels = Array.from({ length: fixedMaxRound + 1 }, (_, i) => `Round ${i}`);
             
-            // Create a full 'ranks' array for the main line, filling gaps with null
-            // This 'ranks' array is used for Y-axis scaling and for the final state of the line
+            // Create a full 'ranks' array for Y-axis scaling and final line state
             const ranks = Array(fixedMaxRound + 1).fill(null);
             fullRankHistoryData.forEach(d => {
                 if (d.round >= 1 && d.round <= fixedMaxRound) {
@@ -899,7 +898,7 @@
             rankJourneyChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels, // Used only for x-category axis ticks
+                    labels: labels, // Used for x-axis ticks/labels, not directly for data points
                     datasets: [
                         { // Main line dataset (draws the trace)
                             label: 'Overall Rank',
@@ -909,9 +908,8 @@
                             pointRadius: 0, // Hide points during animation
                             borderColor: (context) => {
                                 // Use the interpolated rank to determine color for the segment
-                                const currentDataIndex = context.dataIndex;
-                                const currentPoint = context.dataset.data[currentDataIndex];
-                                const previousPoint = context.dataset.data[currentDataIndex - 1];
+                                const currentPoint = context.dataset.data[context.dataIndex];
+                                const previousPoint = context.dataset.data[context.dataIndex - 1];
                                 
                                 if (!currentPoint || !previousPoint || typeof currentPoint.y !== 'number' || typeof previousPoint.y !== 'number') {
                                     return '#007BFF'; // Default blue
@@ -1051,23 +1049,29 @@
                 }
 
                 const elapsedTime = timestamp - animationStartTime;
-                const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1);
+                const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1); // Progress from 0 to 1
 
-                // Calculate the target round based on progress (float for interpolation)
-                // The dot will travel from Round 0 to fixedMaxRound
-                const targetRoundFloat = progress * fixedMaxRound; 
+                // Determine the actual data points range for animation scaling
+                const firstDataRound = fullRankHistoryData.length > 0 ? fullRankHistoryData[0].round : 0;
+                const lastDataRound = fullRankHistoryData.length > 0 ? fullRankHistoryData[fullRankHistoryData.length - 1].round : fixedMaxRound;
+                const dataRoundRange = lastDataRound - firstDataRound;
+
+                // Calculate the current round for the dot based on animation progress
+                // This value will span from firstDataRound to lastDataRound
+                let currentRoundForDot = firstDataRound + (progress * dataRoundRange);
+                
+                // Clamp currentRoundForDot to ensure it doesn't go beyond the last actual data point's round
+                currentRoundForDot = Math.min(currentRoundForDot, lastDataRound);
 
                 let interpolatedRank = null;
-                let currentPointX = targetRoundFloat;
+                let dotXPosition = currentRoundForDot; // The X position for the dot, can be float
 
-                // Find the two closest data points in fullRankHistoryData to interpolate between
+                // Find the two closest data points in fullRankHistoryData for interpolation
                 let prevDataPoint = null;
                 let nextDataPoint = null;
 
-                // Find the last actual data point before or at targetRoundFloat
-                // Iterate through actual data points to find the segment for interpolation
                 for (let i = 0; i < fullRankHistoryData.length; i++) {
-                    if (fullRankHistoryData[i].round <= targetRoundFloat) {
+                    if (fullRankHistoryData[i].round <= currentRoundForDot) {
                         prevDataPoint = fullRankHistoryData[i];
                     } else {
                         nextDataPoint = fullRankHistoryData[i];
@@ -1075,27 +1079,27 @@
                     }
                 }
 
+                // Determine the interpolated rank
                 if (prevDataPoint && nextDataPoint) {
-                    // Linear interpolation between two known points
+                    // Interpolate between prevDataPoint and nextDataPoint
                     const roundRange = nextDataPoint.round - prevDataPoint.round;
                     const rankRange = nextDataPoint.rank - prevDataPoint.rank;
-                    const factor = (targetRoundFloat - prevDataPoint.round) / roundRange;
+                    const factor = (currentRoundForDot - prevDataPoint.round) / roundRange;
                     interpolatedRank = prevDataPoint.rank + (rankRange * factor);
                 } else if (prevDataPoint) {
-                    // If only a previous point exists (e.g., at the end of the data, or target is beyond last data point)
+                    // If currentRoundForDot is at or beyond the last actual data point, use the last rank
                     interpolatedRank = prevDataPoint.rank;
-                } else if (nextDataPoint && targetRoundFloat < nextDataPoint.round) {
-                    // If target is before the first data point, or in a gap before nextDataPoint
-                    // Make the dot invisible until it reaches the first data point
-                    interpolatedRank = null; 
                 } else {
-                    // No data points at all
-                    interpolatedRank = null;
+                    // If currentRoundForDot is before the first actual data point, hide the dot.
+                    interpolatedRank = null; 
                 }
+
+                // Debugging console log
+                console.log(`Progress: ${progress.toFixed(2)}, currentRoundForDot: ${currentRoundForDot.toFixed(2)}, interpolatedRank: ${interpolatedRank}`);
 
                 // Update the moving dot's position (Dataset 1)
                 if (interpolatedRank !== null) {
-                    rankJourneyChartInstance.data.datasets[1].data = [{ x: currentPointX, y: interpolatedRank }];
+                    rankJourneyChartInstance.data.datasets[1].data = [{ x: dotXPosition, y: interpolatedRank }];
                 } else {
                     rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no valid position
                 }
@@ -1104,18 +1108,19 @@
                 const traceData = [];
                 // Add all *actual* data points that have already been passed by the dot
                 for (let i = 0; i < fullRankHistoryData.length; i++) {
-                    if (fullRankHistoryData[i].round <= targetRoundFloat) {
+                    if (fullRankHistoryData[i].round <= currentRoundForDot) {
                         traceData.push({ x: fullRankHistoryData[i].round, y: fullRankHistoryData[i].rank });
                     } else {
-                        break; // Stop if we've passed the target round
+                        break; // Stop if we've passed the current dot position
                     }
                 }
                 // If the dot is currently between two data points, add its interpolated position to the trace
-                if (interpolatedRank !== null && traceData.length > 0 && currentPointX > traceData[traceData.length - 1].x) {
-                    traceData.push({ x: currentPointX, y: interpolatedRank });
-                } else if (interpolatedRank !== null && traceData.length === 0 && currentPointX >= 0) {
-                    // Handle case where the dot starts before the first actual data point
-                    traceData.push({ x: currentPointX, y: interpolatedRank });
+                // Ensure this is added only if interpolatedRank is valid and it's not a duplicate of the last actual point
+                if (interpolatedRank !== null && traceData.length > 0 && dotXPosition > traceData[traceData.length - 1].x) {
+                    traceData.push({ x: dotXPosition, y: interpolatedRank });
+                } else if (interpolatedRank !== null && traceData.length === 0 && fullRankHistoryData.length > 0 && dotXPosition >= fullRankHistoryData[0].round) {
+                    // This handles the very start of the animation if the first data point is not at round 0
+                    traceData.push({ x: dotXPosition, y: interpolatedRank });
                 }
                 
                 rankJourneyChartInstance.data.datasets[0].data = traceData;
