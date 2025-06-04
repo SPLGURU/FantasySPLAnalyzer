@@ -106,6 +106,8 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     let totalPointsSum = 0;
     let roundsProcessed = 0;
     let totalTransfersCost = 0; // Initialize total transfers cost for hits calculation
+    let isNonActiveManager = false; // Flag for non-active manager status
+    let consecutiveZeroTC = 0; // Counter for consecutive zero transfer costs
 
     const maxRounds = 34; // Total number of rounds in the season
 
@@ -115,11 +117,25 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     // Initialize these sets/objects
     const missedPointsInstances = []; 
     const playerSeasonStats = {}; 
-    const uniquePlayerIdsInSquad = new Set(); // FIX: Initialize uniquePlayerIdsInSquad here
+    const uniquePlayerIdsInSquad = new Set(); 
 
     // Use chips and currentEvent from managerBasicData passed from handler
-    const managerChips = managerBasicData?.chips || []; // Keep for other potential uses, not for hits calc
+    const managerChips = managerBasicData?.chips || []; // Keep chips for other potential uses, not for hits calc
     const currentEvent = managerBasicData?.currentEvent || maxRounds;
+
+    // NEW: Array to store all transfers with calculated profit/loss
+    const allTransfersAnalysis = [];
+
+    // NEW: Fetch all transfers data once at the beginning of this function
+    let transfersRawData = [];
+    try {
+        const transfersApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/transfers/`;
+        const transfersResponse = await fetchWithRetry(transfersApiUrl);
+        transfersRawData = await transfersResponse.json();
+        console.log(`Fetched transfersRawData for manager ${managerId}. Total records: ${transfersRawData.length}`);
+    } catch (error) {
+        console.error(`Error fetching transfersRawData for manager ${managerId}:`, error.message);
+    }
 
 
     // Fetch data for all rounds for the given manager concurrently with retries
@@ -156,9 +172,22 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         // --- Update for Rank & Points Table ---
         const currentOverallRank = data.entry_history.overall_rank;
         const currentRoundPoints = data.entry_history.points;
+        const currentRoundTransfersCost = data.entry_history.event_transfers_cost || 0; // Get TC for current round
+        const transfersMadeInRound = data.entry_history.event_transfers || 0; // Get TM for current round
 
         // Calculate total hits by summing 'event_transfers_cost' from each round's entry_history
-        totalTransfersCost += (data.entry_history.event_transfers_cost || 0);
+        totalTransfersCost += currentRoundTransfersCost;
+
+        // Check for Non-Active Manager status
+        if (currentRoundTransfersCost === 0) {
+            consecutiveZeroTC++;
+        } else {
+            consecutiveZeroTC = 0; // Reset if a transfer was made
+        }
+
+        if (consecutiveZeroTC >= 4) {
+            isNonActiveManager = true; // Found 4 consecutive rounds with 0 TC
+        }
 
         // Store overall rank for this round
         overallRankHistory.push({ round: round, rank: currentOverallRank });
@@ -179,7 +208,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         }
 
         // --- Update for Captaincy Table ---
-        const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3); // Keep 3 for safety, though only 2 applies in SPL
+        const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3); 
 
         if (captainPick) {
             const captainId = captainPick.element;
@@ -197,7 +226,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
         data.picks.forEach(pick => {
             const playerId = pick.element;
-            uniquePlayerIdsInSquad.add(playerId); // Add all players ever in squad
+            uniquePlayerIdsInSquad.add(playerId); 
 
             if (!playerSeasonStats[playerId]) {
                 playerSeasonStats[playerId] = {
@@ -205,7 +234,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
                     autoSubbed: 0,
                     pointsGained: 0,
                     benchedPoints: 0,
-                    roundsInfo: {} // To store position and multiplier for each round
+                    roundsInfo: {} 
                 };
             }
 
@@ -214,14 +243,11 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             const isSubbedIn = subbedInPlayersThisRound.has(playerId);
 
             if (pick.position >= 1 && pick.position <= 11 && !isSubbedOut) {
-                // Player was in initial starting XI and not subbed out
                 playerSeasonStats[playerId].started++;
             } else if (isSubbedIn) {
-                // Player was auto-subbed in (counts as starting for points purposes)
-                playerSeasonStats[playerId].started++; // Counts as started for this specific round's context
+                playerSeasonStats[playerId].started++; 
                 playerSeasonStats[playerId].autoSubbed++;
             }
-            // Store pick details for later point calculation
             playerSeasonStats[playerId].roundsInfo[round] = {
                 position: pick.position,
                 multiplier: pick.multiplier,
@@ -229,6 +255,53 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
                 isSubbedIn: isSubbedIn
             };
         });
+
+        // NEW LOGIC: Collect and analyze transfers for "Most Profitable/Loss-making Transfers"
+        if (transfersMadeInRound > 0) {
+            const transfersForThisRound = transfersRawData.filter(t => t.event === round);
+            // Take only the number of transfers that 'counted' for this round's TM
+            const actualTransfersToProcess = transfersForThisRound.slice(0, transfersMadeInRound);
+
+            for (const transfer of actualTransfersToProcess) {
+                const playerInId = transfer.element_in;
+                const playerOutId = transfer.element_out;
+
+                // Fetch player summary for IN and OUT players to get their points in this specific round
+                const playerInSummaryPromise = fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerInId}/`);
+                const playerOutSummaryPromise = fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerOutId}/`);
+
+                const [playerInRes, playerOutRes] = await Promise.allSettled([playerInSummaryPromise, playerOutSummaryPromise]);
+
+                let playerInPoints = 0;
+                if (playerInRes.status === 'fulfilled' && playerInRes.value.ok) {
+                    const playerInSummary = await playerInRes.value.json();
+                    const inHistory = playerInSummary.history.find(h => h.round === round);
+                    playerInPoints = inHistory ? inHistory.total_points : 0;
+                } else {
+                    console.warn(`Could not get points for Player IN ID ${playerInId} in Round ${round}.`);
+                }
+
+                let playerOutPoints = 0;
+                if (playerOutRes.status === 'fulfilled' && playerOutRes.value.ok) {
+                    const playerOutSummary = await playerOutRes.value.json();
+                    const outHistory = playerOutSummary.history.find(h => h.round === round);
+                    playerOutPoints = outHistory ? outHistory.total_points : 0;
+                } else {
+                    console.warn(`Could not get points for Player OUT ID ${playerOutId} in Round ${round}.`);
+                }
+
+                // Calculate Profit/Loss using the user's formula
+                const profitLoss = playerInPoints - playerOutPoints - currentRoundTransfersCost;
+
+                allTransfersAnalysis.push({
+                    playerInName: playerNameMap[playerInId] || `Unknown (ID:${playerInId})`,
+                    playerOutName: playerNameMap[playerOutId] || `Unknown (ID:${playerOutId})`,
+                    round: round,
+                    tcValue: currentRoundTransfersCost,
+                    profitLoss: profitLoss
+                });
+            }
+        }
     }
 
     const averagePoints = roundsProcessed > 0 ? Math.round(totalPointsSum / roundsProcessed) : 'N/A';
@@ -297,31 +370,26 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     // Calculate "Points Gained" and "Benched Points" for all players
     for (const playerId of uniquePlayerIdsInSquad) {
         const playerSummary = allPlayerSummariesMap.get(playerId);
-        if (!playerSummary) continue; // Skip if player summary could not be fetched
+        if (!playerSummary) continue; 
 
         const playerHistory = playerSummary.history || [];
         const playerStats = playerSeasonStats[playerId];
 
-        playerStats.pointsGained = 0; // Reset for accurate calculation
-        playerStats.benchedPoints = 0; // Reset for accurate calculation
+        playerStats.pointsGained = 0; 
+        playerStats.benchedPoints = 0; 
 
         for (const round of Object.keys(playerStats.roundsInfo)) {
             const roundNum = parseInt(round);
             const { position, multiplier, isSubbedOut, isSubbedIn } = playerStats.roundsInfo[roundNum];
 
-            // Filter to get ALL history entries for this specific round number
             const allRoundStatsEntries = playerHistory.filter(h => h.round === roundNum);
             const playerPointsForRound = allRoundStatsEntries.reduce((sum, entry) => sum + entry.total_points, 0);
 
-            // Points Gained: Player was in initial starting XI (1-11) and not subbed out, OR was subbed in
             if ((position >= 1 && position <= 11 && !isSubbedOut) || isSubbedIn) {
                 playerStats.pointsGained += (playerPointsForRound * multiplier);
             } else {
-                // Benched Points: Player was on bench (12-15) OR was subbed out
-                playerStats.benchedPoints += playerPointsForRound; // Raw points from bench
+                playerStats.benchedPoints += playerPointsForRound; 
 
-                // NEW LOGIC for Missed Points Table:
-                // Check if the player was on the bench (position 12-15) AND NOT subbed in
                 if (position >= 12 && position <= 15 && !isSubbedIn) {
                     missedPointsInstances.push({
                         playerId: playerId,
@@ -346,9 +414,9 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
     // Prepare Best Players Table Data
     const bestPlayersList = Object.entries(playerSeasonStats)
-        .filter(([, stats]) => stats.pointsGained > 0 || stats.benchedPoints > 0) // Only include players who gained points
-        .sort(([, statsA], [, statsB]) => statsB.pointsGained - statsA.pointsGained) // Sort by Points Gained DESC
-        .slice(0, 5) // Take top 5
+        .filter(([, stats]) => stats.pointsGained > 0 || stats.benchedPoints > 0) 
+        .sort(([, statsA], [, statsB]) => statsB.pointsGained - statsA.pointsGained) 
+        .slice(0, 5) 
         .map(([playerId, stats]) => ({
             name: playerNameMap[parseInt(playerId)] || `Unknown (ID:${playerId})`,
             started: stats.started,
@@ -359,9 +427,9 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
     // Prepare Worst Players Table Data
     const worstPlayersList = Object.entries(playerSeasonStats)
-        .filter(([, stats]) => stats.started > 0) // Only include players who started at least once
-        .sort(([, statsA], [, statsB]) => statsA.pointsGained - statsB.pointsGained) // Sort by Points Gained ASC
-        .slice(0, 5) // Take bottom 5 from the filtered list
+        .filter(([, stats]) => stats.started > 0) 
+        .sort(([, statsA], [, statsB]) => statsA.pointsGained - statsB.pointsGained) 
+        .slice(0, 5) 
         .map(([playerId, stats]) => ({
             name: playerNameMap[parseInt(playerId)] || `Unknown (ID:${playerId})`,
             started: stats.started,
@@ -370,6 +438,10 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             benchedPoints: stats.benchedPoints
         }));
 
+    // NEW: Sort allTransfersAnalysis for top 5 profitable and loss-making
+    const sortedByProfitLoss = [...allTransfersAnalysis].sort((a, b) => b.profitLoss - a.profitLoss);
+    const top5ProfitableTransfers = sortedByProfitLoss.slice(0, 5);
+    const top5LossMakingTransfers = sortedByProfitLoss.slice(-5).reverse(); // Get last 5 (smallest profit/largest loss) and reverse for ascending order
 
     return {
         overallRank: latestOverallRank,
@@ -381,20 +453,23 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         worstPlayers: worstPlayersList,
         overallRankHistory: overallRankHistory,
         top5MissedPoints: top5MissedPoints,
-        chips: managerBasicData.chips, // Keep chips for other potential uses, not for hits calc
-        currentEvent: managerBasicData.currentEvent, // Keep currentEvent
-        totalHitsPoints: totalTransfersCost * -1 // The calculated total hits points
+        chips: managerBasicData.chips, 
+        currentEvent: managerBasicData.currentEvent,
+        totalHitsPoints: totalTransfersCost * -1, 
+        isNonActiveManager: isNonActiveManager,
+        top5ProfitableTransfers: top5ProfitableTransfers, // NEW: Add to return
+        top5LossMakingTransfers: top5LossMakingTransfers // NEW: Add to return
     };
 }
 
 
-// --- Simplified getTransfersData function ---
-// This function now only passes through the pre-calculated transfer data.
-// It no longer needs to fetch /api/entry/{managerId}/transfers/ or perform calculations itself.
+// --- Simplified getTransfersData function (no longer used for main calculations) ---
+// This function is kept for structural consistency but its return values are now
+// derived from managerBasicData and managerStats in the handler.
 async function getTransfersData(managerId, managerBasicData, managerStats) { 
     // Use the pre-calculated values from managerBasicData and managerStats
     const totalTransfersCount = managerBasicData.lastDeadlineTotalTransfers;
-    const totalHitsPoints = managerStats.totalHitsPoints; // Get from managerStats as it's calculated there now
+    const totalHitsPoints = managerStats.totalHitsPoints; 
 
     console.log(`Final Transfers Data: Total Transfers: ${totalTransfersCount}, Total Hits: ${totalHitsPoints}`); // DEBUG LOG
 
@@ -432,10 +507,9 @@ exports.handler = async function(event, context) {
             managerBasicData = { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A' }; // Default on failure
         }
 
-        // Step 2: Fetch manager history and captaincy stats, and calculate total hits
+        // Step 2: Fetch manager history and captaincy stats, and calculate total hits AND non-active status AND transfer analysis
         let managerStats = {};
         try {
-            // Pass managerBasicData to getManagerHistoryAndCaptains
             managerStats = await getManagerHistoryAndCaptains(managerId, playerMap, managerBasicData);
             console.log('Manager History and Captains fetched successfully.'); // DEBUG LOG
         } catch (error) {
@@ -452,14 +526,16 @@ exports.handler = async function(event, context) {
                 top5MissedPoints: [],
                 chips: managerBasicData.chips, 
                 currentEvent: managerBasicData.currentEvent,
-                totalHitsPoints: 'N/A' // Default to N/A if this part fails
+                totalHitsPoints: 'N/A', 
+                isNonActiveManager: 'N/A',
+                top5ProfitableTransfers: [], // Default to empty array
+                top5LossMakingTransfers: [] // Default to empty array
             };
         }
 
         // Step 3: Get transfers data (now just passing through pre-calculated values)
         let transfersData = {};
         try {
-            // Pass both managerBasicData and managerStats (which contains totalHitsPoints)
             transfersData = await getTransfersData(managerId, managerBasicData, managerStats); 
             console.log('Transfers Data retrieved successfully.'); // DEBUG LOG
         } catch (error) {
@@ -486,7 +562,10 @@ exports.handler = async function(event, context) {
                 worstPlayers: managerStats.worstPlayers,
                 top5MissedPoints: managerStats.top5MissedPoints,
                 totalTransfersCount: transfersData.totalTransfersCount,
-                totalHitsPoints: transfersData.totalHitsPoints
+                totalHitsPoints: transfersData.totalHitsPoints,
+                isNonActiveManager: managerStats.isNonActiveManager,
+                top5ProfitableTransfers: managerStats.top5ProfitableTransfers, // NEW: Include in response
+                top5LossMakingTransfers: managerStats.top5LossMakingTransfers // NEW: Include in response
             }),
             headers: { "Content-Type": "application/json" }
         };
