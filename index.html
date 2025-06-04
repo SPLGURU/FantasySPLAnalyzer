@@ -58,6 +58,18 @@
             margin-top: 0;
             margin-bottom: 20px;
         }
+        
+        /* Specific style for the main manager name/rank header */
+        #managerName {
+            font-size: 2em; /* Adjust as needed */
+            line-height: 1.3;
+            margin-bottom: 30px;
+            color: var(--spl-text-dark); /* Darker text for main header */
+        }
+        #managerName span {
+            color: var(--spl-accent-blue); /* Accent color for the actual name */
+        }
+
 
         .input-section {
             display: flex;
@@ -84,7 +96,7 @@
             text-align: center;
         }
 
-        .input-section button {
+        .input-section button, .chart-button { /* Added .chart-button class */
             background-color: var(--spl-accent-blue);
             color: white;
             padding: 12px 25px;
@@ -94,9 +106,13 @@
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.2s ease;
             box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+            width: 100%; /* Make button full width of its container */
+            max-width: 300px; /* Limit max width */
+            display: block; /* Ensure it takes full width */
+            margin: 0 auto; /* Center the button */
         }
 
-        .input-section button:hover {
+        .input-section button:hover, .chart-button:hover {
             background-color: #0056b3;
             transform: translateY(-2px);
         }
@@ -364,29 +380,16 @@
                     <p class="small-text">vs. 1st Place Average: <span id="averagePointsFor1stPlace">N/A</span></p>
                 </div>
                 <div class="stat-card">
-                    <h3>Total Transfers</h3>
-                    <p id="totalTransfersCount">N/A</p>
+                    <h3>Best Round</h3>
+                    <p id="bestRoundDisplay">N/A</p>
                 </div>
                 <div class="stat-card">
-                    <h3>Total Hits (Points Deducted)</h3>
-                    <p id="totalHitsPoints">N/A</p>
+                    <h3>Worst Round</h3>
+                    <p id="worstRoundDisplay">N/A</p>
                 </div>
             </div>
 
-            <div class="table-section">
-                <h2>Rank & Points Summary</h2>
-                <table id="rankPointsTable">
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rankPointsTableBody">
-                        <!-- Data will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
+            <button id="createRankJourneyButton" class="chart-button" style="display: none; margin-top: 20px; margin-bottom: 30px;">Create My Rank Journey</button>
 
             <div class="chart-section" id="rankJourneyChartContainer" style="display: none;">
                 <h2>Overall Rank Journey</h2>
@@ -394,6 +397,14 @@
                     Animating rank journey...
                 </div>
                 <canvas id="rankJourneyChart"></canvas>
+            </div>
+
+            <div class="table-section">
+                <h2>Transfers Summary</h2>
+                <div style="text-align: center; margin-top: 15px;">
+                    <p style="font-size: 1.1em; margin-bottom: 8px;"><strong>Total Transfers:</strong> <span id="totalTransfersCount">N/A</span></p>
+                    <p style="font-size: 1.1em;"><strong>Total Hits (Points Deducted):</strong> <span id="totalHitsPoints">N/A</span></p>
+                </div>
             </div>
 
             <div class="table-section">
@@ -520,8 +531,9 @@
         const averagePointsFor1stPlaceElem = document.getElementById('averagePointsFor1stPlace');
         const totalTransfersCountElem = document.getElementById('totalTransfersCount');
         const totalHitsPointsElem = document.getElementById('totalHitsPoints');
+        const bestRoundDisplayElem = document.getElementById('bestRoundDisplay');
+        const worstRoundDisplayElem = document.getElementById('worstRoundDisplay');
         
-        const rankPointsTableBody = document.getElementById('rankPointsTableBody');
         const topCaptainsTableBody = document.querySelector('#topCaptainsTable tbody');
         const bestPlayersTableBody = document.querySelector('#bestPlayersTable tbody');
         const worstPlayersTableBody = document.querySelector('#worstPlayersTable tbody');
@@ -533,6 +545,7 @@
         const rankJourneyChartCanvas = document.getElementById('rankJourneyChart');
         const rankJourneyChartContainer = document.getElementById('rankJourneyChartContainer');
         const videoLoadingMessage = document.getElementById('videoLoadingMessage');
+        const createRankJourneyButton = document.getElementById('createRankJourneyButton');
         let rankJourneyChartInstance = null; // To store the Chart.js instance
 
         let managerOverallRankHistory = []; // Global variable to store rank history
@@ -550,6 +563,13 @@
             }
         });
 
+        createRankJourneyButton.addEventListener('click', () => {
+            rankJourneyChartContainer.style.display = 'flex'; // Show the chart container
+            renderRankJourneyChart(managerOverallRankHistory); // Render the chart
+            createRankJourneyButton.style.display = 'none'; // Hide the button after click
+        });
+
+
         async function fetchManagerData() {
             const managerId = managerIdInput.value;
             if (!managerId) {
@@ -564,8 +584,9 @@
             managerStatsDiv.style.display = 'none';
             rankJourneyChartContainer.style.display = 'none'; // Hide chart container initially
             videoLoadingMessage.style.display = 'none'; // Hide video loading message initially
+            createRankJourneyButton.style.display = 'none'; // Hide chart button until data is loaded
 
-            // Clear previous chart instance if it exists
+            // Destroy previous chart instance if it exists
             if (rankJourneyChartInstance) {
                 rankJourneyChartInstance.destroy();
                 rankJourneyChartInstance = null;
@@ -597,67 +618,32 @@
                         managerCurrentOverallRank = null; 
                     }
 
-                    // Populate main stats
-                    managerNameElem.textContent = `Team Name: ${data.managerName || `Manager ID: ${managerId}`}`;
+                    // Populate main stats and header
+                    managerNameElem.innerHTML = `Team Name: <span style="color: var(--spl-accent-blue);">${data.managerName || `Manager ID: ${managerId}`}</span><br>Rank & Points`;
                     overallRankElem.textContent = data.overallRank;
                     bestOverallRankElem.textContent = data.bestOverallRank;
                     worstOverallRankElem.textContent = data.worstOverallRank;
                     averagePointsElem.textContent = data.averagePoints;
                     averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
-                    totalTransfersCountElem.textContent = data.totalTransfersCount;
-                    totalHitsPointsElem.textContent = data.totalHitsPoints;
                     
-                    // Populate Rank & Points Summary Table
-                    rankPointsTableBody.innerHTML = ''; // Clear previous content
-                    
-                    const addRow = (category, value) => {
-                        const row = rankPointsTableBody.insertRow();
-                        row.insertCell().textContent = category;
-                        row.insertCell().textContent = value;
-                    };
-
-                    // Format Best Overall Rank
-                    let bestRankRaw = String(data.bestOverallRank);
-                    let bestRankNumeric = bestRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
-                    let bestRankRound = extractAndFormatRound(bestRankRaw);
-                    addRow("Best Overall Rank", `${bestRankNumeric} 🌏 ${bestRankRound}`);
-
-                    // Format Worst Overall Rank
-                    let worstRankRaw = String(data.worstOverallRank);
-                    let worstRankNumeric = worstRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
-                    let worstRankRound = extractAndFormatRound(worstRankRaw);
-                    addRow("Worst Overall Rank", `${worstRankNumeric} 🌏 ${worstRankRound}`);
-
-                    addRow("Overall Rank", data.overallRank + ' 🌏'); 
-                    addRow("Average Points", data.averagePoints);
-                    addRow("Average Points for 1st Place", data.averagePointsFor1stPlace);
-
                     // Best Round
                     const bestRound = data.bestRound;
-                    const bestRoundText = bestRound.points !== 'N/A' 
-                        ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(${bestRound.deductions})` : ''} in Round ${bestRound.round}`
+                    bestRoundDisplayElem.textContent = bestRound.points !== 'N/A' 
+                        ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(-${bestRound.deductions})` : ''} in Round ${bestRound.round}`
                         : 'N/A';
-                    addRow("Best Round", bestRoundText);
 
                     // Worst Round
                     const worstRound = data.worstRound;
-                    const worstRoundText = worstRound.points !== 'N/A' 
-                        ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(${worstRound.deductions})` : ''} in Round ${worstRound.round}`
+                    worstRoundDisplayElem.textContent = worstRound.points !== 'N/A' 
+                        ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(-${worstRound.deductions})` : ''} in Round ${worstRound.round}`
                         : 'N/A';
-                    addRow("Worst Round", worstRoundText);
 
-                    // Add the "Create My Rank Journey" button to the Rank & Points table
-                    const chartButtonRow = rankPointsTableBody.insertRow();
-                    const chartButtonCell = chartButtonRow.insertCell();
-                    chartButtonCell.colSpan = 2;
-                    const chartButton = document.createElement('button');
-                    chartButton.textContent = "Create My Rank Journey";
-                    chartButton.style.marginTop = '15px'; // Add some spacing
-                    chartButton.onclick = () => {
-                        rankJourneyChartContainer.style.display = 'flex'; // Show the chart container
-                        renderRankJourneyChart(managerOverallRankHistory); // Render the chart
-                    };
-                    chartButtonCell.appendChild(chartButton);
+                    // Populate Total Transfers and Total Hits in the new section
+                    totalTransfersCountElem.textContent = data.totalTransfersCount;
+                    totalHitsPointsElem.textContent = data.totalHitsPoints;
+                    
+                    // Show the "Create My Rank Journey" button
+                    createRankJourneyButton.style.display = 'block';
 
 
                     // Populate Top 3 Captains Table
@@ -987,7 +973,7 @@
                             max: overallYAxisMax, // Use dynamically calculated max
                             ticks: {
                                 color: '#495057',
-                                callback: function(value) {
+                                callback: function(value, index, values) {
                                     return new Intl.NumberFormat().format(value);
                                 },
                                 count: 17 // Aim for 17 labels
