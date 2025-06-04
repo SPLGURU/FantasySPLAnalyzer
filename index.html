@@ -339,16 +339,16 @@
             }
 
             /* Tables specific adjustments for mobile */
-            /* Apply to all tables except #missedPointsTable */
-            table:not(#missedPointsTable) {
+            /* Apply to ALL tables for card-like display */
+            table {
                 border: 0;
             }
 
-            table:not(#missedPointsTable) thead {
+            table thead {
                 display: none; /* Hide table headers */
             }
 
-            table:not(#missedPointsTable) tr {
+            table tr {
                 display: block;
                 margin-bottom: 10px;
                 border: 1px solid var(--spl-border-light);
@@ -358,7 +358,7 @@
                 padding: 10px;
             }
 
-            table:not(#missedPointsTable) td {
+            table td {
                 display: block;
                 text-align: right;
                 padding: 8px 10px;
@@ -369,11 +369,11 @@
                 padding-left: 50%; /* Make space for the label */
             }
 
-            table:not(#missedPointsTable) td:last-child {
+            table td:last-child {
                 border-bottom: 0; /* No border on the last cell */
             }
 
-            table:not(#missedPointsTable) td::before {
+            table td::before {
                 content: attr(data-label); /* Use data-label for content */
                 position: absolute;
                 left: 10px;
@@ -386,17 +386,6 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
-
-            /* Specific adjustments for #missedPointsTable (smaller, keeps table structure) */
-            #missedPointsTable th, #missedPointsTable td {
-                padding: 8px 10px;
-                font-size: 0.8em; /* Slightly smaller font for this table */
-            }
-
-            /* Adjust column widths for #missedPointsTable on mobile if needed */
-            #missedPointsTable th:nth-child(1), #missedPointsTable td:nth-child(1) { width: 40%; } /* Player */
-            #missedPointsTable th:nth-child(2), #missedPointsTable td:nth-child(2) { width: 30%; } /* Points */
-            #missedPointsTable th:nth-child(3), #missedPointsTable td:nth-child(3) { width: 30%; } /* Round */
         }
 
         @media (max-width: 480px) {
@@ -410,14 +399,11 @@
                 gap: 10px;
             }
             /* Further reduce font size for very small screens if necessary */
-            table:not(#missedPointsTable) td {
+            table td {
                 font-size: 0.85em;
             }
-            table:not(#missedPointsTable) td::before {
+            table td::before {
                 font-size: 0.8em;
-            }
-            #missedPointsTable th, #missedPointsTable td {
-                font-size: 0.7em;
             }
         }
 
@@ -872,14 +858,17 @@
                         row.cells[0].colSpan = 5;
                     }
 
-                    // Top 5 Missed Points Table (no data-label needed as it retains table structure)
+                    // Top 5 Missed Points Table (NOW gets data-labels)
                     missedPointsTableBody.innerHTML = '';
                     if (data.top5MissedPoints && data.top5MissedPoints.length > 0) {
                         data.top5MissedPoints.forEach(item => {
                             const row = missedPointsTableBody.insertRow();
                             row.insertCell().textContent = item.playerName;
+                            row.cells[0].setAttribute('data-label', 'Player');
                             row.insertCell().textContent = item.points;
+                            row.cells[1].setAttribute('data-label', 'Points');
                             row.insertCell().textContent = item.round;
+                            row.cells[2].setAttribute('data-label', 'Round');
                         });
                     } else {
                         const row = missedPointsTableBody.insertRow();
@@ -1007,6 +996,9 @@
                 rankJourneyChartInstance.destroy();
             }
 
+            // Determine if on mobile based on screen width
+            const isMobile = window.innerWidth <= 768;
+
             rankJourneyChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -1121,11 +1113,18 @@
                                 maxRotation: 0,
                                 minRotation: 0,
                                 callback: function(value, index) {
-                                    // Display labels only for even integer rounds
-                                    if (value % 2 === 0 && Number.isInteger(value)) {
+                                    // PC version: Display labels only for even integer rounds
+                                    if (!isMobile && value % 2 === 0 && Number.isInteger(value)) {
+                                        return labels[value].replace('Round ', '');
+                                    }
+                                    // Mobile version: Display labels for every 4th round (adjust as needed)
+                                    if (isMobile && value % 4 === 0 && Number.isInteger(value)) {
                                         return labels[value].replace('Round ', '');
                                     }
                                     return null;
+                                },
+                                font: {
+                                    size: isMobile ? 9 : 12 // Smaller font for mobile
                                 }
                             }
                         },
@@ -1133,7 +1132,7 @@
                             type: 'linear',
                             display: true,
                             title: {
-                                display: true,
+                                display: !isMobile, // Hide title on mobile
                                 text: 'Overall Rank (Lower is Better)',
                                 color: '#495057'
                             },
@@ -1148,6 +1147,10 @@
                                 callback: function(value, index, values) {
                                     return new Intl.NumberFormat().format(value);
                                 },
+                                maxTicksLimit: isMobile ? 12 : 10, // More ticks for mobile
+                                font: {
+                                    size: isMobile ? 9 : 12 // Smaller font for mobile
+                                }
                             }
                         }
                     }
@@ -1206,7 +1209,7 @@
                     interpolatedRank = null; 
                 }
 
-                // Debugging console log
+                // Debugging console log (commented out for cleaner console, uncomment if needed)
                 // console.log(`Progress: ${progress.toFixed(2)}, currentRoundForDot: ${currentRoundForDot.toFixed(2)}, interpolatedRank: ${interpolatedRank}`);
 
                 // Update the moving dot's position (Dataset 1)
