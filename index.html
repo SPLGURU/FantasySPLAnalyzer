@@ -38,11 +38,17 @@
             background-color: var(--spl-light-bg);
             color: var(--spl-text-dark); /* Dark text on light background */
             line-height: 1.6;
+            display: flex; /* Use flexbox for body to center the container */
+            justify-content: center; /* Center horizontally */
+            align-items: flex-start; /* Align to top vertically */
+            min-height: 100vh; /* Full viewport height */
+            box-sizing: border-box;
         }
 
         .container {
             max-width: 900px;
-            margin: 0 auto;
+            width: 100%; /* Ensure it takes full width up to max-width */
+            margin: 0 auto; /* Center the container itself */
             background-color: var(--spl-container-bg);
             padding: 30px;
             border-radius: 12px;
@@ -202,8 +208,8 @@
             background-color: var(--spl-container-bg); /* Use container bg for chart area */
             text-align: center;
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-            /* Fixed height for the chart container */
-            height: 400px; /* Adjust as needed for desired chart height */
+            /* Adjusted height for 10% bigger (400px * 1.1 = 440px) */
+            height: 440px; 
             display: flex;
             flex-direction: column;
             justify-content: center; /* Center content vertically */
@@ -275,6 +281,10 @@
             .missed-points-table th:nth-child(1) { width: 40%; }
             .missed-points-table th:nth-child(2) { width: 30%; }
             .missed-points-table th:nth-child(3) { width: 30%; }
+
+            #rankJourneyVideoContainer {
+                height: 330px; /* Adjusted height for mobile (300px * 1.1 = 330px) */
+            }
         }
 
         @media (max-width: 480px) {
@@ -546,12 +556,13 @@
                 displayResults(data);
 
             } catch (err) {
+                loadingDiv.style.display = 'none'; // Hide loading indicator on error
                 errorDiv.textContent = `Error: ${err.message}. Please check the Manager ID or try again later.`;
                 errorDiv.style.display = 'block';
                 resultsDiv.style.display = 'none';
                 console.error("Fetch error:", err);
             } finally {
-                loadingDiv.style.display = 'none'; // Hide loading indicator
+                loadingDiv.style.display = 'none'; // Ensure loading indicator is hidden
             }
         }
 
@@ -741,7 +752,7 @@
             }
 
 
-            document.getElementById('results').style.display = 'block'; // Show results section
+            resultsDiv.style.display = 'block'; // Show results section
         }
 
         function createRankJourneyVideo() {
