@@ -378,7 +378,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             const allRoundStatsEntries = playerHistory.filter(h => h.round === roundNum);
             const playerPointsForRound = allRoundStatsEntries.reduce((sum, entry) => sum + entry.total_points, 0);
 
-            if ((position >= 1 && position >= 11 && !isSubbedOut) || isSubbedIn) {
+            if ((position >= 1 && position <= 11 && !isSubbedOut) || isSubbedIn) {
                 playerStats.pointsGained += (playerPointsForRound * multiplier);
             } else {
                 playerStats.benchedPoints += playerPointsForRound; 
