@@ -387,9 +387,9 @@
         <div class="input-section">
             <label for="managerIdInput">Enter Manager ID:</label>
             <input type="number" id="managerIdInput" placeholder="e.g., 1234">
-            <button id="analyzeButton">Analyze Manager</button>
+            <button id="analyzeButton">Full Season Report</button>
 
-            <div class="instructions">
+            <div id="instructionsBox" class="instructions">
                 <h3>How to get your Manager ID:</h3>
                 <ol>
                     <li>Go to <a href="https://fantasy.spl.com.sa/" target="_blank">https://fantasy.spl.com.sa/</a> from your browser (SPL app does not work to get your ID).</li>
@@ -603,6 +603,8 @@
         const videoLoadingMessage = document.getElementById('videoLoadingMessage');
         const createRankJourneyButton = document.getElementById('createRankJourneyButton');
         const replayRankJourneyButton = document.getElementById('replayRankJourneyButton');
+        const instructionsBox = document.getElementById('instructionsBox'); // Get the instructions box
+
         let rankJourneyChartInstance = null;
 
         let managerOverallRankHistory = [];
@@ -615,9 +617,13 @@
 
 
         // Event Listeners
-        analyzeButton.addEventListener('click', fetchManagerData);
+        analyzeButton.addEventListener('click', () => {
+            instructionsBox.style.display = 'none'; // Hide instructions
+            fetchManagerData();
+        });
         managerIdInput.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
+                instructionsBox.style.display = 'none'; // Hide instructions
                 fetchManagerData();
                 managerIdInput.blur();
             }
@@ -846,10 +852,12 @@
                 return;
             }
 
+            // Sort data by round number to ensure correct chart progression
             fullRankHistoryData.sort((a, b) => a.round - b.round);
 
             const fixedMaxRound = 34; 
             const labels = Array.from({ length: fixedMaxRound + 1 }, (_, i) => `Round ${i}`);
+            // Create full ranks array, filling gaps with null
             const ranks = Array(fixedMaxRound + 1).fill(null);
             const points = Array(fixedMaxRound + 1).fill(null);
             const transfersCost = Array(fixedMaxRound + 1).fill(null);
@@ -895,12 +903,15 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        { // Main line dataset
+                        { // Main line dataset (always visible, with points)
                             label: 'Overall Rank',
                             data: ranks, // Full data for the line
                             tension: 0.1,
                             spanGaps: true,
-                            pointRadius: 0, // Hide points on the main line during animation
+                            pointRadius: 3, // Show points on the main line
+                            pointBackgroundColor: 'red',
+                            pointBorderColor: 'white',
+                            pointBorderWidth: 2,
                             borderColor: (context) => {
                                 const currentDataIndex = context.dataIndex;
                                 const previousDataIndex = currentDataIndex - 1;
@@ -966,45 +977,28 @@
                             intersect: false,
                             callbacks: {
                                 label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    // If this is the moving dot dataset, use its data directly
+                                    // Custom tooltip for the moving dot
                                     if (context.datasetIndex === 1) {
                                         const dotData = context.dataset.data[0];
-                                        if (!dotData) return ''; // Should not happen if dot is visible
+                                        if (!dotData) return '';
                                         const round = Math.round(dotData.x); // Round the float x-value for display
                                         const rank = Math.round(dotData.y);
+                                        // Find original data for points and transfers cost
                                         const originalRoundData = fullRankHistoryData.find(d => d.round === round);
                                         const currentPoints = originalRoundData ? originalRoundData.points : 'N/A';
                                         const currentTransfersCost = originalRoundData ? originalRoundData.transfersCost : 'N/A';
 
-                                        label = `Round: ${round} | Rank: ${new Intl.NumberFormat().format(rank)}`;
+                                        let labelText = `Round: ${round} | Rank: ${new Intl.NumberFormat().format(rank)}`;
                                         if (currentPoints !== 'N/A') {
-                                            label += ` | Points: ${currentPoints}`;
+                                            labelText += ` | Points: ${currentPoints}`;
                                         }
                                         if (currentTransfersCost !== 'N/A' && currentTransfersCost > 0) {
-                                            label += ` | Hits: -${currentTransfersCost}`;
+                                            labelText += ` | Hits: -${currentTransfersCost}`;
                                         }
-                                        return label;
-                                    } else { // For the main line dataset (if it ever shows points)
-                                        const roundIndex = context.dataIndex;
-                                        const currentRank = ranks[roundIndex];
-                                        const currentPoints = points[roundIndex];
-                                        const currentTransfersCost = transfersCost[roundIndex];
-
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (currentRank !== null) {
-                                            label += `Rank: ${new Intl.NumberFormat().format(currentRank)}`;
-                                        }
-                                        if (currentPoints !== null) {
-                                            label += ` | Points: ${currentPoints}`;
-                                        }
-                                        if (currentTransfersCost !== null && currentTransfersCost > 0) {
-                                            label += ` | Hits: -${currentTransfersCost}`;
-                                        }
-                                        return label;
+                                        return labelText;
                                     }
+                                    // Default tooltip for other datasets (main line points if they were interactive)
+                                    return context.dataset.label + ': ' + new Intl.NumberFormat().format(context.raw);
                                 }
                             }
                         }
@@ -1065,50 +1059,43 @@
                 const elapsedTime = timestamp - animationStartTime;
                 const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1);
 
-                // Calculate the exact floating-point round number for the dot's position
-                const currentRoundFloat = progress * fixedMaxRound; // Ranges from 0.0 to 34.0
-
-                const startRoundIndex = Math.floor(currentRoundFloat);
-                const endRoundIndex = Math.ceil(currentRoundFloat);
+                // Calculate the target round based on progress
+                const targetRoundFloat = progress * (fixedMaxRound); // Go from 0 to fixedMaxRound
 
                 let interpolatedRank = null;
-                let currentPointX = null; // This will be the float index for the dot
+                let currentPointX = null;
 
-                // Interpolate rank if within a valid segment
-                if (startRoundIndex >= 0 && startRoundIndex < fixedMaxRound) {
-                    const rankStart = ranks[startRoundIndex];
-                    const rankEnd = ranks[endRoundIndex];
+                // Find the two closest data points to interpolate between
+                let prevDataPoint = null;
+                let nextDataPoint = null;
 
-                    if (rankStart !== null && rankEnd !== null) {
-                        const interpolationFactor = currentRoundFloat - startRoundIndex;
-                        interpolatedRank = rankStart + (rankEnd - rankStart) * interpolationFactor;
-                        currentPointX = currentRoundFloat;
-                    } else if (rankStart !== null) {
-                        // If end point is null, hold the start rank
-                        interpolatedRank = rankStart;
-                        currentPointX = currentRoundFloat;
-                    } else if (rankEnd !== null) {
-                        // If start point is null, but end is not, hold end rank (or find previous non-null)
-                        // For simplicity, if start is null, and end is not, we'll just show the dot at end's position
-                        // or, if we're interpolating into a gap, the dot might temporarily disappear.
-                        // Let's ensure it holds the last *valid* rank if possible.
-                        let lastValidRank = null;
-                        for(let i = startRoundIndex; i >= 0; i--) {
-                            if (ranks[i] !== null) {
-                                lastValidRank = ranks[i];
-                                break;
-                            }
-                        }
-                        if (lastValidRank !== null) {
-                            interpolatedRank = lastValidRank;
-                            currentPointX = currentRoundFloat;
-                        }
+                // Find the last actual data point before or at targetRoundFloat
+                for (let i = 0; i < fullRankHistoryData.length; i++) {
+                    if (fullRankHistoryData[i].round <= targetRoundFloat) {
+                        prevDataPoint = fullRankHistoryData[i];
+                    } else {
+                        nextDataPoint = fullRankHistoryData[i];
+                        break;
                     }
-                } else if (startRoundIndex === fixedMaxRound && ranks[fixedMaxRound] !== null) {
-                    // At the very last round, show its actual rank
-                    interpolatedRank = ranks[fixedMaxRound];
-                    currentPointX = fixedMaxRound;
                 }
+
+                if (prevDataPoint && nextDataPoint) {
+                    // Linear interpolation between two known points
+                    const roundRange = nextDataPoint.round - prevDataPoint.round;
+                    const rankRange = nextDataPoint.rank - prevDataPoint.rank;
+                    const factor = (targetRoundFloat - prevDataPoint.round) / roundRange;
+                    interpolatedRank = prevDataPoint.rank + (rankRange * factor);
+                    currentPointX = targetRoundFloat;
+                } else if (prevDataPoint) {
+                    // If only a previous point exists (e.g., at the end of the data)
+                    interpolatedRank = prevDataPoint.rank;
+                    currentPointX = targetRoundFloat;
+                } else if (nextDataPoint) {
+                    // If only a next point exists (e.g., at the very beginning before first data point)
+                    interpolatedRank = nextDataPoint.rank; // Or could be null, depending on desired behavior
+                    currentPointX = targetRoundFloat;
+                }
+
 
                 // Update the moving dot's position
                 if (interpolatedRank !== null && currentPointX !== null) {
@@ -1117,28 +1104,27 @@
                     rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no valid position
                 }
 
-                // Gradually reveal the main line points
-                const roundsToReveal = Math.floor(progress * fixedMaxRound);
-                const revealedData = Array(fixedMaxRound + 1).fill(null);
-                for (let i = 0; i <= roundsToReveal; i++) {
-                    revealedData[i] = ranks[i];
-                }
-                rankJourneyChartInstance.data.datasets[0].data = revealedData;
-
-
                 rankJourneyChartInstance.update();
 
                 if (progress < 1) {
                     animationFrameId = requestAnimationFrame(animateChart);
                 } else {
                     videoLoadingMessage.style.display = 'none';
-                    // Ensure the full line is visible and the dot is at the final position
-                    rankJourneyChartInstance.data.datasets[0].data = ranks; // Show full line
-                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3; // Show points on full line
-                    rankJourneyChartInstance.data.datasets[1].data = [{ x: fixedMaxRound, y: ranks[fixedMaxRound] }]; // Final dot position
+                    // Ensure the dot is at the final position and animation frame ID is cleared
+                    if (ranks[fixedMaxRound] !== null) {
+                        rankJourneyChartInstance.data.datasets[1].data = [{ x: fixedMaxRound, y: ranks[fixedMaxRound] }];
+                    } else {
+                        // If last round has no data, place dot at last valid data point
+                        const lastValidData = fullRankHistoryData[fullRankHistoryData.length - 1];
+                        if (lastValidData) {
+                             rankJourneyChartInstance.data.datasets[1].data = [{ x: lastValidData.round, y: lastValidData.rank }];
+                        } else {
+                            rankJourneyChartInstance.data.datasets[1].data = [];
+                        }
+                    }
                     rankJourneyChartInstance.update();
-                    animationStartTime = null; // Reset for next replay
-                    animationFrameId = null; // Clear animation ID
+                    animationStartTime = null;
+                    animationFrameId = null;
                 }
             }
 
