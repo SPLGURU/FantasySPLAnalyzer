@@ -183,11 +183,10 @@
         }
 
         #rankJourneyChart {
-            /* Remove explicit height here. Let Chart.js handle it with aspectRatio */
-            width: 100%; /* Ensure it takes full width of its container */
-            max-width: 900px; /* Limit max width to prevent it from being too wide on very large screens */
-            height: auto; /* Let height be determined by aspect ratio */
-            box-sizing: border-box; /* Crucial for consistent sizing */
+            width: 100%; /* Take full width of its container */
+            max-width: 900px; /* Limit max width on large screens */
+            height: auto; /* Height will be controlled by aspect ratio in JS */
+            box-sizing: border-box;
         }
 
         .table-section {
@@ -196,7 +195,7 @@
             background-color: var(--spl-container-bg);
             border-radius: 12px;
             box-shadow: 0 6px 12px var(--spl-shadow);
-            overflow-x: auto; /* Enable horizontal scrolling for tables on small screens */
+            /* Removed overflow-x: auto; for mobile optimization */
         }
 
         .table-section h2 {
@@ -207,13 +206,16 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
-            min-width: 600px; /* Ensure table is readable on small screens */
+            /* Removed min-width: 600px; for mobile optimization */
+            table-layout: fixed; /* Ensures columns respect defined widths */
         }
 
         th, td {
             padding: 12px 15px;
             border: 1px solid var(--spl-border-light);
             text-align: left;
+            word-break: break-word; /* Allow long words to break */
+            white-space: normal; /* Ensure text wraps */
         }
 
         th {
@@ -266,10 +268,46 @@
                 font-size: 1.5em;
             }
 
+            /* Tables specific adjustments for mobile */
             th, td {
-                padding: 10px;
-                font-size: 0.85em;
+                padding: 8px 10px;
+                font-size: 0.75em; /* Smaller font size for all table cells */
             }
+
+            /* Top 3 Captains Table */
+            #topCaptainsTable th:nth-child(1), #topCaptainsTable td:nth-child(1) { width: 25%; } /* Player */
+            #topCaptainsTable th:nth-child(2), #topCaptainsTable td:nth-child(2) { width: 15%; } /* Times Captained */
+            #topCaptainsTable th:nth-child(3), #topCaptainsTable td:nth-child(3) { width: 10%; } /* Success */
+            #topCaptainsTable th:nth-child(4), #topCaptainsTable td:nth-child(4) { width: 10%; } /* Failed */
+            #topCaptainsTable th:nth-child(5), #topCaptainsTable td:nth-child(5) { width: 20%; } /* Captained Points */
+            #topCaptainsTable th:nth-child(6), #topCaptainsTable td:nth-child(6) { width: 20%; } /* Captained Rounds */
+
+            /* Top 5 Best/Worst Players Tables */
+            #bestPlayersTable th:nth-child(1), #bestPlayersTable td:nth-child(1),
+            #worstPlayersTable th:nth-child(1), #worstPlayersTable td:nth-child(1) { width: 25%; } /* Player */
+            #bestPlayersTable th:nth-child(2), #bestPlayersTable td:nth-child(2),
+            #worstPlayersTable th:nth-child(2), #worstPlayersTable td:nth-child(2) { width: 15%; } /* Started */
+            #bestPlayersTable th:nth-child(3), #bestPlayersTable td:nth-child(3),
+            #worstPlayersTable th:nth-child(3), #worstPlayersTable td:nth-child(3) { width: 20%; } /* Auto Subbed In */
+            #bestPlayersTable th:nth-child(4), #bestPlayersTable td:nth-child(4),
+            #worstPlayersTable th:nth-child(4), #worstPlayersTable td:nth-child(4) { width: 20%; } /* Points Gained */
+            #bestPlayersTable th:nth-child(5), #bestPlayersTable td:nth-child(5),
+            #worstPlayersTable th:nth-child(5), #worstPlayersTable td:nth-child(5) { width: 20%; } /* Benched Points */
+
+            /* Top 5 Missed Points Table */
+            #missedPointsTable th:nth-child(1), #missedPointsTable td:nth-child(1) { width: 40%; } /* Player */
+            #missedPointsTable th:nth-child(2), #missedPointsTable td:nth-child(2) { width: 30%; } /* Points */
+            #missedPointsTable th:nth-child(3), #missedPointsTable td:nth-child(3) { width: 30%; } /* Round */
+
+            /* Profitable/Loss-making Transfers Tables */
+            #profitableTransfersTable th:nth-child(1), #profitableTransfersTable td:nth-child(1),
+            #lossMakingTransfersTable th:nth-child(1), #lossMakingTransfersTable td:nth-child(1) { width: 25%; } /* IN */
+            #profitableTransfersTable th:nth-child(2), #profitableTransfersTable td:nth-child(2),
+            #lossMakingTransfersTable th:nth-child(2), #lossMakingTransfersTable td:nth-child(2) { width: 25%; } /* OUT */
+            #profitableTransfersTable th:nth-child(3), #profitableTransfersTable td:nth-child(3),
+            #lossMakingTransfersTable th:nth-child(3), #lossMakingTransfersTable td:nth-child(3) { width: 20%; } /* Round */
+            #profitableTransfersTable th:nth-child(4), #profitableTransfersTable td:nth-child(4),
+            #lossMakingTransfersTable th:nth-child(4), #lossMakingTransfersTable td:nth-child(4) { width: 30%; } /* Profit/Loss */
         }
 
         @media (max-width: 480px) {
@@ -281,6 +319,10 @@
             }
             .input-section {
                 gap: 10px;
+            }
+            th, td {
+                font-size: 0.65em; /* Even smaller font size for very small screens */
+                padding: 6px 8px;
             }
         }
     </style>
@@ -296,7 +338,7 @@
         </div>
 
         <div id="loadingMessage" class="loading-message" style="display: none;">
-            Loading manager data... This might take a moment due to API calls.
+            Loading
         </div>
         <div id="errorMessage" class="error-message" style="display: none;"></div>
 
@@ -345,11 +387,11 @@
                 <table id="topCaptainsTable">
                     <thead>
                         <tr>
-                            <th>Player Name</th>
+                            <th>Player</th>
                             <th>Times Captained</th>
-                            <th>Successful Captaincies (>=5 pts)</th>
-                            <th>Failed Captaincies (<5 pts)</th>
-                            <th>Total Captained Points</th>
+                            <th>Success</th>
+                            <th>Failed</th>
+                            <th>Captained Points</th>
                             <th>Captained Rounds</th>
                         </tr>
                     </thead>
@@ -364,11 +406,11 @@
                 <table id="bestPlayersTable">
                     <thead>
                         <tr>
-                            <th>Player Name</th>
-                            <th>Started (Times)</th>
-                            <th>Auto-Subbed In (Times)</th>
-                            <th>Points Gained (Actual)</th>
-                            <th>Benched Points (Raw)</th>
+                            <th>Player</th>
+                            <th>Started</th>
+                            <th>Auto Subbed In</th>
+                            <th>Points Gained</th>
+                            <th>Benched Points</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -382,11 +424,11 @@
                 <table id="worstPlayersTable">
                     <thead>
                         <tr>
-                            <th>Player Name</th>
-                            <th>Started (Times)</th>
-                            <th>Auto-Subbed In (Times)</th>
-                            <th>Points Gained (Actual)</th>
-                            <th>Benched Points (Raw)</th>
+                            <th>Player</th>
+                            <th>Started</th>
+                            <th>Auto Subbed In</th>
+                            <th>Points Gained</th>
+                            <th>Benched Points</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -400,7 +442,7 @@
                 <table id="missedPointsTable">
                     <thead>
                         <tr>
-                            <th>Player Name</th>
+                            <th>Player</th>
                             <th>Points</th>
                             <th>Round</th>
                         </tr>
@@ -464,7 +506,7 @@
         const averagePointsFor1stPlaceElem = document.getElementById('averagePointsFor1stPlace');
         const totalTransfersCountElem = document.getElementById('totalTransfersCount');
         const totalHitsPointsElem = document.getElementById('totalHitsPoints');
-        // Removed: nonActiveManagerStatusElem declaration from here
+        // Removed: nonActiveManagerStatusElem declaration
 
         const topCaptainsTableBody = document.querySelector('#topCaptainsTable tbody');
         const bestPlayersTableBody = document.querySelector('#bestPlayersTable tbody');
@@ -481,8 +523,8 @@
 
         analyzeButton.addEventListener('click', fetchManagerData);
 
-        // Pre-fill with manager ID 4 for convenience
-        managerIdInput.value = 4;
+        // Removed: Pre-fill with manager ID 4 for convenience
+        // managerIdInput.value = 4; // This line is removed
 
         async function fetchManagerData() {
             const managerId = managerIdInput.value;
@@ -654,16 +696,38 @@
             // Sort data by round number to ensure correct chart progression
             rankData.sort((a, b) => a.round - b.round);
 
-            const labels = rankData.map(d => `Round ${d.round}`);
-            const ranks = rankData.map(d => d.rank);
+            // Prepare labels and ranks, filling gaps with null for Chart.js
+            const maxRound = Math.max(...rankData.map(d => d.round));
+            const labels = Array.from({ length: maxRound + 1 }, (_, i) => `Round ${i}`);
+            const ranks = Array(maxRound + 1).fill(null);
+            rankData.forEach(d => {
+                if (d.round <= maxRound) {
+                    ranks[d.round] = d.rank;
+                }
+            });
 
-            // Filter out 'N/A' or null ranks for charting
-            const validRanks = ranks.filter(rank => typeof rank === 'number');
-            const maxRank = Math.max(...validRanks);
-            const minRank = Math.min(...validRanks);
+            // Filter out 'N/A' or null ranks for determining min/max for Y-axis scaling
+            const validRanksForScaling = ranks.filter(rank => typeof rank === 'number' && !isNaN(rank));
+            const minRank = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
+            const maxRank = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114000; // Default max if no valid ranks
 
-            // Determine animation speed based on number of rounds
-            const animationSpeed = 50; // milliseconds per round
+            // Dynamic Y-axis max calculation (similar to previous "old design" logic)
+            let overallYAxisMax;
+            if (maxRank <= 150) {
+                overallYAxisMax = maxRank + 10;
+            } else if (maxRank <= 300) {
+                overallYAxisMax = maxRank + 25;
+            } else {
+                overallYAxisMax = maxRank + 50;
+            }
+            // Ensure a reasonable minimum for the Y-axis max
+            overallYAxisMax = Math.max(overallYAxisMax, 200);
+
+
+            // Animation speed for 5 seconds total (adjust as needed)
+            const totalAnimationDurationMs = 5000;
+            const numberOfAnimationSteps = labels.length - 1; // Number of segments to animate
+            const animationSpeed = numberOfAnimationSteps > 0 ? totalAnimationDurationMs / numberOfAnimationSteps : 0;
 
             let currentAnimationFrameRound = 0; // Start animation from round 0 (before any data)
 
@@ -681,22 +745,64 @@
                     datasets: [{
                         label: 'Overall Rank',
                         data: Array(labels.length).fill(null), // Initialize with nulls for animation
-                        borderColor: '#007BFF',
-                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                        tension: 0.3,
-                        fill: true,
-                        pointRadius: 0, // Hide points during animation
-                        pointBackgroundColor: '#007BFF',
-                        pointBorderColor: '#fff',
-                        pointHoverRadius: 5,
-                        pointHoverBackgroundColor: '#0056b3',
-                        pointHoverBorderColor: '#fff',
+                        tension: 0.1, // Smooth curves
+                        spanGaps: true, // Connect gaps where data is null
+                        pointRadius: (context) => {
+                            // Make point visible only for the current animated round
+                            // And only if there's actual data for that point
+                            return context.dataIndex === currentAnimationFrameRound && ranks[context.dataIndex] !== null ? 5 : 0;
+                        },
+                        pointBackgroundColor: 'red',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        // Dynamic border color based on rank change (from old design)
+                        borderColor: (context) => {
+                            const currentDataIndex = context.dataIndex;
+                            const previousDataIndex = currentDataIndex - 1;
+
+                            // Get the actual data points from the animated dataset
+                            const currentRank = context.dataset.data[currentDataIndex];
+                            const previousRank = context.dataset.data[previousDataIndex]; 
+                            
+                            // If previous or current rank is not a valid number, use default color (e.g., for initial point or gaps)
+                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
+                                return '#007BFF'; // Default blue
+                            }
+
+                            if (currentRank < previousRank) { // Rank improved (lower number is better)
+                                return '#28A745'; // Green
+                            } else if (currentRank > previousRank) { // Rank worsened (higher number is worse)
+                                return '#DC3545'; // Red
+                            } else { // Rank unchanged
+                                return '#495057'; // Grey
+                            }
+                        },
+                        // Dynamic background color based on rank change (matching border)
+                        backgroundColor: (context) => {
+                            const currentDataIndex = context.dataIndex;
+                            const previousDataIndex = currentDataIndex - 1;
+
+                            const currentRank = context.dataset.data[currentDataIndex];
+                            const previousRank = context.dataset.data[previousDataIndex];
+
+                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
+                                return 'rgba(0, 123, 255, 0.1)'; // Default transparent blue
+                            }
+
+                            if (currentRank < previousRank) {
+                                return 'rgba(40, 167, 69, 0.1)'; // Green transparent
+                            } else if (currentRank > previousRank) {
+                                return 'rgba(220, 53, 69, 0.1)'; // Red transparent
+                            } else {
+                                return 'rgba(73, 80, 87, 0.1)'; // Grey transparent
+                            }
+                        },
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true, // Set to true to control aspect ratio
-                    aspectRatio: 2.5, // Make it significantly wider than tall (e.g., 2.5:1 ratio)
+                    maintainAspectRatio: true, // Crucial for dynamic sizing based on aspect ratio
+                    aspectRatio: 2, // Adjust this value to control height relative to width (e.g., 2 for 2:1 width:height)
                     animation: false, // Disable Chart.js built-in animation for custom animation
                     plugins: {
                         legend: {
@@ -749,12 +855,13 @@
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
+                            min: 1, // Always start from rank 1
+                            max: overallYAxisMax, // Use dynamically calculated max
                             ticks: {
                                 color: '#495057',
                                 callback: function(value, index, values) {
                                     return new Intl.NumberFormat().format(value);
                                 },
-                                // Adjust tick count based on screen size for better mobile experience
                                 maxTicksLimit: window.innerWidth < 768 ? 9 : 11 // Smaller tick labels on mobile
                             }
                         }
@@ -763,10 +870,10 @@
             });
 
             // Animation Logic
-            const maxRounds = labels.length; // Number of rounds available in data
+            const maxAnimationRound = labels.length - 1; // Animate up to the last round with data
 
             function animateRankJourney() {
-                if (currentAnimationFrameRound <= maxRounds) {
+                if (currentAnimationFrameRound <= maxAnimationRound) {
                     // Update data for the current frame
                     const animatedData = ranks.map((val, idx) => {
                         if (idx < currentAnimationFrameRound) { // Use < to ensure currentAnimationFrameRound is the *next* round to reveal
