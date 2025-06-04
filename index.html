@@ -402,9 +402,15 @@
 
             <div class="table-section">
                 <h2>Transfers Summary</h2>
-                <div style="text-align: center; margin-top: 15px;">
-                    <p style="font-size: 1.1em; margin-bottom: 8px;"><strong>Total Transfers:</strong> <span id="totalTransfersCount">N/A</span></p>
-                    <p style="font-size: 1.1em;"><strong>Total Hits (Points Deducted):</strong> <span id="totalHitsPoints">N/A</span></p>
+                <div class="stats-grid"> <!-- Changed to stats-grid -->
+                    <div class="stat-card">
+                        <h3>Total Transfers</h3>
+                        <p id="totalTransfersCount">N/A</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Hits (Points Deducted)</h3>
+                        <p id="totalHitsPoints">N/A</p>
+                    </div>
                 </div>
             </div>
 
@@ -622,8 +628,19 @@
                     // Populate main stats and header
                     managerNameElem.innerHTML = `Team Name: <span style="color: var(--spl-primary-accent);">${data.managerName || `Manager ID: ${managerId}`}</span><br>Rank & Points`;
                     overallRankElem.textContent = data.overallRank;
-                    bestOverallRankElem.textContent = data.bestOverallRank;
-                    worstOverallRankElem.textContent = data.worstOverallRank;
+                    
+                    // Best Overall Rank (formatted)
+                    let bestRankRaw = String(data.bestOverallRank);
+                    let bestRankNumeric = bestRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
+                    let bestRankRound = extractAndFormatRound(bestRankRaw);
+                    bestOverallRankElem.textContent = `${bestRankNumeric} ${bestRankRound}`;
+
+                    // Worst Overall Rank (formatted)
+                    let worstRankRaw = String(data.worstOverallRank);
+                    let worstRankNumeric = worstRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
+                    let worstRankRound = extractAndFormatRound(worstRankRaw);
+                    worstOverallRankElem.textContent = `${worstRankNumeric} ${worstRankRound}`;
+
                     averagePointsElem.textContent = data.averagePoints;
                     averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
                     
@@ -639,7 +656,7 @@
                         ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(-${worstRound.deductions})` : ''} in Round ${worstRound.round}`
                         : 'N/A';
 
-                    // Populate Total Transfers and Total Hits in the new section
+                    // Populate Total Transfers and Total Hits in the new section (now in cards)
                     totalTransfersCountElem.textContent = data.totalTransfersCount;
                     totalHitsPointsElem.textContent = data.totalHitsPoints;
                     
@@ -822,6 +839,8 @@
             }
             // Ensure a reasonable minimum for the Y-axis max
             overallYAxisMax = Math.max(overallYAxisMax, 200);
+
+            console.log(`Chart Y-axis Max: ${overallYAxisMax}, Current Overall Rank: ${managerCurrentOverallRank}, Max Rank in History: ${maxRank}`);
 
 
             // Animation speed for 5 seconds total (adjust as needed)
