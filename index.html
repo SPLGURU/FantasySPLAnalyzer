@@ -445,7 +445,7 @@
 </head>
 <body>
     <div id="logo-container">
-        <img src="unnamed.jpg" alt="Fantasy SPL Data Center Logo" onerror="this.onerror=null; this.src='https://placehold.co/300x100/034667/FFFFFF?text=FANTASY+SPL%0ADATA+CENTER';">
+        <img src="unnamed.jpg" alt="Fantasy SPL Data Center Logo">
     </div>
     <div class="container">
         <h1>Fantasy SPL Manager Analyzer</h1>
@@ -1116,8 +1116,8 @@
                                     if (!isMobile && value % 2 === 0 && Number.isInteger(value)) {
                                         return labels[value].replace('Round ', '');
                                     }
-                                    // Mobile version: Display labels for every 2nd round (increased density)
-                                    if (isMobile && value % 2 === 0 && Number.isInteger(value)) {
+                                    // Mobile version: Display labels for every integer round (max density)
+                                    if (isMobile && Number.isInteger(value)) { // Changed to show all integer rounds
                                         return labels[value].replace('Round ', '');
                                     }
                                     return null;
