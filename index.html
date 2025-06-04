@@ -19,7 +19,7 @@
 
             --spl-text-dark: #212529; /* Dark text for primary content */
             --spl-text-medium: #495057; /* Medium dark grey for secondary text */
-            --spl-primary-accent: #007BFF; /* Primary accent blue */
+            --spl-primary-accent: #034667; /* NEW BLUE COLOR */
             --spl-accent-green: #28A745; /* Green for positive indicators */
             --spl-accent-red: #DC3545; /* Red for negative indicators */
             --spl-border-light: #CED4DA; /* Light border for elements */
@@ -39,6 +39,20 @@
             min-height: 100vh;
             box-sizing: border-box;
         }
+
+        #logo-container {
+            text-align: center;
+            margin-bottom: 20px; /* Space below the logo */
+            width: 100%;
+        }
+
+        #logo-container img {
+            max-width: 300px; /* Adjust as needed for PC size */
+            height: auto;
+            display: block; /* Remove extra space below image */
+            margin: 0 auto; /* Center the image */
+        }
+
 
         .container {
             background-color: var(--spl-container-bg);
@@ -381,6 +395,9 @@
     </style>
 </head>
 <body>
+    <div id="logo-container">
+        <img src="https://placehold.co/300x100/034667/FFFFFF?text=FANTASY+SPL%0ADATA+CENTER" alt="Fantasy SPL Data Center Logo" onerror="this.onerror=null; this.src='https://placehold.co/300x100/034667/FFFFFF?text=FANTASY+SPL%0ADATA+CENTER';">
+    </div>
     <div class="container">
         <h1>Fantasy SPL Manager Analyzer</h1>
 
