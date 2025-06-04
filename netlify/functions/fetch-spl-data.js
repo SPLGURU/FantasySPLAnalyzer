@@ -402,8 +402,8 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             const roundNum = parseInt(round);
             const { position, multiplier, isSubbedOut, isSubbedIn } = playerStats.roundsInfo[roundNum];
 
-            const allRoundStatsEntries = playerHistory.filter(h => h.round === roundNum);
-            const playerPointsForRound = allRoundStatsEntries.reduce((sum, entry => sum + entry.total_points, 0);
+            // Corrected line: Missing parenthesis around 'entry' in the reduce callback
+            const playerPointsForRound = allRoundStatsEntries.reduce((sum, entry) => sum + entry.total_points, 0);
 
             if ((position >= 1 && pick.position <= 11 && !isSubbedOut) || isSubbedIn) {
                 playerStats.pointsGained += (playerPointsForRound * multiplier);
