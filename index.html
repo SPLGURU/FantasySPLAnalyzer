@@ -391,6 +391,8 @@
             </div>
 
             <button id="createRankJourneyButton" class="chart-button" style="display: none; margin-top: 20px; margin-bottom: 30px;">Create My Rank Journey</button>
+            <button id="replayRankJourneyButton" class="chart-button" style="display: none; margin-top: 20px; margin-bottom: 30px;">Replay Rank Journey</button>
+
 
             <div class="chart-section" id="rankJourneyChartContainer" style="display: none;">
                 <h2>Overall Rank Journey</h2>
@@ -399,22 +401,7 @@
                 </div>
                 <canvas id="rankJourneyChart"></canvas>
             </div>
-
-            <!-- Transfers Summary section - MOVED HERE -->
-            <div class="table-section">
-                <h2>Transfers Summary</h2>
-                <div class="stats-grid"> <!-- Changed to stats-grid -->
-                    <div class="stat-card">
-                        <h3>Total Transfers</h3>
-                        <p id="totalTransfersCount">N/A</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Hits (Points Deducted)</h3>
-                        <p id="totalHitsPoints">N/A</p>
-                    </div>
-                </div>
-            </div>
-
+            
             <div class="table-section">
                 <h2>Top 3 Captains</h2>
                 <table id="topCaptainsTable">
@@ -486,6 +473,21 @@
                 </table>
             </div>
 
+            <!-- Transfers Summary section - MOVED HERE -->
+            <div class="table-section">
+                <h2>Transfers Summary</h2>
+                <div class="stats-grid"> <!-- Changed to stats-grid -->
+                    <div class="stat-card">
+                        <h3>Total Transfers</h3>
+                        <p id="totalTransfersCount">N/A</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Hits (Points Deducted)</h3>
+                        <p id="totalHitsPoints">N/A</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- NEW: Most Profitable Transfers Table -->
             <div class="table-section">
                 <h2>Most Profitable Transfers</h2>
@@ -554,6 +556,7 @@
         const rankJourneyChartContainer = document.getElementById('rankJourneyChartContainer');
         const videoLoadingMessage = document.getElementById('videoLoadingMessage');
         const createRankJourneyButton = document.getElementById('createRankJourneyButton');
+        const replayRankJourneyButton = document.getElementById('replayRankJourneyButton'); // New replay button
         let rankJourneyChartInstance = null; // To store the Chart.js instance
 
         let managerOverallRankHistory = []; // Global variable to store rank history
@@ -574,7 +577,13 @@
         createRankJourneyButton.addEventListener('click', () => {
             rankJourneyChartContainer.style.display = 'flex'; // Show the chart container
             renderRankJourneyChart(managerOverallRankHistory); // Render the chart
-            createRankJourneyButton.style.display = 'none'; // Hide the button after click
+            createRankJourneyButton.style.display = 'none'; // Hide the create button
+            replayRankJourneyButton.style.display = 'block'; // Show the replay button
+        });
+
+        replayRankJourneyButton.addEventListener('click', () => {
+            currentAnimationFrameRound = 0; // Reset animation
+            renderRankJourneyChart(managerOverallRankHistory); // Re-render the chart
         });
 
 
@@ -592,7 +601,8 @@
             managerStatsDiv.style.display = 'none';
             rankJourneyChartContainer.style.display = 'none'; // Hide chart container initially
             videoLoadingMessage.style.display = 'none'; // Hide video loading message initially
-            createRankJourneyButton.style.display = 'none'; // Hide chart button until data is loaded
+            createRankJourneyButton.style.display = 'none'; // Hide create button until data is loaded
+            replayRankJourneyButton.style.display = 'none'; // Hide replay button until data is loaded
 
             // Destroy previous chart instance if it exists
             if (rankJourneyChartInstance) {
@@ -843,7 +853,7 @@
             // Ensure a reasonable minimum for the Y-axis max
             overallYAxisMax = Math.max(overallYAxisMax, 200);
 
-            console.log(`Chart Y-axis Max: ${overallYAxisMax}, Current Overall Rank: ${managerCurrentOverallRank}, Max Rank in History: ${maxRank}`);
+            console.log(`Chart Y-axis Debug: Min Rank (History): ${minRank}, Max Rank (History): ${maxRank}, Current Overall Rank: ${managerCurrentOverallRank}, Calculated Y-axis Max: ${overallYAxisMax}`);
 
 
             // Animation speed for 5 seconds total (adjust as needed)
