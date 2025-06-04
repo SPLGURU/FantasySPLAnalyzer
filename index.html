@@ -859,6 +859,7 @@
             const labels = Array.from({ length: fixedMaxRound + 1 }, (_, i) => `Round ${i}`);
             
             // Create a full 'ranks' array for the main line, filling gaps with null
+            // This 'ranks' array is used for Y-axis scaling and for the final state of the line
             const ranks = Array(fixedMaxRound + 1).fill(null);
             fullRankHistoryData.forEach(d => {
                 if (d.round >= 1 && d.round <= fixedMaxRound) {
@@ -898,63 +899,48 @@
             rankJourneyChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: labels, // Used only for x-category axis ticks
                     datasets: [
-                        { // Main line dataset (initially empty, drawn as trace)
+                        { // Main line dataset (draws the trace)
                             label: 'Overall Rank',
-                            data: Array(labels.length).fill(null), // Starts empty
+                            data: [], // Starts empty, filled by animation
                             tension: 0.1,
                             spanGaps: true,
                             pointRadius: 0, // Hide points during animation
                             borderColor: (context) => {
+                                // Use the interpolated rank to determine color for the segment
                                 const currentDataIndex = context.dataIndex;
-                                const previousDataIndex = currentDataIndex - 1;
-                                const currentRank = ranks[currentDataIndex]; // Use original ranks for color decision
-                                const previousRank = ranks[previousDataIndex]; 
+                                const currentPoint = context.dataset.data[currentDataIndex];
+                                const previousPoint = context.dataset.data[currentDataIndex - 1];
                                 
-                                if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
-                                    return '#007BFF';
+                                if (!currentPoint || !previousPoint || typeof currentPoint.y !== 'number' || typeof previousPoint.y !== 'number') {
+                                    return '#007BFF'; // Default blue
                                 }
-                                if (currentRank < previousRank) {
-                                    return '#28A745';
-                                } else if (currentRank > previousRank) {
-                                    return '#DC3545';
+                                if (currentPoint.y < previousPoint.y) {
+                                    return '#28A745'; // Green (improved rank)
+                                } else if (currentPoint.y > previousPoint.y) {
+                                    return '#DC3545'; // Red (worsened rank)
                                 } else {
-                                    return '#495057';
+                                    return '#495057'; // Grey (unchanged rank)
                                 }
                             },
-                            backgroundColor: (context) => {
-                                const currentDataIndex = context.dataIndex;
-                                const previousDataIndex = currentDataIndex - 1;
-                                const currentRank = ranks[currentDataIndex]; // Use original ranks for color decision
-                                const previousRank = ranks[previousDataIndex];
-
-                                if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
-                                    return 'rgba(0, 123, 255, 0.1)';
-                                }
-                                if (currentRank < previousRank) {
-                                    return 'rgba(40, 167, 69, 0.1)';
-                                } else if (currentRank > previousRank) {
-                                    return 'rgba(220, 53, 69, 0.1)';
-                                } else {
-                                    return 'rgba(73, 80, 87, 0.1)';
-                                }
-                            },
+                            backgroundColor: 'rgba(0, 0, 0, 0)', // Transparent fill
                             fill: false,
-                            xAxisID: 'x-category', // Assign to category X-axis
-                            yAxisID: 'y-rank' // Assign to rank Y-axis
+                            xAxisID: 'x-linear', // Use the linear X-axis
+                            yAxisID: 'y-rank' // Share the same Y-axis
                         },
-                        { // Moving dot dataset (scatter type, with linear X-axis)
+                        { // Moving dot dataset (scatter type)
                             label: 'Current Rank',
-                            data: [], // Starts empty, will be updated dynamically
+                            data: [], // Starts empty, updated dynamically
                             pointRadius: 8, // Larger dot
                             pointBackgroundColor: 'red',
                             pointBorderColor: 'white',
                             pointBorderWidth: 2,
                             showLine: false, // Important: do not draw a line for this dataset
                             type: 'scatter', // This dataset is a scatter plot
-                            xAxisID: 'x-linear-dot', // Assign to a new linear X-axis
-                            yAxisID: 'y-rank' // Share the same Y-axis
+                            xAxisID: 'x-linear', // Share the same linear X-axis
+                            yAxisID: 'y-rank', // Share the same Y-axis
+                            hidden: true // Hide this dataset from the legend
                         }
                     ]
                 },
@@ -968,7 +954,11 @@
                             display: true,
                             position: 'top',
                             labels: {
-                                color: '#495057'
+                                color: '#495057',
+                                filter: function(legendItem, chartData) {
+                                    // Only show "Overall Rank" in the legend
+                                    return legendItem.text === 'Overall Rank';
+                                }
                             }
                         },
                         tooltip: {
@@ -976,7 +966,7 @@
                             intersect: false,
                             callbacks: {
                                 label: function(context) {
-                                    // Custom tooltip for the moving dot
+                                    // Custom tooltip for the moving dot (datasetIndex 1)
                                     if (context.datasetIndex === 1) {
                                         const dotData = context.dataset.data[0];
                                         if (!dotData) return '';
@@ -1003,8 +993,8 @@
                         }
                     },
                     scales: {
-                        'x-category': { // Original categorical X-axis for labels
-                            type: 'category', // Explicitly define type
+                        'x-linear': { // Unified linear X-axis for both line and dot
+                            type: 'linear',
                             title: {
                                 display: true,
                                 text: 'Round',
@@ -1013,30 +1003,24 @@
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
+                            min: 0, // Start from round 0
+                            max: fixedMaxRound, // End at fixedMaxRound
                             ticks: {
                                 color: '#495057',
                                 autoSkip: false,
                                 maxRotation: 0,
                                 minRotation: 0,
                                 callback: function(value, index) {
-                                    if (index % 2 === 0) {
-                                        return labels[index].replace('Round ', '');
+                                    // Display labels only for even integer rounds
+                                    if (value % 2 === 0 && Number.isInteger(value)) {
+                                        return labels[value].replace('Round ', '');
                                     }
                                     return null;
                                 }
-                            },
-                            labels: labels // Link to labels array
-                        },
-                        'x-linear-dot': { // New linear X-axis for the dot's smooth movement
-                            type: 'linear',
-                            position: 'bottom',
-                            display: false, // Hide this axis
-                            min: 0,
-                            max: fixedMaxRound,
-                            grid: { drawOnChartArea: false }
+                            }
                         },
                         'y-rank': { // Main Y-axis
-                            type: 'linear', // Explicitly define type
+                            type: 'linear',
                             display: true,
                             title: {
                                 display: true,
@@ -1070,6 +1054,7 @@
                 const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1);
 
                 // Calculate the target round based on progress (float for interpolation)
+                // The dot will travel from Round 0 to fixedMaxRound
                 const targetRoundFloat = progress * fixedMaxRound; 
 
                 let interpolatedRank = null;
@@ -1080,6 +1065,7 @@
                 let nextDataPoint = null;
 
                 // Find the last actual data point before or at targetRoundFloat
+                // Iterate through actual data points to find the segment for interpolation
                 for (let i = 0; i < fullRankHistoryData.length; i++) {
                     if (fullRankHistoryData[i].round <= targetRoundFloat) {
                         prevDataPoint = fullRankHistoryData[i];
@@ -1100,29 +1086,39 @@
                     interpolatedRank = prevDataPoint.rank;
                 } else if (nextDataPoint && targetRoundFloat < nextDataPoint.round) {
                     // If target is before the first data point, or in a gap before nextDataPoint
-                    // We can either hold the nextDataPoint's rank or make the dot invisible.
-                    // For a "trace" effect, it's better to make it invisible until it reaches the first data point.
+                    // Make the dot invisible until it reaches the first data point
                     interpolatedRank = null; 
                 } else {
                     // No data points at all
                     interpolatedRank = null;
                 }
 
-                // Update the moving dot's position
+                // Update the moving dot's position (Dataset 1)
                 if (interpolatedRank !== null) {
                     rankJourneyChartInstance.data.datasets[1].data = [{ x: currentPointX, y: interpolatedRank }];
                 } else {
                     rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no valid position
                 }
 
-                // Update the main line dataset to show the trace
-                const roundsToReveal = Math.floor(targetRoundFloat); // Integer rounds to reveal
-                const revealedData = Array(fixedMaxRound + 1).fill(null);
-                for (let i = 0; i <= roundsToReveal; i++) {
-                    revealedData[i] = ranks[i];
+                // Update the main line dataset (Dataset 0) to show the trace
+                const traceData = [];
+                // Add all *actual* data points that have already been passed by the dot
+                for (let i = 0; i < fullRankHistoryData.length; i++) {
+                    if (fullRankHistoryData[i].round <= targetRoundFloat) {
+                        traceData.push({ x: fullRankHistoryData[i].round, y: fullRankHistoryData[i].rank });
+                    } else {
+                        break; // Stop if we've passed the target round
+                    }
                 }
-                rankJourneyChartInstance.data.datasets[0].data = revealedData;
-
+                // If the dot is currently between two data points, add its interpolated position to the trace
+                if (interpolatedRank !== null && traceData.length > 0 && currentPointX > traceData[traceData.length - 1].x) {
+                    traceData.push({ x: currentPointX, y: interpolatedRank });
+                } else if (interpolatedRank !== null && traceData.length === 0 && currentPointX >= 0) {
+                    // Handle case where the dot starts before the first actual data point
+                    traceData.push({ x: currentPointX, y: interpolatedRank });
+                }
+                
+                rankJourneyChartInstance.data.datasets[0].data = traceData;
 
                 rankJourneyChartInstance.update();
 
@@ -1130,15 +1126,16 @@
                     animationFrameId = requestAnimationFrame(animateChart);
                 } else {
                     videoLoadingMessage.style.display = 'none';
-                    // Ensure the full line is visible and the dot is at the final position
-                    rankJourneyChartInstance.data.datasets[0].data = ranks; // Show full line
-                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3; // Show all points on the line
+                    // Ensure the full line is visible and all its points are shown
+                    rankJourneyChartInstance.data.datasets[0].data = fullRankHistoryData.map(d => ({ x: d.round, y: d.rank }));
+                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3; 
                     
+                    // Ensure the dot is at the final position
                     const lastDataPoint = fullRankHistoryData[fullRankHistoryData.length - 1];
                     if (lastDataPoint) {
                         rankJourneyChartInstance.data.datasets[1].data = [{ x: lastDataPoint.round, y: lastDataPoint.rank }];
                     } else {
-                        rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot
+                        rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no data
                     }
                     rankJourneyChartInstance.update();
                     animationStartTime = null;
