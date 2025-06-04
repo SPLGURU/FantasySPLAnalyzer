@@ -333,7 +333,7 @@
 
         <div class="input-section">
             <label for="managerIdInput">Enter Manager ID:</label>
-            <input type="number" id="managerIdInput" placeholder="e.g., 4">
+            <input type="number" id="managerIdInput" placeholder="e.g., 1234">
             <button id="analyzeButton">Analyze Manager</button>
         </div>
 
@@ -371,10 +371,24 @@
                     <h3>Total Hits (Points Deducted)</h3>
                     <p id="totalHitsPoints">N/A</p>
                 </div>
-                <!-- Removed: Non-Active Manager Status card -->
             </div>
 
-            <div class="chart-section">
+            <div class="table-section">
+                <h2>Rank & Points Summary</h2>
+                <table id="rankPointsTable">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankPointsTableBody">
+                        <!-- Data will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="chart-section" id="rankJourneyChartContainer" style="display: none;">
                 <h2>Overall Rank Journey</h2>
                 <div id="videoLoadingMessage" class="video-loading-message">
                     Animating rank journey...
@@ -506,25 +520,35 @@
         const averagePointsFor1stPlaceElem = document.getElementById('averagePointsFor1stPlace');
         const totalTransfersCountElem = document.getElementById('totalTransfersCount');
         const totalHitsPointsElem = document.getElementById('totalHitsPoints');
-        // Removed: nonActiveManagerStatusElem declaration
-
+        
+        const rankPointsTableBody = document.getElementById('rankPointsTableBody');
         const topCaptainsTableBody = document.querySelector('#topCaptainsTable tbody');
         const bestPlayersTableBody = document.querySelector('#bestPlayersTable tbody');
         const worstPlayersTableBody = document.querySelector('#worstPlayersTable tbody');
         const missedPointsTableBody = document.querySelector('#missedPointsTable tbody');
         
-        // Table bodies for transfers
         const profitableTransfersTableBody = document.querySelector('#profitableTransfersTable tbody');
         const lossMakingTransfersTableBody = document.querySelector('#lossMakingTransfersTable tbody');
 
         const rankJourneyChartCanvas = document.getElementById('rankJourneyChart');
+        const rankJourneyChartContainer = document.getElementById('rankJourneyChartContainer');
         const videoLoadingMessage = document.getElementById('videoLoadingMessage');
         let rankJourneyChartInstance = null; // To store the Chart.js instance
 
-        analyzeButton.addEventListener('click', fetchManagerData);
+        let managerOverallRankHistory = []; // Global variable to store rank history
+        let managerCurrentOverallRank = null; // Global variable for current overall rank
+        let globalWorstOverallRank = 114000; // Global for worst rank, default to 114k (used as fallback/initial)
+        let currentAnimationFrameRound = 0; // Global to be accessible by Chart.js callbacks
 
-        // Removed: Pre-fill with manager ID 4 for convenience
-        // managerIdInput.value = 4; // This line is removed
+
+        // Event Listeners
+        analyzeButton.addEventListener('click', fetchManagerData);
+        managerIdInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                fetchManagerData();
+                managerIdInput.blur(); // Hide keyboard on Enter
+            }
+        });
 
         async function fetchManagerData() {
             const managerId = managerIdInput.value;
@@ -538,9 +562,10 @@
             loadingMessage.style.display = 'block';
             errorMessage.style.display = 'none';
             managerStatsDiv.style.display = 'none';
+            rankJourneyChartContainer.style.display = 'none'; // Hide chart container initially
             videoLoadingMessage.style.display = 'none'; // Hide video loading message initially
 
-            // Destroy previous chart instance if it exists
+            // Clear previous chart instance if it exists
             if (rankJourneyChartInstance) {
                 rankJourneyChartInstance.destroy();
                 rankJourneyChartInstance = null;
@@ -553,7 +578,27 @@
                 loadingMessage.style.display = 'none';
 
                 if (response.ok) {
-                    managerNameElem.textContent = data.managerName || `Manager ID: ${managerId}`; // Assuming managerName is returned
+                    // Store global data needed for chart and other calculations
+                    managerOverallRankHistory = data.overallRankHistory || [];
+                    
+                    // Extract numeric worst overall rank for Y-axis max
+                    if (data.worstOverallRank && data.worstOverallRank !== 'N/A') {
+                        const match = String(data.worstOverallRank).match(/^(\d+)/); // Ensure it's a string before regex
+                        if (match && match[1]) {
+                            globalWorstOverallRank = parseInt(match[1], 10);
+                        }
+                    }
+
+                    // Store current overall rank for new Y-axis scaling logic
+                    if (data.overallRank && data.overallRank !== 'N/A') {
+                        const rankString = String(data.overallRank);
+                        managerCurrentOverallRank = Math.round(parseFloat(rankString.replace(/,/g, '')));
+                    } else {
+                        managerCurrentOverallRank = null; 
+                    }
+
+                    // Populate main stats
+                    managerNameElem.textContent = `Team Name: ${data.managerName || `Manager ID: ${managerId}`}`;
                     overallRankElem.textContent = data.overallRank;
                     bestOverallRankElem.textContent = data.bestOverallRank;
                     worstOverallRankElem.textContent = data.worstOverallRank;
@@ -562,7 +607,57 @@
                     totalTransfersCountElem.textContent = data.totalTransfersCount;
                     totalHitsPointsElem.textContent = data.totalHitsPoints;
                     
-                    // Removed: Non-Active Manager Status display logic from here
+                    // Populate Rank & Points Summary Table
+                    rankPointsTableBody.innerHTML = ''; // Clear previous content
+                    
+                    const addRow = (category, value) => {
+                        const row = rankPointsTableBody.insertRow();
+                        row.insertCell().textContent = category;
+                        row.insertCell().textContent = value;
+                    };
+
+                    // Format Best Overall Rank
+                    let bestRankRaw = String(data.bestOverallRank);
+                    let bestRankNumeric = bestRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
+                    let bestRankRound = extractAndFormatRound(bestRankRaw);
+                    addRow("Best Overall Rank", `${bestRankNumeric} 🌏 ${bestRankRound}`);
+
+                    // Format Worst Overall Rank
+                    let worstRankRaw = String(data.worstOverallRank);
+                    let worstRankNumeric = worstRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
+                    let worstRankRound = extractAndFormatRound(worstRankRaw);
+                    addRow("Worst Overall Rank", `${worstRankNumeric} 🌏 ${worstRankRound}`);
+
+                    addRow("Overall Rank", data.overallRank + ' 🌏'); 
+                    addRow("Average Points", data.averagePoints);
+                    addRow("Average Points for 1st Place", data.averagePointsFor1stPlace);
+
+                    // Best Round
+                    const bestRound = data.bestRound;
+                    const bestRoundText = bestRound.points !== 'N/A' 
+                        ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(${bestRound.deductions})` : ''} in Round ${bestRound.round}`
+                        : 'N/A';
+                    addRow("Best Round", bestRoundText);
+
+                    // Worst Round
+                    const worstRound = data.worstRound;
+                    const worstRoundText = worstRound.points !== 'N/A' 
+                        ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(${worstRound.deductions})` : ''} in Round ${worstRound.round}`
+                        : 'N/A';
+                    addRow("Worst Round", worstRoundText);
+
+                    // Add the "Create My Rank Journey" button to the Rank & Points table
+                    const chartButtonRow = rankPointsTableBody.insertRow();
+                    const chartButtonCell = chartButtonRow.insertCell();
+                    chartButtonCell.colSpan = 2;
+                    const chartButton = document.createElement('button');
+                    chartButton.textContent = "Create My Rank Journey";
+                    chartButton.style.marginTop = '15px'; // Add some spacing
+                    chartButton.onclick = () => {
+                        rankJourneyChartContainer.style.display = 'flex'; // Show the chart container
+                        renderRankJourneyChart(managerOverallRankHistory); // Render the chart
+                    };
+                    chartButtonCell.appendChild(chartButton);
 
 
                     // Populate Top 3 Captains Table
@@ -669,9 +764,6 @@
                     }
 
 
-                    // Render Rank Journey Chart
-                    renderRankJourneyChart(data.overallRankHistory);
-
                     managerStatsDiv.style.display = 'block';
 
                 } else {
@@ -687,22 +779,40 @@
             }
         }
 
-        function renderRankJourneyChart(rankData) {
-            if (!rankData || rankData.length === 0) {
+        // Helper function to extract and format the "In Round X" part
+        function extractAndFormatRound(rankValueString) {
+            if (typeof rankValueString !== 'string' || rankValueString === 'N/A') {
+                return ''; // Return empty string if not a string or N/A
+            }
+            // Regex to find (R#) or (RD#) patterns, with optional space after R/RD
+            const match = rankValueString.match(/\((R|RD)\s*(\d+)\)/i);
+            if (match && match[2]) {
+                return `(In Round ${match[2]})`;
+            }
+            return ''; // No round information found
+        }
+
+        function renderRankJourneyChart(fullRankHistoryData) {
+            if (!fullRankHistoryData || fullRankHistoryData.length === 0) {
                 console.warn("No rank data to render chart.");
                 return;
             }
 
             // Sort data by round number to ensure correct chart progression
-            rankData.sort((a, b) => a.round - b.round);
+            fullRankHistoryData.sort((a, b) => a.round - b.round);
 
             // Prepare labels and ranks, filling gaps with null for Chart.js
-            const maxRound = Math.max(...rankData.map(d => d.round));
+            const maxRound = Math.max(...fullRankHistoryData.map(d => d.round));
             const labels = Array.from({ length: maxRound + 1 }, (_, i) => `Round ${i}`);
             const ranks = Array(maxRound + 1).fill(null);
-            rankData.forEach(d => {
+            const points = Array(maxRound + 1).fill(null);
+            const transfersCost = Array(maxRound + 1).fill(null);
+
+            fullRankHistoryData.forEach(d => {
                 if (d.round <= maxRound) {
                     ranks[d.round] = d.rank;
+                    points[d.round] = d.points;
+                    transfersCost[d.round] = d.transfersCost;
                 }
             });
 
@@ -711,14 +821,17 @@
             const minRank = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
             const maxRank = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114000; // Default max if no valid ranks
 
-            // Dynamic Y-axis max calculation (similar to previous "old design" logic)
+            // Dynamic Y-axis max calculation based on new logic
             let overallYAxisMax;
-            if (maxRank <= 150) {
-                overallYAxisMax = maxRank + 10;
-            } else if (maxRank <= 300) {
+            if (managerCurrentOverallRank >= 1 && managerCurrentOverallRank <= 101) {
                 overallYAxisMax = maxRank + 25;
-            } else {
+            } else if (managerCurrentOverallRank >= 102 && managerCurrentOverallRank <= 300) {
                 overallYAxisMax = maxRank + 50;
+            } else if (managerCurrentOverallRank > 300) {
+                overallYAxisMax = maxRank + 100;
+            } else {
+                // Fallback if managerCurrentOverallRank is not set or invalid
+                overallYAxisMax = maxRank + 100; // Default to highest buffer
             }
             // Ensure a reasonable minimum for the Y-axis max
             overallYAxisMax = Math.max(overallYAxisMax, 200);
@@ -729,7 +842,7 @@
             const numberOfAnimationSteps = labels.length - 1; // Number of segments to animate
             const animationSpeed = numberOfAnimationSteps > 0 ? totalAnimationDurationMs / numberOfAnimationSteps : 0;
 
-            let currentAnimationFrameRound = 0; // Start animation from round 0 (before any data)
+            currentAnimationFrameRound = 0; // Reset animation counter
 
             videoLoadingMessage.style.display = 'block'; // Show loading message before animation
 
@@ -744,15 +857,11 @@
                     labels: labels,
                     datasets: [{
                         label: 'Overall Rank',
-                        data: Array(labels.length).fill(null), // Initialize with nulls for animation
+                        data: Array(labels.length).fill(null), // Starts empty, will be populated by animation
                         tension: 0.1, // Smooth curves
                         spanGaps: true, // Connect gaps where data is null
-                        pointRadius: (context) => {
-                            // Make point visible only for the current animated round
-                            // And only if there's actual data for that point
-                            return context.dataIndex === currentAnimationFrameRound && ranks[context.dataIndex] !== null ? 5 : 0;
-                        },
-                        pointBackgroundColor: 'red',
+                        pointRadius: 3, // Always show points
+                        pointBackgroundColor: 'red', // Red dots
                         pointBorderColor: 'white',
                         pointBorderWidth: 2,
                         // Dynamic border color based on rank change (from old design)
@@ -818,11 +927,22 @@
                             callbacks: {
                                 label: function(context) {
                                     let label = context.dataset.label || '';
+                                    const roundIndex = context.dataIndex;
+                                    const currentRank = ranks[roundIndex];
+                                    const currentPoints = points[roundIndex];
+                                    const currentTransfersCost = transfersCost[roundIndex];
+
                                     if (label) {
                                         label += ': ';
                                     }
-                                    if (context.parsed.y !== null) {
-                                        label += new Intl.NumberFormat().format(context.parsed.y);
+                                    if (currentRank !== null) {
+                                        label += `Rank: ${new Intl.NumberFormat().format(currentRank)}`;
+                                    }
+                                    if (currentPoints !== null) {
+                                        label += ` | Points: ${currentPoints}`;
+                                    }
+                                    if (currentTransfersCost !== null && currentTransfersCost > 0) {
+                                        label += ` | Hits: -${currentTransfersCost}`;
                                     }
                                     return label;
                                 }
@@ -841,8 +961,16 @@
                             },
                             ticks: {
                                 color: '#495057',
-                                autoSkip: true,
-                                maxTicksLimit: 10 // Limit x-axis ticks for readability
+                                autoSkip: false, // Do not auto-skip
+                                maxRotation: 0, // No rotation
+                                minRotation: 0,
+                                callback: function(value, index) {
+                                    // Show only even rounds (0, 2, 4, ..., 34)
+                                    if (index % 2 === 0) {
+                                        return labels[index].replace('Round ', ''); // Just the number
+                                    }
+                                    return null;
+                                }
                             }
                         },
                         y: {
@@ -859,10 +987,10 @@
                             max: overallYAxisMax, // Use dynamically calculated max
                             ticks: {
                                 color: '#495057',
-                                callback: function(value, index, values) {
+                                callback: function(value) {
                                     return new Intl.NumberFormat().format(value);
                                 },
-                                maxTicksLimit: window.innerWidth < 768 ? 9 : 11 // Smaller tick labels on mobile
+                                count: 17 // Aim for 17 labels
                             }
                         }
                     }

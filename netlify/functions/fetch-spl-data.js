@@ -113,7 +113,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
     const maxRounds = 34; // Total number of rounds in the season
 
-    // Array to store overall rank for each round
+    // Array to store overall rank for each round, now including points and transfers cost
     const overallRankHistory = [];
 
     // Initialize these sets/objects
@@ -165,6 +165,14 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         .map(result => result.value)
         .sort((a, b) => a.round - b.round);
 
+    let bestRoundPoints = -Infinity;
+    let bestRoundDeductions = 0;
+    let bestRoundNumber = 'N/A';
+
+    let worstRoundPoints = Infinity;
+    let worstRoundDeductions = 0;
+    let worstRoundNumber = 'N/A';
+
 
     // Process collected manager picks data to populate overall stats and identify all unique players
     let latestOverallRank = 'N/A';
@@ -180,10 +188,29 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         // Calculate total hits by summing 'event_transfers_cost' from each round's entry_history
         totalTransfersCost += currentRoundTransfersCost;
 
-        // Removed: Non-Active Manager status check logic
+        // Store overall rank, points, and transfers cost for this round
+        overallRankHistory.push({ 
+            round: round, 
+            rank: currentOverallRank,
+            points: currentRoundPoints,
+            transfersCost: currentRoundTransfersCost
+        });
 
-        // Store overall rank for this round
-        overallRankHistory.push({ round: round, rank: currentOverallRank });
+        // Calculate Best/Worst Round
+        if (currentRoundPoints !== undefined) {
+            if (currentRoundPoints > bestRoundPoints) {
+                bestRoundPoints = currentRoundPoints;
+                bestRoundDeductions = currentRoundTransfersCost;
+                bestRoundNumber = round;
+            }
+            if (currentRoundPoints < worstRoundPoints) {
+                worstRoundPoints = currentRoundPoints;
+                worstRoundDeductions = currentRoundTransfersCost;
+                worstRoundNumber = round;
+            }
+            totalPointsSum += currentRoundPoints;
+        }
+
 
         if (currentOverallRank !== null && currentOverallRank !== undefined) {
             if (currentOverallRank < minOverallRank) {
@@ -196,10 +223,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             }
             latestOverallRank = currentOverallRank;
         }
-        if (currentRoundPoints !== undefined) {
-            totalPointsSum += currentRoundPoints;
-        }
-
+    
         // --- Update for Captaincy Table ---
         const captainPick = data.picks.find(p => p.multiplier === 2 || p.multiplier === 3); 
 
@@ -450,7 +474,17 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         currentEvent: managerBasicData.currentEvent,
         totalHitsPoints: totalTransfersCost * -1, 
         top5ProfitableTransfers: top5ProfitableTransfers, 
-        top5LossMakingTransfers: top5LossMakingTransfers 
+        top5LossMakingTransfers: top5LossMakingTransfers,
+        bestRound: {
+            points: bestRoundPoints,
+            deductions: bestRoundDeductions,
+            round: bestRoundNumber
+        },
+        worstRound: {
+            points: worstRoundPoints,
+            deductions: worstRoundDeductions,
+            round: worstRoundNumber
+        }
     };
 }
 
@@ -517,7 +551,9 @@ exports.handler = async function(event, context) {
                 currentEvent: managerBasicData.currentEvent,
                 totalHitsPoints: 'N/A', 
                 top5ProfitableTransfers: [], 
-                top5LossMakingTransfers: [] 
+                top5LossMakingTransfers: [],
+                bestRound: { points: 'N/A', deductions: 'N/A', round: 'N/A' },
+                worstRound: { points: 'N/A', deductions: 'N/A', round: 'N/A' }
             };
         }
 
@@ -553,7 +589,9 @@ exports.handler = async function(event, context) {
                 totalHitsPoints: transfersData.totalHitsPoints,
                 top5ProfitableTransfers: managerStats.top5ProfitableTransfers, 
                 top5LossMakingTransfers: managerStats.top5LossMakingTransfers,
-                managerName: managerBasicData.managerName // Pass managerName from basic data
+                managerName: managerBasicData.managerName, // Pass managerName from basic data
+                bestRound: managerStats.bestRound,
+                worstRound: managerStats.worstRound
             }),
             headers: { "Content-Type": "application/json" }
         };
