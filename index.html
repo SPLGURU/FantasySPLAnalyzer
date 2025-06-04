@@ -342,6 +342,42 @@
                 padding: 6px 8px;
             }
         }
+
+        .instructions {
+            background-color: #e9ecef;
+            border-left: 5px solid var(--spl-primary-accent);
+            padding: 15px 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            color: var(--spl-text-dark);
+            line-height: 1.5;
+            width: 100%;
+            max-width: 600px; /* Limit width for readability */
+            box-sizing: border-box;
+            text-align: left; /* Align text left within the instruction box */
+        }
+        .instructions h3 {
+            color: var(--spl-primary-accent);
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .instructions ol {
+            margin-left: 20px;
+            padding-left: 0;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        .instructions a {
+            color: var(--spl-primary-accent);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .instructions a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -352,6 +388,16 @@
             <label for="managerIdInput">Enter Manager ID:</label>
             <input type="number" id="managerIdInput" placeholder="e.g., 1234">
             <button id="analyzeButton">Analyze Manager</button>
+
+            <div class="instructions">
+                <h3>How to get your Manager ID:</h3>
+                <ol>
+                    <li>Go to <a href="https://fantasy.spl.com.sa/" target="_blank">https://fantasy.spl.com.sa/</a> from your browser (SPL app does not work to get your ID).</li>
+                    <li>Login with your credentials.</li>
+                    <li>Click on "Points" in the top menu.</li>
+                    <li>Check the address bar and look for the numbers after the word "/entry/". Copy that - it is your ID number.</li>
+                </ol>
+            </div>
         </div>
 
         <div id="loadingMessage" class="loading-message" style="display: none;">
@@ -562,6 +608,12 @@
         let managerOverallRankHistory = [];
         let managerCurrentOverallRank = null;
         
+        // Animation variables for requestAnimationFrame
+        const totalAnimationDurationMs = 10000; // 10 seconds total
+        let animationStartTime = null;
+        let animationFrameId = null;
+
+
         // Event Listeners
         analyzeButton.addEventListener('click', fetchManagerData);
         managerIdInput.addEventListener('keydown', function(event) {
@@ -579,7 +631,12 @@
         });
 
         replayRankJourneyButton.addEventListener('click', () => {
-            renderRankJourneyChart(managerOverallRankHistory); // Re-render the chart to restart animation
+            // Reset animation state and re-render
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            animationStartTime = null; // Reset start time for fresh animation
+            renderRankJourneyChart(managerOverallRankHistory);
         });
 
 
@@ -600,10 +657,16 @@
             createRankJourneyButton.style.display = 'none';
             replayRankJourneyButton.style.display = 'none';
 
+            // Destroy previous chart instance and cancel animation if any
             if (rankJourneyChartInstance) {
                 rankJourneyChartInstance.destroy();
                 rankJourneyChartInstance = null;
             }
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            animationStartTime = null; // Ensure animation starts fresh
 
             try {
                 const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`);
@@ -820,9 +883,6 @@
 
             console.log(`Chart Y-axis Debug: Min Rank (History): ${minRankInHistory}, Max Rank (History): ${maxRankInHistory}, Current Overall Rank (for decision): ${decisionRank}, Calculated Y-axis Max: ${overallYAxisMax}`);
 
-            const totalAnimationDurationMs = 10000; // 10 seconds total
-            let animationStartTime = null; // Renamed to avoid conflict with global currentAnimationFrameRound
-
             videoLoadingMessage.style.display = 'block';
 
             const ctx = rankJourneyChartCanvas.getContext('2d');
@@ -834,50 +894,59 @@
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'Overall Rank',
-                        data: Array(labels.length).fill(null), // Starts empty
-                        tension: 0.1,
-                        spanGaps: true,
-                        pointRadius: 3,
-                        pointBackgroundColor: 'red',
-                        pointBorderColor: 'white',
-                        pointBorderWidth: 2,
-                        borderColor: (context) => {
-                            const currentDataIndex = context.dataIndex;
-                            const previousDataIndex = currentDataIndex - 1;
-                            const currentRank = context.dataset.data[currentDataIndex];
-                            const previousRank = context.dataset.data[previousDataIndex]; 
-                            
-                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
-                                return '#007BFF';
-                            }
-                            if (currentRank < previousRank) {
-                                return '#28A745';
-                            } else if (currentRank > previousRank) {
-                                return '#DC3545';
-                            } else {
-                                return '#495057';
-                            }
-                        },
-                        backgroundColor: (context) => {
-                            const currentDataIndex = context.dataIndex;
-                            const previousDataIndex = currentDataIndex - 1;
-                            const currentRank = context.dataset.data[currentDataIndex];
-                            const previousRank = context.dataset.data[previousDataIndex];
+                    datasets: [
+                        { // Main line dataset
+                            label: 'Overall Rank',
+                            data: ranks, // Full data for the line
+                            tension: 0.1,
+                            spanGaps: true,
+                            pointRadius: 0, // Hide points on the main line during animation
+                            borderColor: (context) => {
+                                const currentDataIndex = context.dataIndex;
+                                const previousDataIndex = currentDataIndex - 1;
+                                const currentRank = ranks[currentDataIndex]; // Use original ranks for color decision
+                                const previousRank = ranks[previousDataIndex]; 
+                                
+                                if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
+                                    return '#007BFF';
+                                }
+                                if (currentRank < previousRank) {
+                                    return '#28A745';
+                                } else if (currentRank > previousRank) {
+                                    return '#DC3545';
+                                } else {
+                                    return '#495057';
+                                }
+                            },
+                            backgroundColor: (context) => {
+                                const currentDataIndex = context.dataIndex;
+                                const previousDataIndex = currentDataIndex - 1;
+                                const currentRank = ranks[currentDataIndex]; // Use original ranks for color decision
+                                const previousRank = ranks[previousDataIndex];
 
-                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
-                                return 'rgba(0, 123, 255, 0.1)';
-                            }
-                            if (currentRank < previousRank) {
-                                return 'rgba(40, 167, 69, 0.1)';
-                            } else if (currentRank > previousRank) {
-                                return 'rgba(220, 53, 69, 0.1)';
-                            } else {
-                                return 'rgba(73, 80, 87, 0.1)';
-                            }
+                                if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
+                                    return 'rgba(0, 123, 255, 0.1)';
+                                }
+                                if (currentRank < previousRank) {
+                                    return 'rgba(40, 167, 69, 0.1)';
+                                } else if (currentRank > previousRank) {
+                                    return 'rgba(220, 53, 69, 0.1)';
+                                } else {
+                                    return 'rgba(73, 80, 87, 0.1)';
+                                }
+                            },
+                            fill: false
                         },
-                    }]
+                        { // Moving dot dataset
+                            label: 'Current Rank',
+                            data: [], // Starts empty, will be updated dynamically
+                            pointRadius: 8, // Larger dot
+                            pointBackgroundColor: 'red',
+                            pointBorderColor: 'white',
+                            pointBorderWidth: 2,
+                            showLine: false // Important: do not draw a line for this dataset
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -898,24 +967,44 @@
                             callbacks: {
                                 label: function(context) {
                                     let label = context.dataset.label || '';
-                                    const roundIndex = context.dataIndex;
-                                    const currentRank = ranks[roundIndex];
-                                    const currentPoints = points[roundIndex];
-                                    const currentTransfersCost = transfersCost[roundIndex];
+                                    // If this is the moving dot dataset, use its data directly
+                                    if (context.datasetIndex === 1) {
+                                        const dotData = context.dataset.data[0];
+                                        if (!dotData) return ''; // Should not happen if dot is visible
+                                        const round = Math.round(dotData.x); // Round the float x-value for display
+                                        const rank = Math.round(dotData.y);
+                                        const originalRoundData = fullRankHistoryData.find(d => d.round === round);
+                                        const currentPoints = originalRoundData ? originalRoundData.points : 'N/A';
+                                        const currentTransfersCost = originalRoundData ? originalRoundData.transfersCost : 'N/A';
 
-                                    if (label) {
-                                        label += ': ';
+                                        label = `Round: ${round} | Rank: ${new Intl.NumberFormat().format(rank)}`;
+                                        if (currentPoints !== 'N/A') {
+                                            label += ` | Points: ${currentPoints}`;
+                                        }
+                                        if (currentTransfersCost !== 'N/A' && currentTransfersCost > 0) {
+                                            label += ` | Hits: -${currentTransfersCost}`;
+                                        }
+                                        return label;
+                                    } else { // For the main line dataset (if it ever shows points)
+                                        const roundIndex = context.dataIndex;
+                                        const currentRank = ranks[roundIndex];
+                                        const currentPoints = points[roundIndex];
+                                        const currentTransfersCost = transfersCost[roundIndex];
+
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (currentRank !== null) {
+                                            label += `Rank: ${new Intl.NumberFormat().format(currentRank)}`;
+                                        }
+                                        if (currentPoints !== null) {
+                                            label += ` | Points: ${currentPoints}`;
+                                        }
+                                        if (currentTransfersCost !== null && currentTransfersCost > 0) {
+                                            label += ` | Hits: -${currentTransfersCost}`;
+                                        }
+                                        return label;
                                     }
-                                    if (currentRank !== null) {
-                                        label += `Rank: ${new Intl.NumberFormat().format(currentRank)}`;
-                                    }
-                                    if (currentPoints !== null) {
-                                        label += ` | Points: ${currentPoints}`;
-                                    }
-                                    if (currentTransfersCost !== null && currentTransfersCost > 0) {
-                                        label += ` | Hits: -${currentTransfersCost}`;
-                                    }
-                                    return label;
                                 }
                             }
                         }
@@ -974,38 +1063,86 @@
                 }
 
                 const elapsedTime = timestamp - animationStartTime;
-                const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1); // Clamp between 0 and 1
+                const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1);
 
-                // Calculate how many rounds should be visible based on progress
-                // This ensures the dot reaches the last round (fixedMaxRound) by the end of animation
-                const roundsToDisplay = Math.floor(progress * fixedMaxRound);
+                // Calculate the exact floating-point round number for the dot's position
+                const currentRoundFloat = progress * fixedMaxRound; // Ranges from 0.0 to 34.0
 
-                const animatedData = Array(fixedMaxRound + 1).fill(null);
-                for (let i = 0; i <= roundsToDisplay; i++) {
-                    animatedData[i] = ranks[i];
+                const startRoundIndex = Math.floor(currentRoundFloat);
+                const endRoundIndex = Math.ceil(currentRoundFloat);
+
+                let interpolatedRank = null;
+                let currentPointX = null; // This will be the float index for the dot
+
+                // Interpolate rank if within a valid segment
+                if (startRoundIndex >= 0 && startRoundIndex < fixedMaxRound) {
+                    const rankStart = ranks[startRoundIndex];
+                    const rankEnd = ranks[endRoundIndex];
+
+                    if (rankStart !== null && rankEnd !== null) {
+                        const interpolationFactor = currentRoundFloat - startRoundIndex;
+                        interpolatedRank = rankStart + (rankEnd - rankStart) * interpolationFactor;
+                        currentPointX = currentRoundFloat;
+                    } else if (rankStart !== null) {
+                        // If end point is null, hold the start rank
+                        interpolatedRank = rankStart;
+                        currentPointX = currentRoundFloat;
+                    } else if (rankEnd !== null) {
+                        // If start point is null, but end is not, hold end rank (or find previous non-null)
+                        // For simplicity, if start is null, and end is not, we'll just show the dot at end's position
+                        // or, if we're interpolating into a gap, the dot might temporarily disappear.
+                        // Let's ensure it holds the last *valid* rank if possible.
+                        let lastValidRank = null;
+                        for(let i = startRoundIndex; i >= 0; i--) {
+                            if (ranks[i] !== null) {
+                                lastValidRank = ranks[i];
+                                break;
+                            }
+                        }
+                        if (lastValidRank !== null) {
+                            interpolatedRank = lastValidRank;
+                            currentPointX = currentRoundFloat;
+                        }
+                    }
+                } else if (startRoundIndex === fixedMaxRound && ranks[fixedMaxRound] !== null) {
+                    // At the very last round, show its actual rank
+                    interpolatedRank = ranks[fixedMaxRound];
+                    currentPointX = fixedMaxRound;
                 }
 
-                // Ensure the last point is drawn when animation is complete
-                if (progress === 1 && ranks[fixedMaxRound] !== null) {
-                    animatedData[fixedMaxRound] = ranks[fixedMaxRound];
+                // Update the moving dot's position
+                if (interpolatedRank !== null && currentPointX !== null) {
+                    rankJourneyChartInstance.data.datasets[1].data = [{ x: currentPointX, y: interpolatedRank }];
+                } else {
+                    rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no valid position
                 }
 
+                // Gradually reveal the main line points
+                const roundsToReveal = Math.floor(progress * fixedMaxRound);
+                const revealedData = Array(fixedMaxRound + 1).fill(null);
+                for (let i = 0; i <= roundsToReveal; i++) {
+                    revealedData[i] = ranks[i];
+                }
+                rankJourneyChartInstance.data.datasets[0].data = revealedData;
 
-                rankJourneyChartInstance.data.datasets[0].data = animatedData;
+
                 rankJourneyChartInstance.update();
 
                 if (progress < 1) {
-                    requestAnimationFrame(animateChart);
+                    animationFrameId = requestAnimationFrame(animateChart);
                 } else {
                     videoLoadingMessage.style.display = 'none';
-                    // Ensure all points are visible at the end of animation
-                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3;
+                    // Ensure the full line is visible and the dot is at the final position
+                    rankJourneyChartInstance.data.datasets[0].data = ranks; // Show full line
+                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3; // Show points on full line
+                    rankJourneyChartInstance.data.datasets[1].data = [{ x: fixedMaxRound, y: ranks[fixedMaxRound] }]; // Final dot position
                     rankJourneyChartInstance.update();
                     animationStartTime = null; // Reset for next replay
+                    animationFrameId = null; // Clear animation ID
                 }
             }
 
-            requestAnimationFrame(animateChart); // Start the animation
+            animationFrameId = requestAnimationFrame(animateChart); // Start the animation
         }
     </script>
 </body>
