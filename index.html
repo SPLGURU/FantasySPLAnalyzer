@@ -338,8 +338,7 @@
                 font-size: 1.5em;
             }
 
-            /* Tables specific adjustments for mobile */
-            /* Apply to ALL tables for card-like display */
+            /* Apply card-like display to ALL tables */
             table {
                 border: 0;
             }
@@ -1049,7 +1048,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    aspectRatio: 2,
+                    aspectRatio: isMobile ? 1.5 : 2, // Taller aspect ratio for mobile
                     animation: false, // Disable Chart.js built-in animation
                     plugins: {
                         legend: {
@@ -1147,7 +1146,7 @@
                                 callback: function(value, index, values) {
                                     return new Intl.NumberFormat().format(value);
                                 },
-                                maxTicksLimit: isMobile ? 12 : 10, // More ticks for mobile
+                                maxTicksLimit: isMobile ? 20 : 10, // More ticks for mobile (increased from 12 to 20)
                                 font: {
                                     size: isMobile ? 9 : 12 // Smaller font for mobile
                                 }
