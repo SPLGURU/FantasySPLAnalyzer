@@ -852,24 +852,21 @@
                 return;
             }
 
-            // Sort data by round number to ensure correct chart progression
+            // Ensure data is sorted by round for correct interpolation
             fullRankHistoryData.sort((a, b) => a.round - b.round);
 
             const fixedMaxRound = 34; 
             const labels = Array.from({ length: fixedMaxRound + 1 }, (_, i) => `Round ${i}`);
-            // Create full ranks array, filling gaps with null
+            
+            // Create a full 'ranks' array for the main line, filling gaps with null
             const ranks = Array(fixedMaxRound + 1).fill(null);
-            const points = Array(fixedMaxRound + 1).fill(null);
-            const transfersCost = Array(fixedMaxRound + 1).fill(null);
-
             fullRankHistoryData.forEach(d => {
                 if (d.round >= 1 && d.round <= fixedMaxRound) {
                     ranks[d.round] = d.rank;
-                    points[d.round] = d.points;
-                    transfersCost[d.round] = d.transfersCost;
                 }
             });
 
+            // Calculate min/max for Y-axis scaling
             const validRanksForScaling = ranks.filter(rank => typeof rank === 'number' && !isNaN(rank));
             const minRankInHistory = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
             const maxRankInHistory = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114154; // Approximate total managers
@@ -946,16 +943,21 @@
                                     return 'rgba(73, 80, 87, 0.1)';
                                 }
                             },
-                            fill: false
+                            fill: false,
+                            xAxisID: 'x-category', // Assign to category X-axis
+                            yAxisID: 'y-rank' // Assign to rank Y-axis
                         },
-                        { // Moving dot dataset
+                        { // Moving dot dataset (scatter type, with linear X-axis)
                             label: 'Current Rank',
                             data: [], // Starts empty, will be updated dynamically
                             pointRadius: 8, // Larger dot
                             pointBackgroundColor: 'red',
                             pointBorderColor: 'white',
                             pointBorderWidth: 2,
-                            showLine: false // Important: do not draw a line for this dataset
+                            showLine: false, // Important: do not draw a line for this dataset
+                            type: 'scatter', // This dataset is a scatter plot
+                            xAxisID: 'x-linear-dot', // Assign to a new linear X-axis
+                            yAxisID: 'y-rank' // Share the same Y-axis
                         }
                     ]
                 },
@@ -1004,7 +1006,8 @@
                         }
                     },
                     scales: {
-                        x: {
+                        'x-category': { // Original categorical X-axis
+                            type: 'category', // Explicitly define type
                             title: {
                                 display: true,
                                 text: 'Round',
@@ -1024,9 +1027,19 @@
                                     }
                                     return null;
                                 }
-                            }
+                            },
+                            labels: labels // Link to labels array
                         },
-                        y: {
+                        'x-linear-dot': { // New linear X-axis for the dot
+                            type: 'linear',
+                            position: 'bottom', // Can be hidden if desired
+                            display: false, // Hide this axis
+                            min: 0,
+                            max: fixedMaxRound,
+                            grid: { drawOnChartArea: false } // Don't draw grid lines for this axis
+                        },
+                        'y-rank': { // Main Y-axis
+                            type: 'linear', // Explicitly define type
                             display: true,
                             title: {
                                 display: true,
@@ -1059,13 +1072,13 @@
                 const elapsedTime = timestamp - animationStartTime;
                 const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1);
 
-                // Calculate the target round based on progress
-                const targetRoundFloat = progress * (fixedMaxRound); // Go from 0 to fixedMaxRound
+                // Calculate the target round based on progress (float for interpolation)
+                const targetRoundFloat = progress * fixedMaxRound; 
 
                 let interpolatedRank = null;
-                let currentPointX = null;
+                let currentPointX = targetRoundFloat; // X-coordinate for the dot (linear)
 
-                // Find the two closest data points to interpolate between
+                // Find the two closest data points in fullRankHistoryData to interpolate between
                 let prevDataPoint = null;
                 let nextDataPoint = null;
 
@@ -1085,20 +1098,22 @@
                     const rankRange = nextDataPoint.rank - prevDataPoint.rank;
                     const factor = (targetRoundFloat - prevDataPoint.round) / roundRange;
                     interpolatedRank = prevDataPoint.rank + (rankRange * factor);
-                    currentPointX = targetRoundFloat;
                 } else if (prevDataPoint) {
-                    // If only a previous point exists (e.g., at the end of the data)
+                    // If only a previous point exists (e.g., at the end of the data, or target is beyond last data point)
                     interpolatedRank = prevDataPoint.rank;
-                    currentPointX = targetRoundFloat;
                 } else if (nextDataPoint) {
                     // If only a next point exists (e.g., at the very beginning before first data point)
-                    interpolatedRank = nextDataPoint.rank; // Or could be null, depending on desired behavior
-                    currentPointX = targetRoundFloat;
+                    // This case is tricky. If targetRoundFloat is before the first actual data,
+                    // we might want the dot to be invisible or stay at rank 1.
+                    // For simplicity, if targetRoundFloat is before the first data point, hide dot.
+                    interpolatedRank = null; 
+                } else {
+                    // No data points at all
+                    interpolatedRank = null;
                 }
 
-
                 // Update the moving dot's position
-                if (interpolatedRank !== null && currentPointX !== null) {
+                if (interpolatedRank !== null) {
                     rankJourneyChartInstance.data.datasets[1].data = [{ x: currentPointX, y: interpolatedRank }];
                 } else {
                     rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no valid position
@@ -1111,16 +1126,11 @@
                 } else {
                     videoLoadingMessage.style.display = 'none';
                     // Ensure the dot is at the final position and animation frame ID is cleared
-                    if (ranks[fixedMaxRound] !== null) {
-                        rankJourneyChartInstance.data.datasets[1].data = [{ x: fixedMaxRound, y: ranks[fixedMaxRound] }];
+                    const lastDataPoint = fullRankHistoryData[fullRankHistoryData.length - 1];
+                    if (lastDataPoint) {
+                        rankJourneyChartInstance.data.datasets[1].data = [{ x: lastDataPoint.round, y: lastDataPoint.rank }];
                     } else {
-                        // If last round has no data, place dot at last valid data point
-                        const lastValidData = fullRankHistoryData[fullRankHistoryData.length - 1];
-                        if (lastValidData) {
-                             rankJourneyChartInstance.data.datasets[1].data = [{ x: lastValidData.round, y: lastValidData.rank }];
-                        } else {
-                            rankJourneyChartInstance.data.datasets[1].data = [];
-                        }
+                        rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot
                     }
                     rankJourneyChartInstance.update();
                     animationStartTime = null;
