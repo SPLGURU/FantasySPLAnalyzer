@@ -900,15 +900,12 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        { // Main line dataset (always visible, with points)
+                        { // Main line dataset (initially empty, drawn as trace)
                             label: 'Overall Rank',
-                            data: ranks, // Full data for the line
+                            data: Array(labels.length).fill(null), // Starts empty
                             tension: 0.1,
                             spanGaps: true,
-                            pointRadius: 3, // Show points on the main line
-                            pointBackgroundColor: 'red',
-                            pointBorderColor: 'white',
-                            pointBorderWidth: 2,
+                            pointRadius: 0, // Hide points during animation
                             borderColor: (context) => {
                                 const currentDataIndex = context.dataIndex;
                                 const previousDataIndex = currentDataIndex - 1;
@@ -1006,7 +1003,7 @@
                         }
                     },
                     scales: {
-                        'x-category': { // Original categorical X-axis
+                        'x-category': { // Original categorical X-axis for labels
                             type: 'category', // Explicitly define type
                             title: {
                                 display: true,
@@ -1030,13 +1027,13 @@
                             },
                             labels: labels // Link to labels array
                         },
-                        'x-linear-dot': { // New linear X-axis for the dot
+                        'x-linear-dot': { // New linear X-axis for the dot's smooth movement
                             type: 'linear',
-                            position: 'bottom', // Can be hidden if desired
+                            position: 'bottom',
                             display: false, // Hide this axis
                             min: 0,
                             max: fixedMaxRound,
-                            grid: { drawOnChartArea: false } // Don't draw grid lines for this axis
+                            grid: { drawOnChartArea: false }
                         },
                         'y-rank': { // Main Y-axis
                             type: 'linear', // Explicitly define type
@@ -1076,7 +1073,7 @@
                 const targetRoundFloat = progress * fixedMaxRound; 
 
                 let interpolatedRank = null;
-                let currentPointX = targetRoundFloat; // X-coordinate for the dot (linear)
+                let currentPointX = targetRoundFloat;
 
                 // Find the two closest data points in fullRankHistoryData to interpolate between
                 let prevDataPoint = null;
@@ -1101,11 +1098,10 @@
                 } else if (prevDataPoint) {
                     // If only a previous point exists (e.g., at the end of the data, or target is beyond last data point)
                     interpolatedRank = prevDataPoint.rank;
-                } else if (nextDataPoint) {
-                    // If only a next point exists (e.g., at the very beginning before first data point)
-                    // This case is tricky. If targetRoundFloat is before the first actual data,
-                    // we might want the dot to be invisible or stay at rank 1.
-                    // For simplicity, if targetRoundFloat is before the first data point, hide dot.
+                } else if (nextDataPoint && targetRoundFloat < nextDataPoint.round) {
+                    // If target is before the first data point, or in a gap before nextDataPoint
+                    // We can either hold the nextDataPoint's rank or make the dot invisible.
+                    // For a "trace" effect, it's better to make it invisible until it reaches the first data point.
                     interpolatedRank = null; 
                 } else {
                     // No data points at all
@@ -1119,13 +1115,25 @@
                     rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no valid position
                 }
 
+                // Update the main line dataset to show the trace
+                const roundsToReveal = Math.floor(targetRoundFloat); // Integer rounds to reveal
+                const revealedData = Array(fixedMaxRound + 1).fill(null);
+                for (let i = 0; i <= roundsToReveal; i++) {
+                    revealedData[i] = ranks[i];
+                }
+                rankJourneyChartInstance.data.datasets[0].data = revealedData;
+
+
                 rankJourneyChartInstance.update();
 
                 if (progress < 1) {
                     animationFrameId = requestAnimationFrame(animateChart);
                 } else {
                     videoLoadingMessage.style.display = 'none';
-                    // Ensure the dot is at the final position and animation frame ID is cleared
+                    // Ensure the full line is visible and the dot is at the final position
+                    rankJourneyChartInstance.data.datasets[0].data = ranks; // Show full line
+                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3; // Show all points on the line
+                    
                     const lastDataPoint = fullRankHistoryData[fullRankHistoryData.length - 1];
                     if (lastDataPoint) {
                         rankJourneyChartInstance.data.datasets[1].data = [{ x: lastDataPoint.round, y: lastDataPoint.rank }];
