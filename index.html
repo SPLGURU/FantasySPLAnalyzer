@@ -18,323 +18,258 @@
             --spl-table-row-hover: #C7CCD1; /* Lighter grey for hover */
 
             --spl-text-dark: #212529; /* Dark text for primary content */
-            --spl-text-medium: #495057; /* Medium dark text for secondary info */
-            --spl-primary-accent: #007BFF; /* A vibrant blue for primary accents (from SPL site) */
-            --spl-secondary-accent: #DC3545; /* Red for negative elements */
-            --spl-button-bg: #007BFF; /* Blue for buttons */
-            --spl-button-hover: #0056B3; /* Darker blue on hover */
-            --spl-border-color: #CED4DA; /* Light grey border color */
-        }
-
-        html, body {
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden; /* Prevent horizontal scrolling on the entire page */
+            --spl-text-medium: #495057; /* Medium dark grey for secondary text */
+            --spl-accent-blue: #007BFF; /* Primary accent blue */
+            --spl-accent-green: #28A745; /* Green for positive indicators */
+            --spl-accent-red: #DC3545; /* Red for negative indicators */
+            --spl-border-light: #CED4DA; /* Light border for elements */
+            --spl-shadow: rgba(0, 0, 0, 0.1); /* Subtle shadow */
         }
 
         body {
             font-family: 'Roboto', sans-serif;
-            padding: 20px;
             background-color: var(--spl-light-bg);
-            color: var(--spl-text-dark); /* Dark text on light background */
+            color: var(--spl-text-dark);
+            margin: 0;
+            padding: 20px;
             line-height: 1.6;
-            display: flex; /* Use flexbox for body to center the container */
-            justify-content: center; /* Center horizontally */
-            align-items: flex-start; /* Align to top vertically */
-            min-height: 100vh; /* Full viewport height */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
             box-sizing: border-box;
         }
 
         .container {
-            max-width: 900px;
-            width: 100%; /* Ensure it takes full width up to max-width */
-            margin: 0 auto; /* Center the container itself */
             background-color: var(--spl-container-bg);
-            padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Lighter shadow for light mode */
-            border: 1px solid var(--spl-border-color);
+            box-shadow: 0 6px 12px var(--spl-shadow);
+            padding: 30px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 1200px;
+            box-sizing: border-box;
         }
 
         h1, h2, h3 {
             font-family: 'Oswald', sans-serif;
-            color: var(--spl-primary-accent); /* Blue for headings */
+            color: var(--spl-accent-blue);
             text-align: center;
+            margin-top: 0;
             margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
         }
-        h1 { font-size: 2.5em; color: var(--spl-text-dark); } /* Main title can be dark */
-        h2 { font-size: 2em; border-bottom: 2px solid var(--spl-border-color); padding-bottom: 10px; margin-top: 40px; }
-        h3 { font-size: 1.5em; color: var(--spl-text-dark); margin-top: 30px; }
 
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
 
-        label {
-            display: block;
-            margin-bottom: 10px;
+        .input-section label {
             font-weight: bold;
-            color: var(--spl-text-medium); /* Medium dark text for labels */
+            color: var(--spl-text-medium);
             font-size: 1.1em;
         }
 
-        input[type="text"] {
-            width: calc(100% - 24px); /* Account for padding + border */
-            padding: 12px;
-            margin-bottom: 25px;
-            border: 1px solid var(--spl-border-color);
+        .input-section input[type="number"] {
+            padding: 12px 15px;
+            border: 1px solid var(--spl-border-light);
             border-radius: 8px;
-            background-color: var(--spl-light-bg); /* Light background for input */
-            color: var(--spl-text-dark);
             font-size: 1em;
-            transition: border-color 0.3s ease;
-        }
-        input[type="text"]:focus {
-            outline: none;
-            border-color: var(--spl-primary-accent);
+            width: 100%;
+            max-width: 300px;
+            box-sizing: border-box;
+            text-align: center;
         }
 
-        button {
-            background-color: var(--spl-button-bg);
-            color: #FFFFFF; /* White text on blue button */
-            padding: 12px 20px;
+        .input-section button {
+            background-color: var(--spl-accent-blue);
+            color: white;
+            padding: 12px 25px;
             border: none;
             border-radius: 8px;
-            cursor: pointer;
             font-size: 1.1em;
-            font-weight: bold;
-            display: block;
-            width: 100%;
+            cursor: pointer;
             transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
         }
-        button:hover {
-            background-color: var(--spl-button-hover);
+
+        .input-section button:hover {
+            background-color: #0056b3;
             transform: translateY(-2px);
         }
-        button:active {
-            transform: translateY(0);
-        }
 
-        #loading {
+        .loading-message, .error-message, .video-loading-message {
             text-align: center;
             padding: 20px;
-            font-size: 1.2em;
-            color: var(--spl-primary-accent);
-            display: none;
-        }
-
-        #error {
-            color: var(--spl-secondary-accent);
-            text-align: center;
-            padding: 15px;
-            display: none;
-            border: 1px solid var(--spl-secondary-accent);
-            background-color: rgba(220, 53, 69, 0.1); /* Lighter error background */
             border-radius: 8px;
-            margin-top: 25px;
+            margin-top: 20px;
             font-weight: bold;
         }
 
-        .results-section {
-            margin-top: 40px;
-            border-top: 1px solid var(--spl-border-color);
-            padding-top: 30px;
+        .loading-message {
+            background-color: #e0f7fa;
+            color: #007BFF;
+        }
+
+        .error-message {
+            background-color: #ffe0e6;
+            color: #DC3545;
+            border: 1px solid #DC3545;
+        }
+
+        .video-loading-message {
+            background-color: #fff3cd;
+            color: #856404;
+            display: none; /* Hidden by default */
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background-color: var(--spl-table-bg); /* Use a slightly darker background for cards */
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-card h3 {
+            color: var(--spl-accent-blue);
+            margin-top: 0;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+
+        .stat-card p {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--spl-text-dark);
+            margin: 0;
+        }
+
+        .stat-card .small-text {
+            font-size: 0.9em;
+            color: var(--spl-text-medium);
+            margin-top: 5px;
+        }
+
+        .chart-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: var(--spl-container-bg);
+            border-radius: 12px;
+            box-shadow: 0 6px 12px var(--spl-shadow);
+        }
+
+        .chart-section h2 {
+            margin-bottom: 20px;
+        }
+
+        .table-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: var(--spl-container-bg);
+            border-radius: 12px;
+            box-shadow: 0 6px 12px var(--spl-shadow);
+            overflow-x: auto; /* Enable horizontal scrolling for tables on small screens */
+        }
+
+        .table-section h2 {
+            margin-bottom: 20px;
         }
 
         table {
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            margin-top: 25px;
-            background-color: var(--spl-table-bg); /* Light grey for tables */
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15); /* Lighter shadow */
-            border: 1px solid var(--spl-border-color);
-            table-layout: fixed; /* Ensures columns respect defined widths */
+            border-collapse: collapse;
+            margin-top: 15px;
+            min-width: 600px; /* Ensure table is readable on small screens */
         }
 
         th, td {
-            border: 1px solid var(--spl-border-color);
             padding: 12px 15px;
-            font-size: 0.95em;
-            word-break: break-word; /* Allows long words to break and wrap */
-            white-space: normal; /* Ensures text wraps normally */
-            line-height: 1.2; /* Tighter line spacing for wrapped text */
+            border: 1px solid var(--spl-border-light);
+            text-align: left;
         }
 
         th {
-            background-color: var(--spl-table-header-bg); /* Slightly darker light grey for headers */
-            color: var(--spl-text-dark); /* Dark text on light header */
+            background-color: var(--spl-table-header-bg);
+            color: var(--spl-text-dark);
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            text-align: center;
+            font-size: 0.9em;
         }
-
-        td {
-            text-align: center;
-            color: var(--spl-text-medium); /* Medium dark text for table data */
-        }
-
-        /* Specific border-radius for table corners */
-        th:first-child { border-top-left-radius: 8px; }
-        th:last-child { border-top-right-radius: 8px; }
-        tr:last-child td:first-child { border-bottom-left-radius: 8px; }
-        tr:last-child td:last-child { border-bottom-right-radius: 8px; }
-
 
         tr:nth-child(even) {
-            background-color: var(--spl-table-row-even); /* Slightly different shade for even rows */
+            background-color: var(--spl-table-row-even);
         }
+
         tr:hover {
-            background-color: var(--spl-table-row-hover); /* Accent on hover */
-            transition: background-color 0.2s ease;
+            background-color: var(--spl-table-row-hover);
         }
 
-        .summary-stats p {
-            font-size: 1.1em;
-            margin: 8px 0;
-            color: var(--spl-text-medium);
-        }
-        .summary-stats p strong {
-            color: var(--spl-text-dark);
-        }
-
-        #rankJourneyVideoContainer {
-            margin-top: 30px;
-            padding: 20px;
-            border: 1px solid var(--spl-border-color);
-            border-radius: 12px;
-            background-color: var(--spl-container-bg); /* Use container bg for chart area */
-            text-align: center;
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-            /* Adjusted height for 10% bigger (400px * 1.1 = 440px) */
-            height: 440px; 
-            display: flex;
-            flex-direction: column;
-            justify-content: center; /* Center content vertically */
-            align-items: center; /* Center content horizontally */
-        }
-        #rankJourneyVideoContainer canvas {
-            max-width: 100%;
-            height: 100%; /* Make canvas fill the height of .chart-section */
-            box-sizing: border-box;
-            background-color: var(--spl-table-bg); /* Use table bg for canvas */
-            border-radius: 8px;
-            border: 1px solid var(--spl-border-color);
-        }
-        #videoLoadingMessage {
-            color: var(--spl-primary-accent);
+        .positive {
+            color: var(--spl-accent-green);
             font-weight: bold;
-            font-size: 1.1em;
-            margin-top: 10px;
         }
 
-        /* Responsive adjustments for smaller screens */
+        .negative {
+            color: var(--spl-accent-red);
+            font-weight: bold;
+        }
+
+        /* Responsive Adjustments */
         @media (max-width: 768px) {
             body {
-                padding: 10px;
-            }
-            .container {
                 padding: 15px;
             }
-            h1 { font-size: 2em; }
-            h2 { font-size: 1.6em; }
-            h3 { font-size: 1.2em; }
 
-            /* Reduce font size for all table cells and headers for tablets */
+            .container {
+                padding: 20px;
+            }
+
+            .input-section input[type="number"],
+            .input-section button {
+                font-size: 0.95em;
+                padding: 10px 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr; /* Stack cards on small screens */
+            }
+
+            .stat-card p {
+                font-size: 1.5em;
+            }
+
             th, td {
-                padding: 8px 10px;
-                font-size: 0.8em;
-            }
-            /* Default smaller font for specific header types, also reduced */
-            .captaincy-table th,
-            .best-players-table th,
-            .worst-players-table th,
-            .missed-points-table th {
-                font-size: 0.75em; /* Slightly larger to improve readability after new widths */
-                padding: 6px 8px;
-            }
-
-            /* Adjust column widths for better fitting on tablets - general distribution */
-            .rank-points-table th:nth-child(1) { width: 40%; }
-            .rank-points-table th:nth-child(2) { width: 60%; }
-
-            .captaincy-table th:nth-child(1) { width: 15%; }
-            .captaincy-table th:nth-child(2) { width: 18%; }
-            .captaincy-table th:nth-child(3) { width: 14%; }
-            .captaincy-table th:nth-child(4) { width: 14%; }
-            .captaincy-table th:nth-child(5) { width: 19%; }
-            .captaincy-table th:nth-child(6) { width: 20%; } /* 'Rounds' is now short */
-
-            .best-players-table th:nth-child(1),
-            .worst-players-table th:nth-child(1) { width: 25%; }
-            .best-players-table th:nth-child(2),
-            .worst-players-table th:nth-child(2) { width: 15%; }
-            .best-players-table th:nth-child(3),
-            .worst-players-table th:nth-child(3) { width: 20%; }
-            .best-players-table th:nth-child(4),
-            .worst-players-table th:nth-child(4) { width: 20%; }
-            .best-players-table th:nth-child(5),
-            .worst-players-table th:nth-child(5) { width: 20%; }
-
-            .missed-points-table th:nth-child(1) { width: 40%; }
-            .missed-points-table th:nth-child(2) { width: 30%; }
-            .missed-points-table th:nth-child(3) { width: 30%; }
-
-            #rankJourneyVideoContainer {
-                height: 330px; /* Adjusted height for mobile (300px * 1.1 = 330px) */
+                padding: 10px;
+                font-size: 0.85em;
             }
         }
 
         @media (max-width: 480px) {
-            input[type="text"], button {
-                padding: 10px;
-                font-size: 1em;
+            h1 {
+                font-size: 1.8em;
             }
-            /* Further reduce font size for all table cells and headers for phones */
-            th, td {
-                padding: 5px 6px;
-                font-size: 0.7em; /* Target: ~25% reduction from desktop 0.95em (0.95 * 0.75 = 0.7125) */
+            h2 {
+                font-size: 1.4em;
             }
-            /* Specific header types for phones, also reduced */
-            .captaincy-table th,
-            .best-players-table th,
-            .worst-players-table th,
-            .missed-points-table th {
-                font-size: 0.65em; /* Target: ~25% reduction from desktop 0.9em (0.9 * 0.75 = 0.675) */
-                padding: 4px 5px;
+            .input-section {
+                gap: 10px;
             }
-
-            /* --- PHONE SPECIFIC COLUMN WIDTH ADJUSTMENTS --- */
-            /* Rank & Points Table: Make left column wider for one-line text */
-            .rank-points-table th:nth-child(1) { width: 55%; }
-            .rank-points-table th:nth-child(2) { width: 45%; }
-
-            /* Top 3 Captains Table: Re-distribute widths for 'Rounds' and other headers */
-            .captaincy-table th:nth-child(1) { width: 18%; } /* Captain */
-            .captaincy-table th:nth-child(2) { width: 18%; } /* Times Captained */
-            .captaincy-table th:nth-child(3) { width: 15%; } /* Successful */
-            .captaincy-table th:nth-child(4) { width: 15%; } /* Failed */
-            .captaincy-table th:nth-child(5) { width: 22%; } /* Total Captaincy Points */
-            .captaincy-table th:nth-child(6) { width: 12%; } /* Rounds (much shorter) */
-
-            /* Best/Worst Players Tables: Give more room to player names */
-            .best-players-table th:nth-child(1),
-            .worst-players-table th:nth-child(1) { width: 30%; } /* Players */
-            .best-players-table th:nth-child(2),
-            .worst-players-table th:nth-child(2) { width: 15%; } /* Started */
-            .best-players-table th:nth-child(3),
-            .worst-players-table th:nth-child(3) { width: 18%; } /* Auto Subbed */
-            .best-players-table th:nth-child(4),
-            .worst-players-table th:nth-child(4) { width: 18%; } /* Points Gained */
-            .best-players-table th:nth-child(5),
-            .worst-players-table th:nth-child(5) { width: 19%; } /* Benched Points */
-
-            /* Missed Points Table: Give more room to player names */
-            .missed-points-table th:nth-child(1) { width: 45%; } /* Player Name */
-            .missed-points-table th:nth-child(2) { width: 27.5%; } /* Points */
-            .missed-points-table th:nth-child(3) { width: 27.5%; } /* Round */
         }
     </style>
 </head>
@@ -342,90 +277,119 @@
     <div class="container">
         <h1>Fantasy SPL Manager Analyzer</h1>
 
-        <div>
-            <label for="managerId">Enter Manager ID:</label>
-            <input type="text" id="managerId" placeholder="e.g., 1234"> <button onclick="analyzeManager()">Analyze My Performance</button>
+        <div class="input-section">
+            <label for="managerIdInput">Enter Manager ID:</label>
+            <input type="number" id="managerIdInput" placeholder="e.g., 4">
+            <button id="analyzeButton">Analyze Manager</button>
         </div>
 
-        <div id="loading">Loading data...</div>
-        <div id="error"></div>
+        <div id="loadingMessage" class="loading-message" style="display: none;">
+            Loading manager data... This might take a moment due to API calls.
+        </div>
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
 
-        <div id="results" class="results-section" style="display: none;">
-            <h2 id="managerNameDisplay"></h2> <!-- Updated ID to avoid conflict -->
+        <div id="managerStats" style="display: none;">
+            <h2 id="managerName"></h2>
 
-            <div class="rank-points-table">
-                <h3>Rank & Points</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rankPointsTableBody">
-                        </tbody>
-                </table>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Overall Rank</h3>
+                    <p id="overallRank">N/A</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Best Overall Rank</h3>
+                    <p id="bestOverallRank">N/A</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Worst Overall Rank</h3>
+                    <p id="worstOverallRank">N/A</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Average Points Per Round</h3>
+                    <p id="averagePoints">N/A</p>
+                    <p class="small-text">vs. 1st Place Average: <span id="averagePointsFor1stPlace">N/A</span></p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Transfers</h3>
+                    <p id="totalTransfersCount">N/A</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Hits (Points Deducted)</h3>
+                    <p id="totalHitsPoints">N/A</p>
+                </div>
+                <!-- NEW: Non-Active Manager Status -->
+                <div class="stat-card">
+                    <h3>Non-Active Manager</h3>
+                    <p id="nonActiveManagerStatus">N/A</p>
+                </div>
             </div>
 
-            <div id="rankJourneyVideoContainer" style="display: none;">
-                <h3>My Rank Journey</h3>
-                <p id="videoLoadingMessage" style="display: none;">Generating video...</p>
+            <div class="chart-section">
+                <h2>Overall Rank Journey</h2>
+                <div id="videoLoadingMessage" class="video-loading-message">
+                    Animating rank journey...
+                </div>
                 <canvas id="rankJourneyChart"></canvas>
             </div>
 
-
-            <div class="captaincy-table">
-                <h3>Top 3 Captains</h3>
-                <table>
+            <div class="table-section">
+                <h2>Top 3 Captains</h2>
+                <table id="topCaptainsTable">
                     <thead>
                         <tr>
-                            <th>Captain</th>
+                            <th>Player Name</th>
                             <th>Times Captained</th>
-                            <th>Successful</th>
-                            <th>Failed</th>
-                            <th>Total Captaincy Points</th>
-                            <th>Rounds</th> </tr>
-                    </thead>
-                    <tbody id="captaincyTableBody">
-                        </tbody>
-                </table>
-            </div>
-
-            <div class="best-players-table">
-                <h3>Best Players</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Players</th> <th>Started</th>
-                            <th>Auto Subbed</th>
-                            <th>Points Gained</th>
-                            <th>Benched Points</th>
+                            <th>Successful Captaincies (>=5 pts)</th>
+                            <th>Failed Captaincies (<5 pts)</th>
+                            <th>Total Captained Points</th>
+                            <th>Captained Rounds</th>
                         </tr>
                     </thead>
-                    <tbody id="bestPlayersTableBody">
-                        </tbody>
+                    <tbody>
+                        <!-- Data will be inserted here -->
+                    </tbody>
                 </table>
             </div>
 
-            <div class="worst-players-table">
-                <h3>Worst Players</h3>
-                <table>
+            <div class="table-section">
+                <h2>Top 5 Best Players</h2>
+                <table id="bestPlayersTable">
                     <thead>
                         <tr>
-                            <th>Players</th> <th>Started</th>
-                            <th>Auto Subbed</th>
-                            <th>Points Gained</th>
-                            <th>Benched Points</th>
+                            <th>Player Name</th>
+                            <th>Started (Times)</th>
+                            <th>Auto-Subbed In (Times)</th>
+                            <th>Points Gained (Actual)</th>
+                            <th>Benched Points (Raw)</th>
                         </tr>
                     </thead>
-                    <tbody id="worstPlayersTableBody">
-                        </tbody>
+                    <tbody>
+                        <!-- Data will be inserted here -->
+                    </tbody>
                 </table>
             </div>
 
-            <div class="missed-points-table">
-                <h3>Missed Points (Benched Players Points)</h3>
-                <table>
+            <div class="table-section">
+                <h2>Top 5 Worst Players</h2>
+                <table id="worstPlayersTable">
+                    <thead>
+                        <tr>
+                            <th>Player Name</th>
+                            <th>Started (Times)</th>
+                            <th>Auto-Subbed In (Times)</th>
+                            <th>Points Gained (Actual)</th>
+                            <th>Benched Points (Raw)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be inserted here -->
+                    </tbody>
+                    </table>
+            </div>
+
+            <div class="table-section">
+                <h2>Top 5 Missed Points (Benched Players)</h2>
+                <table id="missedPointsTable">
                     <thead>
                         <tr>
                             <th>Player Name</th>
@@ -433,8 +397,9 @@
                             <th>Round</th>
                         </tr>
                     </thead>
-                    <tbody id="missedPointsTableBody">
-                        </tbody>
+                    <tbody>
+                        <!-- Data will be inserted here -->
+                    </tbody>
                 </table>
             </div>
 
@@ -478,412 +443,286 @@
     </div>
 
     <script>
-        // Global variable declarations moved to the top
-        const managerIdInput = document.getElementById('managerId'); // Corrected ID
-        const analyzeButton = document.querySelector('button'); // Select the button
-        const loadingDiv = document.getElementById('loading');
-        const errorDiv = document.getElementById('error');
-        const resultsDiv = document.getElementById('results');
-        const managerNameDisplay = document.getElementById('managerNameDisplay'); // Corrected ID
-        const rankPointsTableBody = document.getElementById('rankPointsTableBody');
-        const captaincyTableBody = document.getElementById('captaincyTableBody');
-        const bestPlayersTableBody = document.getElementById('bestPlayersTableBody');
-        const worstPlayersTableBody = document.getElementById('worstPlayersTableBody');
-        const missedPointsTableBody = document.getElementById('missedPointsTableBody');
-        const profitableTransfersTableBody = document.querySelector('#profitableTransfersTable tbody'); // Moved to global
-        const lossMakingTransfersTableBody = document.querySelector('#lossMakingTransfersTable tbody'); // Moved to global
-        const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
-        const videoLoadingMessage = document.getElementById('videoLoadingMessage');
+        const managerIdInput = document.getElementById('managerIdInput');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const managerStatsDiv = document.getElementById('managerStats');
+        const managerNameElem = document.getElementById('managerName');
+        const overallRankElem = document.getElementById('overallRank');
+        const bestOverallRankElem = document.getElementById('bestOverallRank');
+        const worstOverallRankElem = document.getElementById('worstOverallRank');
+        const averagePointsElem = document.getElementById('averagePoints');
+        const averagePointsFor1stPlaceElem = document.getElementById('averagePointsFor1stPlace');
+        const totalTransfersCountElem = document.getElementById('totalTransfersCount');
+        const totalHitsPointsElem = document.getElementById('totalHitsPoints');
+        const nonActiveManagerStatusElem = document.getElementById('nonActiveManagerStatus'); 
+
+        const topCaptainsTableBody = document.querySelector('#topCaptainsTable tbody');
+        const bestPlayersTableBody = document.querySelector('#bestPlayersTable tbody');
+        const worstPlayersTableBody = document.querySelector('#worstPlayersTable tbody');
+        const missedPointsTableBody = document.querySelector('#missedPointsTable tbody');
+        
+        // NEW: Table bodies for transfers
+        const profitableTransfersTableBody = document.querySelector('#profitableTransfersTable tbody');
+        const lossMakingTransfersTableBody = document.querySelector('#lossMakingTransfersTable tbody');
+
         const rankJourneyChartCanvas = document.getElementById('rankJourneyChart');
-
-        let managerOverallRankHistory = []; // Global variable to store rank history
+        const videoLoadingMessage = document.getElementById('videoLoadingMessage');
         let rankJourneyChartInstance = null; // To store the Chart.js instance
-        let currentAnimationFrameRound = 0; // Global to be accessible by Chart.js callbacks
-        let globalWorstOverallRank = 114000; // Global for worst rank, default to 114k (used as fallback/initial)
-        let managerCurrentOverallRank = null; // New global variable for current overall rank
 
-
-        managerIdInput.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                analyzeManager();
-                managerIdInput.blur(); // Hide keyboard on Enter
-            }
-        });
-
-        analyzeButton.addEventListener('click', analyzeManager); // Attach event listener to the button
+        analyzeButton.addEventListener('click', fetchManagerData);
 
         // Pre-fill with manager ID 4 for convenience
         managerIdInput.value = 4;
 
-        async function analyzeManager() {
+        async function fetchManagerData() {
             const managerId = managerIdInput.value;
-            
-            // Clear previous results and error
-            errorDiv.style.display = 'none';
-            resultsDiv.style.display = 'none';
-            rankJourneyVideoContainer.style.display = 'none'; // Hide video container
-            rankPointsTableBody.innerHTML = '';
-            captaincyTableBody.innerHTML = '';
-            bestPlayersTableBody.innerHTML = '';
-            worstPlayersTableBody.innerHTML = '';
-            missedPointsTableBody.innerHTML = '';
-            profitableTransfersTableBody.innerHTML = ''; // Clear new table
-            lossMakingTransfersTableBody.innerHTML = ''; // Clear new table
-            
-            // Clear global rank history and reset animation state
-            managerOverallRankHistory = [];
-            currentAnimationFrameRound = 0; // Reset animation counter
-            globalWorstOverallRank = 114000; // Reset worst rank to default for new analysis
-            managerCurrentOverallRank = null; // Reset current manager rank
-
             if (!managerId) {
-                errorDiv.textContent = 'Please enter a Manager ID.';
-                errorDiv.style.display = 'block';
+                errorMessage.textContent = 'Please enter a Manager ID.';
+                errorMessage.style.display = 'block';
+                managerStatsDiv.style.display = 'none';
                 return;
             }
 
-            loadingDiv.style.display = 'block'; // Show loading indicator
+            loadingMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+            managerStatsDiv.style.display = 'none';
+            videoLoadingMessage.style.display = 'none'; // Hide video loading message initially
+
+            // Destroy previous chart instance if it exists
+            if (rankJourneyChartInstance) {
+                rankJourneyChartInstance.destroy();
+                rankJourneyChartInstance = null;
+            }
 
             try {
-                // Fetch data from your Netlify function
                 const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`);
                 const data = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to fetch data from server.');
-                }
+                loadingMessage.style.display = 'none';
 
-                displayResults(data);
-
-            } catch (err) {
-                loadingDiv.style.display = 'none'; // Hide loading indicator on error
-                errorDiv.textContent = `Error: ${err.message}. Please check the Manager ID or try again later.`;
-                errorDiv.style.display = 'block';
-                resultsDiv.style.display = 'none';
-                console.error("Fetch error:", err);
-            } finally {
-                loadingDiv.style.display = 'none'; // Ensure loading indicator is hidden
-            }
-        }
-
-        // Helper function to extract and format the "In Round X" part
-        function extractAndFormatRound(rankValueString) {
-            if (typeof rankValueString !== 'string' || rankValueString === 'N/A') {
-                return ''; // Return empty string if not a string or N/A
-            }
-            // Regex to find (R#) or (RD#) patterns, with optional space after R/RD
-            const match = rankValueString.match(/\((R|RD)\s*(\d+)\)/i);
-            if (match && match[2]) {
-                return `(In Round ${match[2]})`;
-            }
-            return ''; // No round information found
-        }
-
-        function displayResults(data) {
-            // Set manager name
-            managerNameDisplay.textContent = data.managerName;
-
-            // Store rank history for video generation
-            managerOverallRankHistory = data.overallRankHistory || [];
-
-            // Extract numeric worst overall rank for Y-axis max
-            if (data.worstOverallRank && data.worstOverallRank !== 'N/A') {
-                const match = String(data.worstOverallRank).match(/^(\d+)/); // Ensure it's a string before regex
-                if (match && match[1]) {
-                    globalWorstOverallRank = parseInt(match[1], 10);
-                }
-            }
-
-            // Store current overall rank for new Y-axis scaling logic
-            if (data.overallRank && data.overallRank !== 'N/A') {
-                // Ensure it's a string before attempting to remove commas
-                const rankString = String(data.overallRank);
-                // Remove commas and parse as float, then round to nearest integer
-                managerCurrentOverallRank = Math.round(parseFloat(rankString.replace(/,/g, '')));
-            } else {
-                managerCurrentOverallRank = null; // Ensure it's explicitly null if no valid rank
-            }
-
-
-            // Display Rank & Points Table
-            rankPointsTableBody.innerHTML = ''; // Clear previous content
-            
-            // Helper function to add a row to the table
-            const addRow = (category, value) => {
-                const row = rankPointsTableBody.insertRow();
-                row.insertCell().textContent = category;
-                row.insertCell().textContent = value;
-            };
-
-            // Format Best Overall Rank
-            let bestRankRaw = String(data.bestOverallRank);
-            let bestRankNumeric = bestRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim(); // Get the part before the (R#) or (RD#)
-            let bestRankRound = extractAndFormatRound(bestRankRaw);
-            addRow("Best Overall Rank", `${bestRankNumeric} 🌏 ${bestRankRound}`);
-
-            // Format Worst Overall Rank
-            let worstRankRaw = String(data.worstOverallRank);
-            let worstRankNumeric = worstRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim(); // Get the part before the (R#) or (RD#)
-            let worstRankRound = extractAndFormatRound(worstRankRaw);
-            addRow("Worst Overall Rank", `${worstRankNumeric} 🌏 ${worstRankRound}`);
-
-            // Overall Rank is simpler
-            addRow("Overall Rank", data.overallRank + ' 🌏'); 
-
-            // Calculate arrow counts
-            let greenArrows = 0;
-            let redArrows = 0;
-            let greyArrows = 0;
-
-            // Sort history by round to ensure correct sequential comparison
-            const sortedRankHistory = managerOverallRankHistory.filter(entry => typeof entry.rank === 'number' && !isNaN(entry.rank)).sort((a, b) => a.round - b.round);
-
-            for (let i = 1; i < sortedRankHistory.length; i++) {
-                const currentEntry = sortedRankHistory[i];
-                const previousEntry = sortedRankHistory[i - 1];
-
-                // Ensure both current and previous entries have valid ranks for comparison
-                if (typeof previousEntry.rank === 'number' && typeof currentEntry.rank === 'number') {
-                    if (currentEntry.rank < previousEntry.rank) {
-                        greenArrows++;
-                    } else if (currentEntry.rank > previousEntry.rank) {
-                        redArrows++;
+                if (response.ok) {
+                    managerNameElem.textContent = data.managerName || `Manager ID: ${managerId}`; // Assuming managerName is returned
+                    overallRankElem.textContent = data.overallRank;
+                    bestOverallRankElem.textContent = data.bestOverallRank;
+                    worstOverallRankElem.textContent = data.worstOverallRank;
+                    averagePointsElem.textContent = data.averagePoints;
+                    averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
+                    totalTransfersCountElem.textContent = data.totalTransfersCount;
+                    totalHitsPointsElem.textContent = data.totalHitsPoints;
+                    
+                    // Display Non-Active Manager Status
+                    if (data.isNonActiveManager === true) {
+                        nonActiveManagerStatusElem.textContent = 'Yes';
+                        nonActiveManagerStatusElem.classList.remove('positive');
+                        nonActiveManagerStatusElem.classList.add('negative');
+                    } else if (data.isNonActiveManager === false) {
+                        nonActiveManagerStatusElem.textContent = 'No';
+                        nonActiveManagerStatusElem.classList.remove('negative');
+                        nonActiveManagerStatusElem.classList.add('positive');
                     } else {
-                        greyArrows++;
+                        nonActiveManagerStatusElem.textContent = 'N/A';
+                        nonActiveManagerStatusElem.classList.remove('positive', 'negative');
                     }
+
+
+                    // Populate Top 3 Captains Table
+                    topCaptainsTableBody.innerHTML = '';
+                    if (data.top3Captains && data.top3Captains.length > 0) {
+                        data.top3Captains.forEach(captain => {
+                            const row = topCaptainsTableBody.insertRow();
+                            row.insertCell().textContent = captain.name;
+                            row.insertCell().textContent = captain.times;
+                            row.insertCell().textContent = captain.successful;
+                            row.insertCell().textContent = captain.failed;
+                            row.insertCell().textContent = captain.totalCaptainedPoints;
+                            row.insertCell().textContent = captain.captainedRounds ? captain.captainedRounds.join(', ') : 'N/A';
+                        });
+                    } else {
+                        const row = topCaptainsTableBody.insertRow();
+                        row.insertCell().textContent = 'No data available.';
+                        row.cells[0].colSpan = 6;
+                    }
+
+                    // Populate Best Players Table
+                    bestPlayersTableBody.innerHTML = '';
+                    if (data.bestPlayers && data.bestPlayers.length > 0) {
+                        data.bestPlayers.forEach(player => {
+                            const row = bestPlayersTableBody.insertRow();
+                            row.insertCell().textContent = player.name;
+                            row.insertCell().textContent = player.started;
+                            row.insertCell().textContent = player.autoSubbed;
+                            row.insertCell().textContent = player.pointsGained;
+                            row.insertCell().textContent = player.benchedPoints;
+                        });
+                    } else {
+                        const row = bestPlayersTableBody.insertRow();
+                        row.insertCell().textContent = 'No data available.';
+                        row.cells[0].colSpan = 5;
+                    }
+
+                    // Populate Worst Players Table
+                    worstPlayersTableBody.innerHTML = '';
+                    if (data.worstPlayers && data.worstPlayers.length > 0) {
+                        data.worstPlayers.forEach(player => {
+                            const row = worstPlayersTableBody.insertRow();
+                            row.insertCell().textContent = player.name;
+                            row.insertCell().textContent = player.started;
+                            row.insertCell().textContent = player.autoSubbed;
+                            row.insertCell().textContent = player.pointsGained;
+                            row.insertCell().textContent = player.benchedPoints;
+                        });
+                    } else {
+                        const row = worstPlayersTableBody.insertRow();
+                        row.insertCell().textContent = 'No data available.';
+                        row.cells[0].colSpan = 5;
+                    }
+
+                    // Populate Missed Points Table
+                    missedPointsTableBody.innerHTML = '';
+                    if (data.top5MissedPoints && data.top5MissedPoints.length > 0) {
+                        data.top5MissedPoints.forEach(item => {
+                            const row = missedPointsTableBody.insertRow();
+                            row.insertCell().textContent = item.playerName;
+                            row.insertCell().textContent = item.points;
+                            row.insertCell().textContent = item.round;
+                        });
+                    } else {
+                        const row = missedPointsTableBody.insertRow();
+                        row.insertCell().textContent = 'No data available.';
+                        row.cells[0].colSpan = 3;
+                    }
+
+                    // NEW: Populate Most Profitable Transfers Table
+                    profitableTransfersTableBody.innerHTML = '';
+                    if (data.top5ProfitableTransfers && data.top5ProfitableTransfers.length > 0) {
+                        data.top5ProfitableTransfers.forEach(transfer => {
+                            const row = profitableTransfersTableBody.insertRow();
+                            row.insertCell().textContent = transfer.playerInName;
+                            row.insertCell().textContent = transfer.playerOutName;
+                            row.insertCell().textContent = transfer.round;
+                            const profitLossCell = row.insertCell();
+                            profitLossCell.textContent = transfer.profitLoss;
+                            profitLossCell.classList.add(transfer.profitLoss >= 0 ? 'positive' : 'negative');
+                        });
+                    } else {
+                        const row = profitableTransfersTableBody.insertRow();
+                        row.insertCell().textContent = 'No data available.';
+                        row.cells[0].colSpan = 4;
+                    }
+
+                    // NEW: Populate Most Loss-making Transfers Table
+                    lossMakingTransfersTableBody.innerHTML = '';
+                    if (data.top5LossMakingTransfers && data.top5LossMakingTransfers.length > 0) {
+                        data.top5LossMakingTransfers.forEach(transfer => {
+                            const row = lossMakingTransfersTableBody.insertRow();
+                            row.insertCell().textContent = transfer.playerInName;
+                            row.insertCell().textContent = transfer.playerOutName;
+                            row.insertCell().textContent = transfer.round;
+                            const profitLossCell = row.insertCell();
+                            profitLossCell.textContent = transfer.profitLoss;
+                            profitLossCell.classList.add(transfer.profitLoss >= 0 ? 'positive' : 'negative');
+                        });
+                    } else {
+                        const row = lossMakingTransfersTableBody.insertRow();
+                        row.insertCell().textContent = 'No data available.';
+                        row.cells[0].colSpan = 4;
+                    }
+
+
+                    // Render Rank Journey Chart
+                    renderRankJourneyChart(data.overallRankHistory);
+
+                    managerStatsDiv.style.display = 'block';
+
+                } else {
+                    errorMessage.textContent = data.error || 'An unknown error occurred.';
+                    errorMessage.style.display = 'block';
                 }
+
+            } catch (error) {
+                loadingMessage.style.display = 'none';
+                errorMessage.textContent = `Failed to fetch data: ${error.message}. This might be due to a network issue, an invalid Manager ID, or a temporary API problem. Please try again.`;
+                errorMessage.style.display = 'block';
+                console.error("Fetch error:", error);
             }
-
-            addRow("Average Points", data.averagePoints);
-            addRow("Average Points for 1st Place", data.averagePointsFor1stPlace);
-            
-            // Add new rows for arrow counts with NEW EMOJIS
-            addRow("Number of Green Arrows", greenArrows + ' 🟢');
-            addRow("Number of Red Arrows", redArrows + ' 🔴');
-            addRow("Number of Grey Arrows", greyArrows + ' ➖');
-
-            // NEW ROW for "Create My Rank Journey Video" button (Moved after arrow counts)
-            const videoButtonRow = rankPointsTableBody.insertRow();
-            const videoButtonCell = videoButtonRow.insertCell();
-            videoButtonCell.colSpan = 2; // Span across both columns
-            const videoButton = document.createElement('button');
-            videoButton.textContent = "Create My Rank Journey Video";
-            videoButton.onclick = createRankJourneyVideo; // Attach the new function
-            videoButtonCell.appendChild(videoButton);
-
-
-            // Display Captaincy Table
-            captaincyTableBody.innerHTML = ''; // Clear previous content
-            data.top3Captains.forEach(captain => {
-                const row = captaincyTableBody.insertRow();
-                row.insertCell().textContent = captain.name;
-                row.insertCell().textContent = captain.times;
-                row.insertCell().textContent = captain.successful;
-                row.insertCell().textContent = captain.failed;
-                row.insertCell().textContent = captain.totalCaptainedPoints;
-                row.insertCell().textContent = captain.captainedRounds ? captain.captainedRounds.join(', ') : 'N/A';
-            });
-
-            // Display Best Players Table
-            bestPlayersTableBody.innerHTML = ''; // Clear previous content
-            data.bestPlayers.forEach(player => {
-                const row = bestPlayersTableBody.insertRow();
-                row.insertCell().textContent = player.name;
-                row.insertCell().textContent = player.started;
-                row.insertCell().textContent = player.autoSubbed;
-                row.insertCell().textContent = player.pointsGained;
-                row.insertCell().textContent = player.benchedPoints;
-            });
-
-            // Display Worst Players Table
-            worstPlayersTableBody.innerHTML = ''; // Clear previous content
-            data.worstPlayers.forEach(player => {
-                const row = worstPlayersTableBody.insertRow();
-                row.insertCell().textContent = player.name;
-                row.insertCell().textContent = player.started;
-                row.insertCell().textContent = player.autoSubbed;
-                row.insertCell().textContent = player.pointsGained;
-                row.insertCell().textContent = player.benchedPoints;
-            });
-
-            // Display Missed Points Table
-            missedPointsTableBody.innerHTML = ''; // Clear previous content
-            data.top5MissedPoints.forEach(item => {
-                const row = missedPointsTableBody.insertRow();
-                row.insertCell().textContent = item.playerName;
-                row.insertCell().textContent = item.points;
-                row.insertCell().textContent = item.round;
-            });
-
-            // Populate Most Profitable Transfers Table
-            profitableTransfersTableBody.innerHTML = '';
-            if (data.top5ProfitableTransfers && data.top5ProfitableTransfers.length > 0) {
-                data.top5ProfitableTransfers.forEach(transfer => {
-                    const row = profitableTransfersTableBody.insertRow();
-                    row.insertCell().textContent = transfer.playerInName;
-                    row.insertCell().textContent = transfer.playerOutName;
-                    row.insertCell().textContent = transfer.round;
-                    const profitLossCell = row.insertCell();
-                    profitLossCell.textContent = transfer.profitLoss;
-                    profitLossCell.classList.add(transfer.profitLoss >= 0 ? 'positive' : 'negative');
-                });
-            } else {
-                const row = profitableTransfersTableBody.insertRow();
-                row.insertCell().textContent = 'No data available.';
-                row.cells[0].colSpan = 4;
-            }
-
-            // Populate Most Loss-making Transfers Table
-            lossMakingTransfersTableBody.innerHTML = '';
-            if (data.top5LossMakingTransfers && data.top5LossMakingTransfers.length > 0) {
-                data.top5LossMakingTransfers.forEach(transfer => {
-                    const row = lossMakingTransfersTableBody.insertRow();
-                    row.insertCell().textContent = transfer.playerInName;
-                    row.insertCell().textContent = transfer.playerOutName;
-                    row.insertCell().textContent = transfer.round;
-                    const profitLossCell = row.insertCell();
-                    profitLossCell.textContent = transfer.profitLoss;
-                    profitLossCell.classList.add(transfer.profitLoss >= 0 ? 'positive' : 'negative');
-                });
-            } else {
-                const row = lossMakingTransfersTableBody.insertRow();
-                row.insertCell().textContent = 'No data available.';
-                row.cells[0].colSpan = 4;
-            }
-
-
-            resultsDiv.style.display = 'block'; // Show results section
         }
 
-        function createRankJourneyVideo() {
-            // Show container and loading message
-            rankJourneyVideoContainer.style.display = 'block';
-            videoLoadingMessage.style.display = 'block';
-            
-            // Clear any existing chart
-            if (rankJourneyChartInstance) {
-                rankJourneyChartInstance.destroy();
+        function renderRankJourneyChart(rankData) {
+            if (!rankData || rankData.length === 0) {
+                console.warn("No rank data to render chart.");
+                return;
             }
 
-            // Reset animation counter when the button is clicked
-            currentAnimationFrameRound = 0; 
+            // Sort data by round number to ensure correct chart progression
+            rankData.sort((a, b) => a.round - b.round);
 
-            // Prepare data for Chart.js
-            const labels = Array.from({ length: 35 }, (_, i) => `RD ${i}`); // Rounds 0 to 34
-            labels[0] = 'Start'; // Label for round 0
-            const rankData = new Array(35).fill(null); // Initialize with nulls
+            const labels = rankData.map(d => `Round ${d.round}`);
+            const ranks = rankData.map(d => d.rank);
 
-            // Map overallRankHistory to the chart data array
-            managerOverallRankHistory.forEach(entry => {
-                // Ensure the rank is a number for plotting
-                if (entry.round >= 1 && entry.round <= 34 && typeof entry.rank === 'number' && !isNaN(entry.rank)) {
-                    rankData[entry.round] = entry.rank;
-                }
-            });
+            // Filter out 'N/A' or null ranks for charting
+            const validRanks = ranks.filter(rank => typeof rank === 'number');
+            const maxRank = Math.max(...validRanks);
+            const minRank = Math.min(...validRanks);
 
-            // Calculate overall Y-axis max based on new logic
-            let calculatedYAxisMax;
-            const worstOverallRankVal = globalWorstOverallRank; // Use the parsed worst rank
+            // Determine animation speed based on number of rounds
+            const animationSpeed = 50; // milliseconds per round
 
-            if (managerCurrentOverallRank !== null) { // Only apply custom logic if overall rank is known
-                if (managerCurrentOverallRank >= 1 && managerCurrentOverallRank <= 150) {
-                    calculatedYAxisMax = worstOverallRankVal + 10; // New: worstOverallRank + 10
-                } else if (managerCurrentOverallRank >= 151 && managerCurrentOverallRank <= 300) {
-                    calculatedYAxisMax = worstOverallRankVal + 25; // New: worstOverallRank + 25
-                } else { // managerCurrentOverallRank > 300 or other cases
-                    calculatedYAxisMax = worstOverallRankVal + 50; // New: worstOverallRank + 50
-                }
-            } else {
-                // Fallback if managerCurrentOverallRank is not set or invalid
-                calculatedYAxisMax = worstOverallRankVal + 50; // Default to the highest buffer if rank unknown
-            }
+            let currentAnimationFrameRound = 0; // Start animation from round 0 (before any data)
 
-            // Ensure a reasonable minimum max, e.g., if worstOverallRank is very low (e.g. 5)
-            const overallYAxisMax = Math.max(calculatedYAxisMax, 200); // Ensure a minimum Y-axis max of at least 200
+            videoLoadingMessage.style.display = 'block'; // Show loading message before animation
 
-
-            // Animation speed for 5 seconds total
-            const totalAnimationDurationMs = 5000;
-            const numberOfAnimationSteps = 34; // From RD1 to RD34 (34 segments)
-            const animationSpeed = totalAnimationDurationMs / numberOfAnimationSteps;
-
-
-            // Chart.js configuration
             const ctx = rankJourneyChartCanvas.getContext('2d');
+            if (rankJourneyChartInstance) {
+                rankJourneyChartInstance.destroy(); // Destroy existing chart instance
+            }
+
             rankJourneyChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Your Overall Rank',
-                        data: [], // Starts empty, will be populated by animation
-                        tension: 0.1,
-                        spanGaps: true, // Connect gaps where data is null
-                        pointRadius: (context) => {
-                            // Make point visible only for the current animated round
-                            // And only if there's actual data for that point
-                            return context.dataIndex === currentAnimationFrameRound && rankData[context.dataIndex] !== null ? 5 : 0;
-                        },
-                        pointBackgroundColor: 'red',
-                        // Dynamic border color based on rank change
-                        borderColor: (context) => {
-                            const currentDataIndex = context.dataIndex;
-                            const previousDataIndex = currentDataIndex - 1;
-
-                            // Get the actual data points from the animated dataset
-                            const currentRank = context.dataset.data[currentDataIndex];
-                            const previousRank = context.dataset.data[previousDataIndex]; 
-                            
-                            // If previous or current rank is not a valid number, use default color (e.g., for initial point or gaps)
-                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
-                                return 'rgb(75, 192, 192)'; // Default color (e.g., blue/cyan)
-                            }
-
-                            if (currentRank < previousRank) { // Rank improved (lower number is better)
-                                return 'green';
-                            } else if (currentRank > previousRank) { // Rank worsened (higher number is worse)
-                                return 'red';
-                            } else { // Rank unchanged
-                                return 'grey';
-                            }
-                        },
-                        // Dynamic background color based on rank change (matching border)
-                        backgroundColor: (context) => {
-                            const currentDataIndex = context.dataIndex;
-                            const previousDataIndex = currentDataIndex - 1;
-
-                            const currentRank = context.dataset.data[currentDataIndex];
-                            const previousRank = context.dataset.data[previousDataIndex];
-
-                            if (typeof previousRank !== 'number' || typeof currentRank !== 'number') {
-                                return 'rgba(75, 192, 192, 0.2)'; // Default transparent color
-                            }
-
-                            if (currentRank < previousRank) {
-                                return 'rgba(0, 128, 0, 0.2)'; // Green transparent
-                            } else if (currentRank > previousRank) {
-                                return 'rgba(255, 0, 0, 0.2)'; // Red transparent
-                            } else {
-                                return 'rgba(128, 128, 128, 0.2)'; // Grey transparent
-                            }
-                        },
+                        label: 'Overall Rank',
+                        data: Array(labels.length).fill(null), // Initialize with nulls for animation
+                        borderColor: '#007BFF',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 0, // Hide points during animation
+                        pointBackgroundColor: '#007BFF',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: '#0056b3',
+                        pointHoverBorderColor: '#fff',
                     }]
                 },
                 options: {
                     responsive: true,
-                    // Set aspect ratio to 1 for a square chart on both PC and Phone
-                    maintainAspectRatio: true,
-                    aspectRatio: 1, 
-                    animation: false, // Disable default Chart.js animation
+                    maintainAspectRatio: false,
+                    animation: false, // Disable Chart.js built-in animation for custom animation
                     plugins: {
                         legend: {
-                            display: true // Re-enable default legend
-                        },
-                        title: {
                             display: true,
-                            text: 'Your Rank Journey Over Rounds',
-                            font: {
-                                size: window.innerWidth < 600 ? 14 : 18 // Smaller title on mobile
+                            position: 'top',
+                            labels: {
+                                color: '#495057'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat().format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
                             }
                         }
                     },
@@ -891,51 +730,35 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Round Number',
-                                font: {
-                                    size: window.innerWidth < 600 ? 10 : 12 // Smaller axis title on mobile
-                                }
+                                text: 'Round',
+                                color: '#495057'
                             },
-                            min: 0,
-                            max: 34,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
                             ticks: {
-                                // Custom callback for X-axis labels (numbers only for both PC and Phone)
-                                callback: function(value, index, values) {
-                                    if (index === 0) { // 'Start' for Round 0
-                                        return 'Start';
-                                    } else if (index >= 1 && index <= 34 && index % 2 === 0) { // Even rounds
-                                        return `${index}`; // Just the number for both PC and Mobile
-                                    }
-                                    return null; // Hide odd rounds
-                                },
-                                autoSkip: false, // Ensure our custom callback is strictly followed
-                                maxRotation: 0, // No rotation needed with fewer labels
-                                minRotation: 0,
-                                font: {
-                                    size: window.innerWidth < 600 ? 7 : 11 // Smaller X-axis tick labels on mobile
-                                }
+                                color: '#495057',
+                                autoSkip: true,
+                                maxTicksLimit: 10 // Limit x-axis ticks for readability
                             }
                         },
                         y: {
                             title: {
                                 display: true,
-                                text: 'Overall Rank',
-                                font: {
-                                    size: window.innerWidth < 600 ? 10 : 12 // Smaller axis title on mobile
-                                }
+                                text: 'Overall Rank (Lower is Better)',
+                                color: '#495057'
                             },
-                            min: 1, // Fixed min
-                            max: overallYAxisMax, // Fixed max based on new logic
-                            reverse: true, // Rank 1 is at the top
+                            reverse: true, // Lower rank is better, so reverse the Y-axis
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
                             ticks: {
-                                callback: function(value) {
-                                    return value.toLocaleString(); // Format with commas
+                                color: '#495057',
+                                callback: function(value, index, values) {
+                                    return new Intl.NumberFormat().format(value);
                                 },
-                                autoSkip: true, // Keep auto-skip for Y-axis for readability if many ticks
-                                maxTicksLimit: 10,
-                                font: {
-                                    size: window.innerWidth < 600 ? 9 : 11 // Smaller tick labels on mobile
-                                }
+                                // Adjust tick count based on screen size for better mobile experience
+                                maxTicksLimit: window.innerWidth < 768 ? 9 : 11 // Smaller tick labels on mobile
                             }
                         }
                     }
@@ -943,13 +766,13 @@
             });
 
             // Animation Logic
-            const maxRounds = 34;
+            const maxRounds = labels.length; // Number of rounds available in data
 
             function animateRankJourney() {
                 if (currentAnimationFrameRound <= maxRounds) {
                     // Update data for the current frame
-                    const animatedData = rankData.map((val, idx) => {
-                        if (idx <= currentAnimationFrameRound) {
+                    const animatedData = ranks.map((val, idx) => {
+                        if (idx < currentAnimationFrameRound) { // Use < to ensure currentAnimationFrameRound is the *next* round to reveal
                             return val;
                         }
                         return null; // Don't show future points yet
