@@ -75,20 +75,23 @@ async function getManagerBasicData(managerId) { // Renamed for clarity
         const chips = managerEntryData.chips || []; // Chips might be missing sometimes
         const currentEvent = managerEntryData.current_event || 34; // Fallback to 34
         const lastDeadlineTotalTransfers = managerEntryData.last_deadline_total_transfers || 'N/A';
-        
+        const managerName = managerEntryData.name || `Manager ID: ${managerId}`; // Get manager's team name
+
         console.log('Chips extracted by getManagerBasicData:', chips); // DEBUG LOG
         console.log('Current Event extracted by getManagerBasicData:', currentEvent); // DEBUG LOG
         console.log('last_deadline_total_transfers extracted by getManagerBasicData:', lastDeadlineTotalTransfers); // DEBUG LOG
+        console.log('Manager Name extracted by getManagerBasicData:', managerName); // DEBUG LOG
         console.log('--- End getManagerBasicData ---'); // Debug Marker
 
         return { 
             chips, 
             currentEvent,
-            lastDeadlineTotalTransfers
+            lastDeadlineTotalTransfers,
+            managerName // Include managerName in the returned object
         };
     } catch (error) {
         console.error(`ERROR: Failed to fetch manager basic data for ${managerId}:`, error.message);
-        return { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A' }; // Return defaults on failure
+        return { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', managerName: `Manager ID: ${managerId}` }; // Return defaults on failure
     }
 }
 
@@ -298,7 +301,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
     const top3CaptainsStats = [];
     const sortedCaptains = Object.entries(captainCounts)
-        .sort(([, countA], [, countB]) => b.totalCaptainedPoints - a.totalCaptainedPoints)
+        .sort(([, countA], [, countB]) => countB - countA) // Sort by times captained
         .slice(0, 3);
 
     for (const [captainIdStr, timesCaptained] of sortedCaptains) {
@@ -446,7 +449,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         chips: managerBasicData.chips, 
         currentEvent: managerBasicData.currentEvent,
         totalHitsPoints: totalTransfersCost * -1, 
-        // Removed: isNonActiveManager
         top5ProfitableTransfers: top5ProfitableTransfers, 
         top5LossMakingTransfers: top5LossMakingTransfers 
     };
@@ -491,7 +493,7 @@ exports.handler = async function(event, context) {
             console.log('Basic Data (in handler):', managerBasicData); // DEBUG LOG
         } catch (error) {
             console.error("getManagerBasicData failed in handler:", error);
-            managerBasicData = { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A' }; // Default on failure
+            managerBasicData = { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', managerName: `Manager ID: ${managerId}` }; // Default on failure
         }
 
         // Step 2: Fetch manager history and captaincy stats, and calculate total hits AND transfer analysis
@@ -514,7 +516,6 @@ exports.handler = async function(event, context) {
                 chips: managerBasicData.chips, 
                 currentEvent: managerBasicData.currentEvent,
                 totalHitsPoints: 'N/A', 
-                // Removed: isNonActiveManager
                 top5ProfitableTransfers: [], 
                 top5LossMakingTransfers: [] 
             };
@@ -550,9 +551,9 @@ exports.handler = async function(event, context) {
                 top5MissedPoints: managerStats.top5MissedPoints,
                 totalTransfersCount: transfersData.totalTransfersCount,
                 totalHitsPoints: transfersData.totalHitsPoints,
-                // Removed: isNonActiveManager
                 top5ProfitableTransfers: managerStats.top5ProfitableTransfers, 
-                top5LossMakingTransfers: managerStats.top5LossMakingTransfers 
+                top5LossMakingTransfers: managerStats.top5LossMakingTransfers,
+                managerName: managerBasicData.managerName // Pass managerName from basic data
             }),
             headers: { "Content-Type": "application/json" }
         };

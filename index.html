@@ -341,7 +341,7 @@
         <div id="error"></div>
 
         <div id="results" class="results-section" style="display: none;">
-            <h2>Your Manager Stats</h2>
+            <h2 id="managerNameDisplay"></h2> <!-- Updated ID to avoid conflict -->
 
             <div class="rank-points-table">
                 <h3>Rank & Points</h3>
@@ -428,16 +428,63 @@
                 </table>
             </div>
 
+            <!-- NEW: Most Profitable Transfers Table -->
+            <div class="table-section">
+                <h2>Most Profitable Transfers</h2>
+                <table id="profitableTransfersTable">
+                    <thead>
+                        <tr>
+                            <th>IN</th>
+                            <th>OUT</th>
+                            <th>Round</th>
+                            <th>Profit/Loss</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- NEW: Most Loss-making Transfers Table -->
+            <div class="table-section">
+                <h2>Most Loss-making Transfers</h2>
+                <table id="lossMakingTransfersTable">
+                    <thead>
+                        <tr>
+                            <th>IN</th>
+                            <th>OUT</th>
+                            <th>Round</th>
+                            <th>Profit/Loss</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 
     <script>
-        document.getElementById('managerId').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                analyzeManager();
-                document.getElementById('managerId').blur(); // Hide keyboard on Enter
-            }
-        });
+        // Global variable declarations moved to the top
+        const managerIdInput = document.getElementById('managerId'); // Corrected ID
+        const analyzeButton = document.querySelector('button'); // Select the button
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const resultsDiv = document.getElementById('results');
+        const managerNameDisplay = document.getElementById('managerNameDisplay'); // Corrected ID
+        const rankPointsTableBody = document.getElementById('rankPointsTableBody');
+        const captaincyTableBody = document.getElementById('captaincyTableBody');
+        const bestPlayersTableBody = document.getElementById('bestPlayersTableBody');
+        const worstPlayersTableBody = document.getElementById('worstPlayersTableBody');
+        const missedPointsTableBody = document.getElementById('missedPointsTableBody');
+        const profitableTransfersTableBody = document.querySelector('#profitableTransfersTable tbody'); // Moved to global
+        const lossMakingTransfersTableBody = document.querySelector('#lossMakingTransfersTable tbody'); // Moved to global
+        const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
+        const videoLoadingMessage = document.getElementById('videoLoadingMessage');
+        const rankJourneyChartCanvas = document.getElementById('rankJourneyChart');
 
         let managerOverallRankHistory = []; // Global variable to store rank history
         let rankJourneyChartInstance = null; // To store the Chart.js instance
@@ -445,22 +492,33 @@
         let globalWorstOverallRank = 114000; // Global for worst rank, default to 114k (used as fallback/initial)
         let managerCurrentOverallRank = null; // New global variable for current overall rank
 
-        async function analyzeManager() {
-            const managerId = document.getElementById('managerId').value;
-            const loadingDiv = document.getElementById('loading');
-            const errorDiv = document.getElementById('error');
-            const resultsDiv = document.getElementById('results');
-            const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
 
+        managerIdInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                analyzeManager();
+                managerIdInput.blur(); // Hide keyboard on Enter
+            }
+        });
+
+        analyzeButton.addEventListener('click', analyzeManager); // Attach event listener to the button
+
+        // Pre-fill with manager ID 4 for convenience
+        managerIdInput.value = 4;
+
+        async function analyzeManager() {
+            const managerId = managerIdInput.value;
+            
             // Clear previous results and error
             errorDiv.style.display = 'none';
             resultsDiv.style.display = 'none';
             rankJourneyVideoContainer.style.display = 'none'; // Hide video container
-            document.getElementById('rankPointsTableBody').innerHTML = '';
-            document.getElementById('captaincyTableBody').innerHTML = '';
-            document.getElementById('bestPlayersTableBody').innerHTML = '';
-            document.getElementById('worstPlayersTableBody').innerHTML = '';
-            document.getElementById('missedPointsTableBody').innerHTML = '';
+            rankPointsTableBody.innerHTML = '';
+            captaincyTableBody.innerHTML = '';
+            bestPlayersTableBody.innerHTML = '';
+            worstPlayersTableBody.innerHTML = '';
+            missedPointsTableBody.innerHTML = '';
+            profitableTransfersTableBody.innerHTML = ''; // Clear new table
+            lossMakingTransfersTableBody.innerHTML = ''; // Clear new table
             
             // Clear global rank history and reset animation state
             managerOverallRankHistory = [];
@@ -511,6 +569,9 @@
         }
 
         function displayResults(data) {
+            // Set manager name
+            managerNameDisplay.textContent = data.managerName;
+
             // Store rank history for video generation
             managerOverallRankHistory = data.overallRankHistory || [];
 
@@ -534,7 +595,6 @@
 
 
             // Display Rank & Points Table
-            const rankPointsTableBody = document.getElementById('rankPointsTableBody');
             rankPointsTableBody.innerHTML = ''; // Clear previous content
             
             // Helper function to add a row to the table
@@ -602,7 +662,6 @@
 
 
             // Display Captaincy Table
-            const captaincyTableBody = document.getElementById('captaincyTableBody');
             captaincyTableBody.innerHTML = ''; // Clear previous content
             data.top3Captains.forEach(captain => {
                 const row = captaincyTableBody.insertRow();
@@ -615,7 +674,6 @@
             });
 
             // Display Best Players Table
-            const bestPlayersTableBody = document.getElementById('bestPlayersTableBody');
             bestPlayersTableBody.innerHTML = ''; // Clear previous content
             data.bestPlayers.forEach(player => {
                 const row = bestPlayersTableBody.insertRow();
@@ -627,7 +685,6 @@
             });
 
             // Display Worst Players Table
-            const worstPlayersTableBody = document.getElementById('worstPlayersTableBody');
             worstPlayersTableBody.innerHTML = ''; // Clear previous content
             data.worstPlayers.forEach(player => {
                 const row = worstPlayersTableBody.insertRow();
@@ -639,7 +696,6 @@
             });
 
             // Display Missed Points Table
-            const missedPointsTableBody = document.getElementById('missedPointsTableBody');
             missedPointsTableBody.innerHTML = ''; // Clear previous content
             data.top5MissedPoints.forEach(item => {
                 const row = missedPointsTableBody.insertRow();
@@ -689,10 +745,6 @@
         }
 
         function createRankJourneyVideo() {
-            const rankJourneyVideoContainer = document.getElementById('rankJourneyVideoContainer');
-            const videoLoadingMessage = document.getElementById('videoLoadingMessage');
-            const rankJourneyChartCanvas = document.getElementById('rankJourneyChart');
-
             // Show container and loading message
             rankJourneyVideoContainer.style.display = 'block';
             videoLoadingMessage.style.display = 'block';
