@@ -993,23 +993,10 @@
                             }
                         },
                         y: {
-                            title: {
-                                display: true,
-                                text: 'Overall Rank (Lower is Better)',
-                                color: '#495057'
-                            },
-                            reverse: true, // Lower rank is better, so reverse the Y-axis
+                            // Removed title, ticks, min, max, and count to hide labels
+                            display: false, // Hide the entire Y-axis
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            min: 1, // Always start from rank 1
-                            max: overallYAxisMax, // Use dynamically calculated max
-                            ticks: {
-                                color: '#495057',
-                                callback: function(value, index, values) {
-                                    return new Intl.NumberFormat().format(value);
-                                },
-                                count: 17 // Aim for 17 labels
                             }
                         }
                     }
