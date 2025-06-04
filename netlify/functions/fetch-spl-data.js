@@ -402,10 +402,11 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             const roundNum = parseInt(round);
             const { position, multiplier, isSubbedOut, isSubbedIn } = playerStats.roundsInfo[roundNum];
 
-            // Corrected line: Missing parenthesis around 'entry' in the reduce callback
-            const playerPointsForRound = allRoundStatsEntries.reduce((sum, entry) => sum + entry.total_points, 0);
+            // FIX: Correctly define allRoundStatsEntriesForCurrentRound in this scope
+            const allRoundStatsEntriesForCurrentRound = playerHistory.filter(h => h.round === roundNum);
+            const playerPointsForRound = allRoundStatsEntriesForCurrentRound.reduce((sum, entry) => sum + entry.total_points, 0);
 
-            if ((position >= 1 && pick.position <= 11 && !isSubbedOut) || isSubbedIn) {
+            if ((position >= 1 && position <= 11 && !isSubbedOut) || isSubbedIn) { // 'pick.position' changed to 'position'
                 playerStats.pointsGained += (playerPointsForRound * multiplier);
             } else {
                 playerStats.benchedPoints += playerPointsForRound; 
