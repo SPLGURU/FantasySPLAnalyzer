@@ -172,10 +172,21 @@
             background-color: var(--spl-container-bg);
             border-radius: 12px;
             box-shadow: 0 6px 12px var(--spl-shadow);
+            /* Centering the chart within its section */
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center horizontally */
         }
 
         .chart-section h2 {
             margin-bottom: 20px;
+        }
+
+        #rankJourneyChart {
+            /* Set a base size for the chart, will be scaled by 10% */
+            width: 800px; /* Base width */
+            height: 440px; /* Base height + 10% (400 * 1.1) */
+            max-width: 100%; /* Ensure it's responsive */
         }
 
         .table-section {
@@ -258,6 +269,10 @@
                 padding: 10px;
                 font-size: 0.85em;
             }
+
+            #rankJourneyChart {
+                height: 330px; /* Base height + 10% (300 * 1.1) for mobile */
+            }
         }
 
         @media (max-width: 480px) {
@@ -317,11 +332,7 @@
                     <h3>Total Hits (Points Deducted)</h3>
                     <p id="totalHitsPoints">N/A</p>
                 </div>
-                <!-- NEW: Non-Active Manager Status -->
-                <div class="stat-card">
-                    <h3>Non-Active Manager</h3>
-                    <p id="nonActiveManagerStatus">N/A</p>
-                </div>
+                <!-- Removed: Non-Active Manager Status card -->
             </div>
 
             <div class="chart-section">
@@ -456,14 +467,14 @@
         const averagePointsFor1stPlaceElem = document.getElementById('averagePointsFor1stPlace');
         const totalTransfersCountElem = document.getElementById('totalTransfersCount');
         const totalHitsPointsElem = document.getElementById('totalHitsPoints');
-        const nonActiveManagerStatusElem = document.getElementById('nonActiveManagerStatus'); 
+        // Removed: nonActiveManagerStatusElem declaration
 
         const topCaptainsTableBody = document.querySelector('#topCaptainsTable tbody');
         const bestPlayersTableBody = document.querySelector('#bestPlayersTable tbody');
         const worstPlayersTableBody = document.querySelector('#worstPlayersTable tbody');
         const missedPointsTableBody = document.querySelector('#missedPointsTable tbody');
         
-        // NEW: Table bodies for transfers
+        // Table bodies for transfers
         const profitableTransfersTableBody = document.querySelector('#profitableTransfersTable tbody');
         const lossMakingTransfersTableBody = document.querySelector('#lossMakingTransfersTable tbody');
 
@@ -512,19 +523,7 @@
                     totalTransfersCountElem.textContent = data.totalTransfersCount;
                     totalHitsPointsElem.textContent = data.totalHitsPoints;
                     
-                    // Display Non-Active Manager Status
-                    if (data.isNonActiveManager === true) {
-                        nonActiveManagerStatusElem.textContent = 'Yes';
-                        nonActiveManagerStatusElem.classList.remove('positive');
-                        nonActiveManagerStatusElem.classList.add('negative');
-                    } else if (data.isNonActiveManager === false) {
-                        nonActiveManagerStatusElem.textContent = 'No';
-                        nonActiveManagerStatusElem.classList.remove('negative');
-                        nonActiveManagerStatusElem.classList.add('positive');
-                    } else {
-                        nonActiveManagerStatusElem.textContent = 'N/A';
-                        nonActiveManagerStatusElem.classList.remove('positive', 'negative');
-                    }
+                    // Removed: Non-Active Manager Status display logic
 
 
                     // Populate Top 3 Captains Table
@@ -594,7 +593,7 @@
                         row.cells[0].colSpan = 3;
                     }
 
-                    // NEW: Populate Most Profitable Transfers Table
+                    // Populate Most Profitable Transfers Table
                     profitableTransfersTableBody.innerHTML = '';
                     if (data.top5ProfitableTransfers && data.top5ProfitableTransfers.length > 0) {
                         data.top5ProfitableTransfers.forEach(transfer => {
@@ -612,7 +611,7 @@
                         row.cells[0].colSpan = 4;
                     }
 
-                    // NEW: Populate Most Loss-making Transfers Table
+                    // Populate Most Loss-making Transfers Table
                     lossMakingTransfersTableBody.innerHTML = '';
                     if (data.top5LossMakingTransfers && data.top5LossMakingTransfers.length > 0) {
                         data.top5LossMakingTransfers.forEach(transfer => {
