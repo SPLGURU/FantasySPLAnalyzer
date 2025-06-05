@@ -109,7 +109,10 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     let totalPointsSum = 0;
     let roundsProcessed = 0;
     let totalTransfersCost = 0; // Initialize total transfers cost for hits calculation
-    // Removed: isNonActiveManager and consecutiveZeroTC variables
+    
+    // NEW: Initialize green/red arrow counts
+    let greenArrowsCount = 0;
+    let redArrowsCount = 0;
 
     const maxRounds = 34; // Total number of rounds in the season
 
@@ -122,7 +125,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     const uniquePlayerIdsInSquad = new Set(); 
 
     // Use chips and currentEvent from managerBasicData passed from handler
-    const managerChips = managerBasicData?.chips || []; // Keep chips for other potential uses, not for hits calc
+    const managerChips = managerBasicData?.chips || []; 
     const currentEvent = managerBasicData?.currentEvent || maxRounds;
 
     // Array to store all transfers with calculated profit/loss
@@ -179,14 +182,15 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
     // Process collected manager picks data to populate overall stats and identify all unique players
     let latestOverallRank = 'N/A';
+    let previousOverallRank = null; // To track for green/red arrows
     for (const { round, data } of sortedManagerPicksData) {
         roundsProcessed++;
 
         // --- Update for Rank & Points Table ---
         const currentOverallRank = data.entry_history.overall_rank;
         const currentRoundPoints = data.entry_history.points;
-        const currentRoundTransfersCost = data.entry_history.event_transfers_cost || 0; // Get TC for current round
-        const transfersMadeInRound = data.entry_history.event_transfers || 0; // Get TM for current round
+        const currentRoundTransfersCost = data.entry_history.event_transfers_cost || 0; 
+        const transfersMadeInRound = data.entry_history.event_transfers || 0; 
 
         // Calculate total hits by summing 'event_transfers_cost' from each round's entry_history
         totalTransfersCost += currentRoundTransfersCost;
@@ -216,6 +220,17 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
 
         if (currentOverallRank !== null && currentOverallRank !== undefined) {
+            // Calculate Green/Red Arrows
+            if (previousOverallRank !== null) { // Ensure there's a previous rank to compare
+                if (currentOverallRank < previousOverallRank) {
+                    greenArrowsCount++;
+                } else if (currentOverallRank > previousOverallRank) {
+                    redArrowsCount++;
+                }
+            }
+            latestOverallRank = currentOverallRank;
+            previousOverallRank = currentOverallRank; // Update previous rank for next iteration
+
             if (currentOverallRank < minOverallRank) {
                 minOverallRank = currentOverallRank;
                 minOverallRankRound = round;
@@ -224,7 +239,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
                 maxOverallRank = currentOverallRank;
                 maxOverallRankRound = round;
             }
-            latestOverallRank = currentOverallRank;
         }
     
         // --- Update for Captaincy Table ---
@@ -406,7 +420,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             const allRoundStatsEntriesForCurrentRound = playerHistory.filter(h => h.round === roundNum);
             const playerPointsForRound = allRoundStatsEntriesForCurrentRound.reduce((sum, entry) => sum + entry.total_points, 0);
 
-            if ((position >= 1 && position <= 11 && !isSubbedOut) || isSubbedIn) { // 'pick.position' changed to 'position'
+            if ((position >= 1 && position <= 11 && !isSubbedOut) || isSubbedIn) { 
                 playerStats.pointsGained += (playerPointsForRound * multiplier);
             } else {
                 playerStats.benchedPoints += playerPointsForRound; 
@@ -480,15 +494,17 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         top5ProfitableTransfers: top5ProfitableTransfers, 
         top5LossMakingTransfers: top5LossMakingTransfers,
         bestRound: {
-            points: bestRoundPoints,
+            points: bestRoundPoints !== -Infinity ? bestRoundPoints : 'N/A',
             deductions: bestRoundDeductions,
             round: bestRoundNumber
         },
         worstRound: {
-            points: worstRoundPoints,
+            points: worstRoundPoints !== Infinity ? worstRoundPoints : 'N/A',
             deductions: worstRoundDeductions,
             round: worstRoundNumber
-        }
+        },
+        greenArrowsCount: greenArrowsCount, // NEW
+        redArrowsCount: redArrowsCount       // NEW
     };
 }
 
@@ -559,7 +575,9 @@ exports.handler = async function(event, context) {
                 top5ProfitableTransfers: [], 
                 top5LossMakingTransfers: [],
                 bestRound: { points: 'N/A', deductions: 'N/A', round: 'N/A' },
-                worstRound: { points: 'N/A', deductions: 'N/A', round: 'N/A' }
+                worstRound: { points: 'N/A', deductions: 'N/A', round: 'N/A' },
+                greenArrowsCount: 0, // Default for new stats
+                redArrowsCount: 0    // Default for new stats
             };
         }
 
@@ -595,7 +613,9 @@ exports.handler = async function(event, context) {
             top5LossMakingTransfers: managerStats.top5LossMakingTransfers,
             managerName: managerBasicData.managerName, // Pass managerName from basic data
             bestRound: managerStats.bestRound,
-            worstRound: managerStats.worstRound
+            worstRound: managerStats.worstRound,
+            greenArrowsCount: managerStats.greenArrowsCount, // NEW: Pass green arrows
+            redArrowsCount: managerStats.redArrowsCount       // NEW: Pass red arrows
         };
         console.log('Final JSON response body:', JSON.stringify(finalResponse, null, 2)); // Added final response logging
 

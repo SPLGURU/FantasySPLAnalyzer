@@ -500,6 +500,16 @@
                     <h3>Worst Round</h3>
                     <p id="worstRoundDisplay">N/A</p>
                 </div>
+                <!-- NEW: Total Green Arrows Card -->
+                <div class="stat-card">
+                    <h3>Total Green Arrows</h3>
+                    <p id="greenArrowsCount">N/A 🟢</p>
+                </div>
+                <!-- NEW: Total Red Arrows Card -->
+                <div class="stat-card">
+                    <h3>Total Red Arrows</h3>
+                    <p id="redArrowsCount">N/A 🔴</p>
+                </div>
             </div>
 
             <button id="createRankJourneyButton" class="chart-button" style="display: none; margin-top: 20px; margin-bottom: 30px;">Create My Rank Journey</button>
@@ -585,10 +595,10 @@
                 </table>
             </div>
 
-            <!-- Transfers Summary section - MOVED HERE -->
+            <!-- Transfers Summary section -->
             <div class="table-section">
                 <h2>Transfers Summary</h2>
-                <div class="stats-grid"> <!-- Changed to stats-grid -->
+                <div class="stats-grid">
                     <div class="stat-card">
                         <h3>Total Transfers</h3>
                         <p id="totalTransfersCount">N/A</p>
@@ -655,6 +665,9 @@
         const totalHitsPointsElem = document.getElementById('totalHitsPoints');
         const bestRoundDisplayElem = document.getElementById('bestRoundDisplay');
         const worstRoundDisplayElem = document.getElementById('worstRoundDisplay');
+        // NEW Elements for Arrow Counts
+        const greenArrowsCountElem = document.getElementById('greenArrowsCount');
+        const redArrowsCountElem = document.getElementById('redArrowsCount');
         
         const topCaptainsTableBody = document.querySelector('#topCaptainsTable tbody');
         const bestPlayersTableBody = document.querySelector('#bestPlayersTable tbody');
@@ -785,6 +798,10 @@
 
                     totalTransfersCountElem.textContent = data.totalTransfersCount;
                     totalHitsPointsElem.textContent = data.totalHitsPoints;
+                    
+                    // NEW: Update Green and Red Arrows with new titles
+                    greenArrowsCountElem.textContent = `${data.greenArrowsCount || 0} 🟢`;
+                    redArrowsCountElem.textContent = `${data.redArrowsCount || 0} 🔴`;
                     
                     createRankJourneyButton.style.display = 'block';
 
