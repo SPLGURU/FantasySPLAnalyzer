@@ -153,31 +153,41 @@ exports.handler = async function(event, context) {
         let minRank = Infinity;
         let maxRank = 0;
         
-        // Find best and worst round points/deductions
+        // Initialize bestRound and worstRound with default 'N/A' values
+        // This ensures they always have a 'points' property, even if history is empty.
         let bestRound = { points: 'N/A', round: 'N/A', deductions: 0 };
         let worstRound = { points: 'N/A', round: 'N/A', deductions: 0 };
         let maxPoints = -Infinity;
         let minPoints = Infinity;
 
-        overallRankHistory.forEach(gw => {
-            if (gw.rank < minRank) {
-                minRank = gw.rank;
-                bestOverallRank = `${gw.rank} (R${gw.round})`;
-            }
-            if (gw.rank > maxRank) {
-                maxRank = gw.rank;
-                worstOverallRank = `${gw.rank} (R${gw.round})`;
-            }
+        if (overallRankHistory.length > 0) {
+            // If there's history, initialize with the first item's points
+            bestRound = { points: overallRankHistory[0].points, round: overallRankHistory[0].round, deductions: overallRankHistory[0].transfersCost };
+            worstRound = { points: overallRankHistory[0].points, round: overallRankHistory[0].round, deductions: overallRankHistory[0].transfersCost };
+            maxPoints = overallRankHistory[0].points;
+            minPoints = overallRankHistory[0].points;
 
-            if (gw.points > maxPoints) {
-                maxPoints = gw.points;
-                bestRound = { points: gw.points, round: gw.round, deductions: gw.transfersCost };
-            }
-            if (gw.points < minPoints) {
-                minPoints = gw.points;
-                worstRound = { points: gw.points, round: gw.round, deductions: gw.transfersCost };
-            }
-        });
+            overallRankHistory.forEach(gw => {
+                if (gw.rank < minRank) {
+                    minRank = gw.rank;
+                    bestOverallRank = `${gw.rank} (R${gw.round})`;
+                }
+                if (gw.rank > maxRank) {
+                    maxRank = gw.rank;
+                    worstOverallRank = `${gw.rank} (R${gw.round})`;
+                }
+
+                if (gw.points > maxPoints) {
+                    maxPoints = gw.points;
+                    bestRound = { points: gw.points, round: gw.round, deductions: gw.transfersCost };
+                }
+                if (gw.points < minPoints) {
+                    minPoints = gw.points;
+                    worstRound = { points: gw.points, round: gw.round, deductions: gw.transfersCost };
+                }
+            });
+        }
+
 
         // Calculate Green and Red Arrows
         let greenArrowsCount = 0;
@@ -442,8 +452,10 @@ exports.handler = async function(event, context) {
                 top5ProfitableTransfers: top5ProfitableTransfers, 
                 top5LossMakingTransfers: top5LossMakingTransfers,
                 managerName: managerBasicData.managerName,
-                greenArrowsCount: greenArrowsCount, // NEW
-                redArrowsCount: redArrowsCount // NEW
+                greenArrowsCount: greenArrowsCount,
+                redArrowsCount: redArrowsCount,
+                bestRound: bestRound, // Ensuring this is always defined
+                worstRound: worstRound // Ensuring this is always defined
             }),
             headers: { "Content-Type": "application/json" }
         };

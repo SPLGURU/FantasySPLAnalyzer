@@ -787,11 +787,12 @@
                     averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
                     
                     const bestRound = data.bestRound;
+                    const worstRound = data.worstRound; // Ensure worstRound is also fetched
+
                     bestRoundDisplayElem.textContent = bestRound.points !== 'N/A' 
                         ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(-${bestRound.deductions})` : ''} Points in Round ${bestRound.round}`
                         : 'N/A';
 
-                    const worstRound = data.worstRound;
                     worstRoundDisplayElem.textContent = worstRound.points !== 'N/A' 
                         ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(-${worstRound.deductions})` : ''} Points in Round ${worstRound.round}`
                         : 'N/A';
