@@ -665,7 +665,7 @@
         const totalHitsPointsElem = document.getElementById('totalHitsPoints');
         const bestRoundDisplayElem = document.getElementById('bestRoundDisplay');
         const worstRoundDisplayElem = document.getElementById('worstRoundDisplay');
-        // NEW Elements for Arrow Counts
+        // Elements for Arrow Counts
         const greenArrowsCountElem = document.getElementById('greenArrowsCount');
         const redArrowsCountElem = document.getElementById('redArrowsCount');
         
@@ -762,11 +762,16 @@
                 if (response.ok) {
                     managerOverallRankHistory = data.overallRankHistory || [];
                     
-                    if (data.overallRank && data.overallRank !== 'N/A') {
-                        const rankString = String(data.overallRank);
-                        managerCurrentOverallRank = Math.round(parseFloat(rankString.replace(/,/g, '')));
+                    // Frontend parsing of overallRank to handle N/A gracefully
+                    if (data.overallRank !== 'N/A' && data.overallRank !== null && typeof data.overallRank !== 'undefined') {
+                        const rankString = String(data.overallRank).replace(/,/g, '');
+                        if (!isNaN(parseFloat(rankString))) {
+                           managerCurrentOverallRank = Math.round(parseFloat(rankString));
+                        } else {
+                           managerCurrentOverallRank = null;
+                        }
                     } else {
-                        managerCurrentOverallRank = null; 
+                        managerCurrentOverallRank = null;
                     }
 
                     managerNameElem.innerHTML = `Team Name: <span style="color: var(--spl-primary-accent);">${data.managerName || `Manager ID: ${managerId}`}</span><br>Rank & Points`;
@@ -787,7 +792,7 @@
                     averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
                     
                     const bestRound = data.bestRound;
-                    const worstRound = data.worstRound; // Ensure worstRound is also fetched
+                    const worstRound = data.worstRound; 
 
                     bestRoundDisplayElem.textContent = bestRound.points !== 'N/A' 
                         ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(-${bestRound.deductions})` : ''} Points in Round ${bestRound.round}`
@@ -800,7 +805,6 @@
                     totalTransfersCountElem.textContent = data.totalTransfersCount;
                     totalHitsPointsElem.textContent = data.totalHitsPoints;
 
-                    // UPDATED: Update Green and Red Arrows with new titles
                     greenArrowsCountElem.textContent = `${data.greenArrowsCount || 0} 🟢`;
                     redArrowsCountElem.textContent = `${data.redArrowsCount || 0} 🔴`;
                     

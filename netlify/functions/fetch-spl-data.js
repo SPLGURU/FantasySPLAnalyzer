@@ -138,13 +138,14 @@ exports.handler = async function(event, context) {
             };
         }
 
+        // Defensive mapping: ensure properties exist and default to 'N/A' or 0
         const overallRankHistory = managerHistory.past.map(gw => ({
-            round: gw.event,
-            points: gw.points,
-            totalPoints: gw.total_points,
-            rank: gw.overall_rank,
-            eventTransfers: gw.event_transfers,
-            transfersCost: gw.event_transfers_cost
+            round: gw.event ?? 'N/A',
+            points: gw.points ?? 'N/A',
+            totalPoints: gw.total_points ?? 'N/A',
+            rank: gw.overall_rank ?? 'N/A',
+            eventTransfers: gw.event_transfers ?? 0,
+            transfersCost: gw.event_transfers_cost ?? 0
         }));
 
         // Calculate Best and Worst Overall Rank with Round number
@@ -154,36 +155,54 @@ exports.handler = async function(event, context) {
         let maxRank = 0;
         
         // Initialize bestRound and worstRound with default 'N/A' values
-        // This ensures they always have a 'points' property, even if history is empty.
         let bestRound = { points: 'N/A', round: 'N/A', deductions: 0 };
         let worstRound = { points: 'N/A', round: 'N/A', deductions: 0 };
         let maxPoints = -Infinity;
         let minPoints = Infinity;
 
         if (overallRankHistory.length > 0) {
-            // If there's history, initialize with the first item's points
-            bestRound = { points: overallRankHistory[0].points, round: overallRankHistory[0].round, deductions: overallRankHistory[0].transfersCost };
-            worstRound = { points: overallRankHistory[0].points, round: overallRankHistory[0].round, deductions: overallRankHistory[0].transfersCost };
-            maxPoints = overallRankHistory[0].points;
-            minPoints = overallRankHistory[0].points;
+            // Find the first valid history entry to initialize min/max ranks and points
+            const firstValidEntry = overallRankHistory.find(entry => 
+                entry.rank !== 'N/A' && typeof entry.rank === 'number' &&
+                entry.points !== 'N/A' && typeof entry.points === 'number'
+            );
+
+            if (firstValidEntry) {
+                minRank = firstValidEntry.rank;
+                maxRank = firstValidEntry.rank;
+                bestOverallRank = `${firstValidEntry.rank} (R${firstValidEntry.round})`;
+                worstOverallRank = `${firstValidEntry.rank} (R${firstValidEntry.round})`;
+
+                maxPoints = firstValidEntry.points;
+                minPoints = firstValidEntry.points;
+                bestRound = { points: firstValidEntry.points, round: firstValidEntry.round, deductions: firstValidEntry.transfersCost };
+                worstRound = { points: firstValidEntry.points, round: firstValidEntry.round, deductions: firstValidEntry.transfersCost };
+            }
+
 
             overallRankHistory.forEach(gw => {
-                if (gw.rank < minRank) {
-                    minRank = gw.rank;
-                    bestOverallRank = `${gw.rank} (R${gw.round})`;
-                }
-                if (gw.rank > maxRank) {
-                    maxRank = gw.rank;
-                    worstOverallRank = `${gw.rank} (R${gw.round})`;
+                // Only compare if rank is a valid number
+                if (gw.rank !== 'N/A' && typeof gw.rank === 'number') {
+                    if (gw.rank < minRank) {
+                        minRank = gw.rank;
+                        bestOverallRank = `${gw.rank} (R${gw.round})`;
+                    }
+                    if (gw.rank > maxRank) {
+                        maxRank = gw.rank;
+                        worstOverallRank = `${gw.rank} (R${gw.round})`;
+                    }
                 }
 
-                if (gw.points > maxPoints) {
-                    maxPoints = gw.points;
-                    bestRound = { points: gw.points, round: gw.round, deductions: gw.transfersCost };
-                }
-                if (gw.points < minPoints) {
-                    minPoints = gw.points;
-                    worstRound = { points: gw.points, round: gw.round, deductions: gw.transfersCost };
+                // Only compare if points is a valid number
+                if (gw.points !== 'N/A' && typeof gw.points === 'number') {
+                    if (gw.points > maxPoints) {
+                        maxPoints = gw.points;
+                        bestRound = { points: gw.points, round: gw.round, deductions: gw.transfersCost };
+                    }
+                    if (gw.points < minPoints) {
+                        minPoints = gw.points;
+                        worstRound = { points: gw.points, round: gw.round, deductions: gw.transfersCost };
+                    }
                 }
             });
         }
@@ -196,33 +215,35 @@ exports.handler = async function(event, context) {
             const currentRoundData = overallRankHistory[i];
             const previousRoundData = overallRankHistory[i - 1];
 
-            if (currentRoundData.rank < previousRoundData.rank) {
-                greenArrowsCount++;
-            } else if (currentRoundData.rank > previousRoundData.rank) {
-                redArrowsCount++;
+            // Only compare if both current and previous ranks are valid numbers
+            if (currentRoundData.rank !== 'N/A' && typeof currentRoundData.rank === 'number' &&
+                previousRoundData.rank !== 'N/A' && typeof previousRoundData.rank === 'number') {
+                if (currentRoundData.rank < previousRoundData.rank) {
+                    greenArrowsCount++;
+                } else if (currentRoundData.rank > previousRoundData.rank) {
+                    redArrowsCount++;
+                }
             }
         }
 
 
         // Calculate Average Points per Round
-        const totalPoints = overallRankHistory.reduce((sum, gw) => sum + gw.points, 0);
-        const averagePoints = overallRankHistory.length > 0 ? (totalPoints / overallRankHistory.length).toFixed(2) : 'N/A';
+        const totalPoints = overallRankHistory.reduce((sum, gw) => {
+            return (gw.points !== 'N/A' && typeof gw.points === 'number') ? sum + gw.points : sum;
+        }, 0);
+        const validPointsRounds = overallRankHistory.filter(gw => gw.points !== 'N/A' && typeof gw.points === 'number').length;
+        const averagePoints = validPointsRounds > 0 ? (totalPoints / validPointsRounds).toFixed(2) : 'N/A';
+
 
         // Fetch overall league data for average points of 1st place (if available)
         let averagePointsFor1stPlace = 'N/A';
         if (latestGameweek) {
             try {
                 const gameweekData = await fetchGameweekData(latestGameweek);
-                if (gameweekData.top_element_info) {
-                    // This typically returns the top individual score for the week, not average 1st place.
-                    // For true 1st place average, we would need to query the league data for top overall ranks across rounds.
-                    // For now, let's use the average score of all players for the latest gameweek as a proxy for "league average".
-                    // Or if a specific "average_entry_score" is available in the event status.
-                     if (gameweekData.elements && gameweekData.elements.length > 0) {
-                        const allScores = Object.values(gameweekData.elements).map(e => e.stats.total_points);
-                        const totalAllScores = allScores.reduce((sum, score) => sum + score, 0);
-                        averagePointsFor1stPlace = (totalAllScores / allScores.length).toFixed(2);
-                    }
+                if (gameweekData.elements && gameweekData.elements.length > 0) {
+                    const allScores = Object.values(gameweekData.elements).map(e => e.stats?.total_points ?? 0); // Defensive access
+                    const totalAllScores = allScores.reduce((sum, score) => sum + score, 0);
+                    averagePointsFor1stPlace = (totalAllScores / allScores.length).toFixed(2);
                 }
             } catch (error) {
                 console.warn("Could not fetch gameweek data for 1st place average:", error);
@@ -237,20 +258,21 @@ exports.handler = async function(event, context) {
         for (let gw = 1; gw <= latestGameweek; gw++) {
             try {
                 const picks = await fetchManagerPicks(managerId, gw);
-                const captainPick = picks.picks.find(p => p.is_captain || p.is_vice_captain); // Consider vice too? FPL only counts captain
+                const captainPick = picks.picks.find(p => p.is_captain || p.is_vice_captain);
                 
                 if (captainPick) {
                     const captainId = captainPick.element;
                     const captainName = allPlayers[captainId] ? allPlayers[captainId].name : `Player ${captainId}`;
                     const gameweekLive = await fetchGameweekData(gw);
-                    const captainPoints = gameweekLive.elements[captainId]?.stats.total_points || 0;
-                    const multiplier = captainPick.multiplier;
+                    // Defensive access for captainPoints
+                    const captainPoints = gameweekLive.elements[captainId]?.stats?.total_points ?? 0;
+                    const multiplier = captainPick.multiplier ?? 1; // Default multiplier to 1
 
                     if (!captainCounts[captainName]) {
                         captainCounts[captainName] = {
                             times: 0,
-                            successful: 0, // Captained and got points > 0
-                            failed: 0,     // Captained and got points <= 0
+                            successful: 0,
+                            failed: 0,
                             totalCaptainedPoints: 0,
                             captainedRounds: []
                         };
@@ -284,14 +306,14 @@ exports.handler = async function(event, context) {
             try {
                 const picks = await fetchManagerPicks(managerId, gw);
                 const teamData = picks.picks;
-                const benchData = picks.automatic_subs; // Auto subs
+                const benchData = picks.automatic_subs;
 
                 const gameweekLive = await fetchGameweekData(gw);
 
                 teamData.forEach(pick => {
                     const playerId = pick.element;
                     const playerName = allPlayers[playerId] ? allPlayers[playerId].name : `Player ${playerId}`;
-                    const playerPoints = gameweekLive.elements[playerId]?.stats.total_points || 0;
+                    const playerPoints = gameweekLive.elements[playerId]?.stats?.total_points ?? 0;
 
                     if (!playerPerformance[playerId]) {
                         playerPerformance[playerId] = {
@@ -313,9 +335,8 @@ exports.handler = async function(event, context) {
                         playerPerformance[playerId].autoSubbed++;
                         playerPerformance[playerId].pointsGained += playerPoints;
                     } else { // Must be on bench and not auto-subbed
-                        // Find this player if they were on the bench (position > 11)
                         if (pick.position > 11) {
-                            const benchedPoints = gameweekLive.elements[playerId]?.stats.total_points || 0;
+                            const benchedPoints = gameweekLive.elements[playerId]?.stats?.total_points ?? 0;
                             playerPerformance[playerId].benchedPoints += benchedPoints;
                         }
                     }
@@ -332,12 +353,11 @@ exports.handler = async function(event, context) {
         const bestPlayers = [...activePlayers].sort((a, b) => b.pointsGained - a.pointsGained).slice(0, 5);
 
         // Sort and get top 5 worst players (most points wasted on bench or low contribution)
-        // This definition of "worst" is a bit subjective; here it's defined as least points gained from starting/subbing in.
         const worstPlayers = [...activePlayers].sort((a, b) => a.pointsGained - b.pointsGained).slice(0, 5);
 
 
         // --- Top 5 Missed Points (Benched Players) ---
-        let missedPointsMap = {}; // { playerId: { playerName, totalMissedPoints, rounds: [] } }
+        let missedPointsMap = {};
 
         for (let gw = 1; gw <= latestGameweek; gw++) {
             try {
@@ -345,16 +365,15 @@ exports.handler = async function(event, context) {
                 const gameweekLive = await fetchGameweekData(gw);
 
                 picks.picks.forEach(pick => {
-                    // Check if player was on the bench (position > 11) and was NOT auto-subbed in
                     const wasOnBench = pick.position > 11;
                     const wasNotAutoSubbed = !picks.automatic_subs.some(sub => sub.element_in === pick.element);
 
                     if (wasOnBench && wasNotAutoSubbed) {
                         const playerId = pick.element;
                         const playerName = allPlayers[playerId] ? allPlayers[playerId].name : `Player ${playerId}`;
-                        const benchedPoints = gameweekLive.elements[playerId]?.stats.total_points || 0;
+                        const benchedPoints = gameweekLive.elements[playerId]?.stats?.total_points ?? 0;
 
-                        if (benchedPoints > 0) { // Only count if points were actually missed
+                        if (benchedPoints > 0) {
                             if (!missedPointsMap[playerId]) {
                                 missedPointsMap[playerId] = { playerName: playerName, points: 0, round: [] };
                             }
@@ -376,8 +395,8 @@ exports.handler = async function(event, context) {
         // --- Transfers Analysis ---
         let totalTransfersCount = 0;
         let totalHitsPoints = 0;
-        let profitableTransfers = []; // Stores { playerInName, playerOutName, round, profitLoss }
-        let lossMakingTransfers = []; // Stores { playerInName, playerOutName, round, profitLoss }
+        let profitableTransfers = [];
+        let lossMakingTransfers = [];
 
         for (let i = 0; i < overallRankHistory.length; i++) {
             const gwHistory = overallRankHistory[i];
@@ -389,7 +408,6 @@ exports.handler = async function(event, context) {
                     const transfersResponse = await fetchWithRetry(`https://fantasy.premierleague.com/api/entry/${managerId}/transfers/`);
                     const transfersData = await transfersResponse.json();
 
-                    // Filter transfers for the current gameweek and process them
                     const transfersForGw = transfersData.history.filter(t => t.event === gwHistory.round);
                     
                     for (const transfer of transfersForGw) {
@@ -399,13 +417,10 @@ exports.handler = async function(event, context) {
                         const playerInName = allPlayers[playerInId] ? allPlayers[playerInId].name : `Player ${playerInId}`;
                         const playerOutName = allPlayers[playerOutId] ? allPlayers[playerOutId].name : `Player ${playerOutId}`;
 
-                        // Calculate profit/loss: points gained by IN - points gained by OUT (if they had played)
-                        // This is a simplified calculation. A more robust one would involve tracking actual points for each player per round.
-                        // For demonstration, we'll use total points from bootstrap-static as a proxy for "value"
-                        const playerInTotalPoints = allPlayers[playerInId]?.points || 0;
-                        const playerOutTotalPoints = allPlayers[playerOutId]?.points || 0;
+                        const playerInTotalPoints = allPlayers[playerInId]?.points ?? 0;
+                        const playerOutTotalPoints = allPlayers[playerOutId]?.points ?? 0;
 
-                        const profitLoss = playerInTotalPoints - playerOutTotalPoints; // Simple approximation
+                        const profitLoss = playerInTotalPoints - playerOutTotalPoints;
 
                         if (profitLoss > 0) {
                             profitableTransfers.push({
@@ -454,8 +469,8 @@ exports.handler = async function(event, context) {
                 managerName: managerBasicData.managerName,
                 greenArrowsCount: greenArrowsCount,
                 redArrowsCount: redArrowsCount,
-                bestRound: bestRound, // Ensuring this is always defined
-                worstRound: worstRound // Ensuring this is always defined
+                bestRound: bestRound,
+                worstRound: worstRound
             }),
             headers: { "Content-Type": "application/json" }
         };
