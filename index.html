@@ -665,7 +665,7 @@
         const totalHitsPointsElem = document.getElementById('totalHitsPoints');
         const bestRoundDisplayElem = document.getElementById('bestRoundDisplay');
         const worstRoundDisplayElem = document.getElementById('worstRoundDisplay');
-        // NEW Elements for Arrow Counts
+        // Elements for Arrow Counts
         const greenArrowsCountElem = document.getElementById('greenArrowsCount');
         const redArrowsCountElem = document.getElementById('redArrowsCount');
         
@@ -799,7 +799,7 @@
                     totalTransfersCountElem.textContent = data.totalTransfersCount;
                     totalHitsPointsElem.textContent = data.totalHitsPoints;
                     
-                    // NEW: Update Green and Red Arrows with new titles
+                    // Update Green and Red Arrows
                     greenArrowsCountElem.textContent = `${data.greenArrowsCount || 0} 🟢`;
                     redArrowsCountElem.textContent = `${data.redArrowsCount || 0} 🔴`;
                     
@@ -1125,16 +1125,12 @@
                             max: fixedMaxRound, // End at fixedMaxRound
                             ticks: {
                                 color: '#495057',
-                                autoSkip: false,
+                                autoSkip: false, // Ensure all ticks are considered
                                 maxRotation: 0,
                                 minRotation: 0,
                                 callback: function(value, index) {
-                                    // PC version: Display labels only for even integer rounds
-                                    if (!isMobile && value % 2 === 0 && Number.isInteger(value)) {
-                                        return labels[value].replace('Round ', '');
-                                    }
-                                    // Mobile version: Display labels for every integer round (max density)
-                                    if (isMobile && Number.isInteger(value)) { // Changed to show all integer rounds
+                                    // Display labels for 0, 4, 8, 12... up to 34
+                                    if (Number.isInteger(value) && (value % 4 === 0 || value === fixedMaxRound)) {
                                         return labels[value].replace('Round ', '');
                                     }
                                     return null;
