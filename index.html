@@ -500,16 +500,6 @@
                     <h3>Worst Round</h3>
                     <p id="worstRoundDisplay">N/A</p>
                 </div>
-                <!-- UPDATED: Total Green Arrows Card -->
-                <div class="stat-card">
-                    <h3>Total Green Arrows</h3>
-                    <p id="greenArrowsCount">N/A 🟢</p>
-                </div>
-                <!-- UPDATED: Total Red Arrows Card -->
-                <div class="stat-card">
-                    <h3>Total Red Arrows</h3>
-                    <p id="redArrowsCount">N/A 🔴</p>
-                </div>
             </div>
 
             <button id="createRankJourneyButton" class="chart-button" style="display: none; margin-top: 20px; margin-bottom: 30px;">Create My Rank Journey</button>
@@ -665,9 +655,6 @@
         const totalHitsPointsElem = document.getElementById('totalHitsPoints');
         const bestRoundDisplayElem = document.getElementById('bestRoundDisplay');
         const worstRoundDisplayElem = document.getElementById('worstRoundDisplay');
-        // Elements for Arrow Counts
-        const greenArrowsCountElem = document.getElementById('greenArrowsCount');
-        const redArrowsCountElem = document.getElementById('redArrowsCount');
         
         const topCaptainsTableBody = document.querySelector('#topCaptainsTable tbody');
         const bestPlayersTableBody = document.querySelector('#bestPlayersTable tbody');
@@ -762,16 +749,11 @@
                 if (response.ok) {
                     managerOverallRankHistory = data.overallRankHistory || [];
                     
-                    // Frontend parsing of overallRank to handle N/A gracefully
-                    if (data.overallRank !== 'N/A' && data.overallRank !== null && typeof data.overallRank !== 'undefined') {
-                        const rankString = String(data.overallRank).replace(/,/g, '');
-                        if (!isNaN(parseFloat(rankString))) {
-                           managerCurrentOverallRank = Math.round(parseFloat(rankString));
-                        } else {
-                           managerCurrentOverallRank = null;
-                        }
+                    if (data.overallRank && data.overallRank !== 'N/A') {
+                        const rankString = String(data.overallRank);
+                        managerCurrentOverallRank = Math.round(parseFloat(rankString.replace(/,/g, '')));
                     } else {
-                        managerCurrentOverallRank = null;
+                        managerCurrentOverallRank = null; 
                     }
 
                     managerNameElem.innerHTML = `Team Name: <span style="color: var(--spl-primary-accent);">${data.managerName || `Manager ID: ${managerId}`}</span><br>Rank & Points`;
@@ -792,21 +774,17 @@
                     averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
                     
                     const bestRound = data.bestRound;
-                    const worstRound = data.worstRound; 
-
                     bestRoundDisplayElem.textContent = bestRound.points !== 'N/A' 
                         ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(-${bestRound.deductions})` : ''} Points in Round ${bestRound.round}`
                         : 'N/A';
 
+                    const worstRound = data.worstRound;
                     worstRoundDisplayElem.textContent = worstRound.points !== 'N/A' 
                         ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(-${worstRound.deductions})` : ''} Points in Round ${worstRound.round}`
                         : 'N/A';
 
                     totalTransfersCountElem.textContent = data.totalTransfersCount;
                     totalHitsPointsElem.textContent = data.totalHitsPoints;
-
-                    greenArrowsCountElem.textContent = `${data.greenArrowsCount || 0} 🟢`;
-                    redArrowsCountElem.textContent = `${data.redArrowsCount || 0} 🔴`;
                     
                     createRankJourneyButton.style.display = 'block';
 
@@ -1139,7 +1117,7 @@
                                         return labels[value].replace('Round ', '');
                                     }
                                     // Mobile version: Display labels for every integer round (max density)
-                                    if (isMobile && Number.isInteger(value)) { 
+                                    if (isMobile && Number.isInteger(value)) { // Changed to show all integer rounds
                                         return labels[value].replace('Round ', '');
                                     }
                                     return null;
