@@ -1093,7 +1093,7 @@
                                         // Find original data for points and transfers cost
                                         const originalRoundData = fullRankHistoryData.find(d => d.round === round);
                                         const currentPoints = originalRoundData ? originalRoundData.points : 'N/A';
-                                        const currentTransfersCost = originalRoundData ? originalRoundRoundData.transfersCost : 'N/A';
+                                        const currentTransfersCost = originalRoundData ? originalRoundData.transfersCost : 'N/A';
 
                                         let labelText = `Round: ${round} | Rank: ${new Intl.NumberFormat().format(rank)}`;
                                         if (currentPoints !== 'N/A') {
@@ -1125,15 +1125,14 @@
                             max: fixedMaxRound, // End at fixedMaxRound
                             ticks: {
                                 color: '#495057',
-                                autoSkip: false, // Ensure all ticks are considered
+                                autoSkip: false, // Explicitly disable auto-skipping
                                 maxRotation: 0,
                                 minRotation: 0,
+                                // Provide explicit values for ticks
+                                values: [0, 4, 8, 12, 16, 20, 24, 28, 32, 34],
                                 callback: function(value, index) {
-                                    // Display labels for 0, 4, 8, 12... up to 32, and explicitly for 34
-                                    if (Number.isInteger(value) && ((value % 4 === 0 && value >= 0 && value <= 32) || value === fixedMaxRound)) {
-                                        return labels[value].replace('Round ', '');
-                                    }
-                                    return null;
+                                    // This callback will now only be invoked for the values in the 'values' array
+                                    return labels[value].replace('Round ', '');
                                 },
                                 font: {
                                     size: isMobile ? 9 : 12 // Smaller font for mobile
