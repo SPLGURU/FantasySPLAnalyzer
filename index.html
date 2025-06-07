@@ -327,28 +327,8 @@
             background-color: #1aae88;
         }
 
-        /* Compatibility Warning Message */
-        #compatibilityWarning {
-            background-color: #ffe0e6; /* Light red/pink */
-            color: #DC3545; /* Dark red text */
-            border: 1px solid #DC3545;
-            text-align: center;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px; /* Space above */
-            margin-bottom: 20px; /* Space below button */
-            font-weight: bold;
-            display: none; /* Hidden by default */
-            width: 100%;
-            max-width: 600px; /* Aligned with instructions box */
-            box-sizing: border-box;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        body.dark-mode #compatibilityWarning {
-            background-color: #58161f; /* Darker red */
-            color: #ffcdd2; /* Lighter red text */
-            border-color: #9b1e2e;
-        }
+        /* Removed compatibilityWarning styles as it's no longer needed */
+        /* #compatibilityWarning { ... } */
 
 
         .loading-message, .error-message, .video-loading-message, #videoGeneratingMessage { /* Added #videoGeneratingMessage */
@@ -712,13 +692,11 @@
             <input type="text" id="managerIdInput" placeholder="e.g., 1234" oninput="this.value = convertArabicToWesternNumerals(this.value)">
             <button id="analyzeButton">Full Season Report</button>
             
-            <!-- Compatibility Warning Message - Initially hidden -->
-            <div id="compatibilityWarning" style="display: none;">
-                <strong>Note:</strong> Generating an animated GIF. This format is widely compatible across most devices and platforms.
-            </div>
+            <!-- Removed compatibility warning message completely -->
+            <!-- <div id="compatibilityWarning" style="display: none;"> ... </div> -->
 
-            <!-- Share Video Button - Initially hidden -->
-            <button id="shareVideoButton" style="display: none;">Share Report as GIF</button>
+            <!-- Share Video Button - Initially hidden, text changed -->
+            <button id="shareVideoButton" style="display: none;">Download/Share Report as GIF</button>
 
             <div id="instructionsBox" class="instructions">
                 <h3>How to get your Manager ID:</h3>
@@ -965,11 +943,10 @@
         const darkModeToggle = document.getElementById('darkModeToggle');
         const mainLogo = document.getElementById('mainLogo');
 
-        // NEW: Share Video Button & Video Generating Message & GIF Capture Canvas & Compatibility Warning
+        // NEW: Share Video Button & Video Generating Message & GIF Capture Canvas
         const shareVideoButton = document.getElementById('shareVideoButton');
         const videoGeneratingMessage = document.getElementById('videoGeneratingMessage'); // Reusing this element
         const gifCaptureCanvas = document.getElementById('gifCaptureCanvas'); // Renamed from videoRecordingCanvas
-        const compatibilityWarning = document.getElementById('compatibilityWarning');
 
         const lightModeLogoSrc = 'unnamed.jpg';
         const darkModeLogoSrc = 'dark mode logo.png';
@@ -989,8 +966,6 @@
         const sectionFrameDelay = 5000; // 5 seconds in milliseconds for most sections (delay for GIF frames)
         const chartFrameDelay = 10000; // 10 seconds in milliseconds for the chart section (delay for GIF frame)
 
-        // NEW: Global flag to check if data loading and display should have happened
-        let dataDisplayAttempted = false;
 
         // --- Helper Functions ---
 
@@ -1044,7 +1019,6 @@
         // Analyze Button click
         analyzeButton.addEventListener('click', () => {
             instructionsBox.style.display = 'none'; // Hide instructions when analysis starts
-            compatibilityWarning.style.display = 'none'; // Hide warning on new analysis
             fetchManagerData();
         });
 
@@ -1052,7 +1026,6 @@
         managerIdInput.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 instructionsBox.style.display = 'none';
-                compatibilityWarning.style.display = 'none'; // Hide warning on new analysis
                 fetchManagerData();
                 managerIdInput.blur(); // Remove focus from input
             }
@@ -1071,7 +1044,7 @@
             renderRankJourneyChart(managerOverallRankHistory);
         });
 
-        // NEW: Share Report as GIF Button Click Listener
+        // Share Report as GIF Button Click Listener
         shareVideoButton.addEventListener('click', async () => {
             // Disable all interactive buttons during GIF generation
             shareVideoButton.disabled = true;
@@ -1080,14 +1053,13 @@
             darkModeToggle.disabled = true;
 
             // Show GIF generation loading message
-            videoGeneratingMessage.style.display = 'block'; // Reusing this element
-            errorMessage.style.display = 'none'; // Hide any previous error messages
-            compatibilityWarning.style.display = 'none'; // Hide the warning during generation
+            videoGeneratingMessage.style.display = 'block'; 
+            errorMessage.style.display = 'none'; 
 
             // Ensure the main manager stats are visible before trying to capture them
-            managerStatsDiv.style.display = 'block'; 
+            // This is handled by captureAndPrepareSectionsForGIF internally for its cloned DOM
             
-            // Scroll to the top for consistent screenshots starting point (though html2canvas clones now)
+            // Scroll to the top for consistent screenshots starting point
             window.scrollTo({ top: 0, behavior: 'instant' });
 
             // Give browser a moment to settle after layout changes/scroll
@@ -1107,10 +1079,6 @@
                 createRankJourneyButton.disabled = false;
                 darkModeToggle.disabled = false;
                 videoGeneratingMessage.style.display = 'none';
-                // Show compatibility warning again if it was previously visible (i.e. if the button itself is block)
-                if (shareVideoButton.style.display === 'block') {
-                    compatibilityWarning.style.display = 'block';
-                }
             }
         });
 
@@ -1127,8 +1095,6 @@
                 managerStatsDiv.style.display = 'none';
                 rankJourneyBox.style.display = 'none';
                 shareVideoButton.style.display = 'none';
-                compatibilityWarning.style.display = 'none'; // Ensure hidden on error
-                dataDisplayAttempted = false; // Reset flag
                 return;
             }
 
@@ -1140,8 +1106,6 @@
             rankJourneyBox.style.display = 'none';
             createRankJourneyButton.textContent = 'Click Here';
             shareVideoButton.style.display = 'none';
-            compatibilityWarning.style.display = 'none'; // Hide on new fetch attempt
-            dataDisplayAttempted = false; // Reset flag
 
             if (rankJourneyChartInstance) {
                 console.log('DEBUG: Destroying existing chart instance.');
@@ -1164,7 +1128,6 @@
                 loadingMessage.style.display = 'none';
 
                 if (response.ok) {
-                    dataDisplayAttempted = true; // Set flag
                     console.log('DEBUG: Response OK. Populating manager data...');
                     managerOverallRankHistory = data.overallRankHistory || [];
                     
@@ -1336,11 +1299,11 @@
                         row.cells[0].colSpan = 4;
                     }
 
-                    // Set display to block
+                    // Set display to block - removed !important
                     managerStatsDiv.style.display = 'block'; 
                     rankJourneyChartContainer.style.display = 'none'; 
                     shareVideoButton.style.display = 'block';
-                    compatibilityWarning.style.display = 'block'; // Show warning on successful data load
+                    // compatibilityWarning.style.display = 'block'; // Removed this line
 
                     console.log('DEBUG: managerStatsDiv display style AFTER JS set:', managerStatsDiv.style.display);
                     console.log('DEBUG: managerStatsDiv computed display style AFTER JS set:', getComputedStyle(managerStatsDiv).display);
@@ -1357,7 +1320,6 @@
                     managerStatsDiv.style.display = 'none';
                     rankJourneyBox.style.display = 'none';
                     shareVideoButton.style.display = 'none';
-                    compatibilityWarning.style.display = 'none'; // Hide on error
                 }
 
             } catch (error) {
@@ -1369,7 +1331,6 @@
                 managerStatsDiv.style.display = 'none';
                 rankJourneyBox.style.display = 'none';
                 shareVideoButton.style.display = 'none';
-                compatibilityWarning.style.display = 'none';
             }
             console.log("DEBUG: fetchManagerData finished.");
         }
@@ -1622,14 +1583,16 @@
                     animationFrameId = requestAnimationFrame(animateChart);
                 } else {
                     videoLoadingMessage.style.display = 'none';
+                    // Ensure the full line is visible and all its points are shown at the end
                     rankJourneyChartInstance.data.datasets[0].data = fullRankHistoryData.map(d => ({ x: d.round, y: d.rank }));
-                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3; 
+                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3; // Show points at the end
                     
+                    // Ensure the dot is at the final position
                     const lastDataPoint = fullRankHistoryData[fullRankHistoryData.length - 1];
                     if (lastDataPoint) {
                         rankJourneyChartInstance.data.datasets[1].data = [{ x: lastDataPoint.round, y: lastDataPoint.rank }];
                     } else {
-                        rankJourneyChartInstance.data.datasets[1].data = [];
+                        rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no data
                     }
                     rankJourneyChartInstance.update();
                     animationStartTime = null;
@@ -1637,14 +1600,39 @@
                 }
             }
 
-            animationFrameId = requestAnimationFrame(animateChart);
+            animationFrameId = requestAnimationFrame(animateChart); // Start the animation
         }
 
         // --- NEW: GIF Generation Logic ---
 
         /**
+         * Renders the chart to its final state for GIF capture.
+         */
+        async function prepareChartForCapture() {
+            if (rankJourneyChartInstance && managerOverallRankHistory && managerOverallRankHistory.length > 0) {
+                console.log('DEBUG: Preparing chart for static GIF capture (final state).');
+                // Ensure the chart is in its final state (full line, all points)
+                rankJourneyChartInstance.data.datasets[0].data = managerOverallRankHistory.map(d => ({ x: d.round, y: d.rank }));
+                rankJourneyChartInstance.data.datasets[0].pointRadius = 3; 
+                
+                const lastDataPoint = managerOverallRankHistory[managerOverallRankHistory.length - 1];
+                if (lastDataPoint) {
+                    rankJourneyChartInstance.data.datasets[1].data = [{ x: lastDataPoint.round, y: lastDataPoint.rank }];
+                } else {
+                    rankJourneyChartInstance.data.datasets[1].data = [];
+                }
+                rankJourneyChartInstance.update();
+                // Give Chart.js a moment to render the updated state
+                await new Promise(resolve => setTimeout(resolve, 200)); 
+            } else {
+                console.log('DEBUG: No chart instance or history data to prepare for capture.');
+            }
+        }
+
+
+        /**
          * Captures specified sections as high-resolution canvases using html2canvas.
-         * Temporarily makes elements visible in the cloned DOM for accurate capture.
+         * Draws the captured content onto a standardized GIF frame canvas to ensure correct sizing and aspect ratio.
          * @returns {Promise<Array<Object>>} An array of objects, each containing a canvas and its display duration.
          */
         async function captureAndPrepareSectionsForGIF() {
@@ -1664,43 +1652,33 @@
 
             const capturedCanvases = [];
 
-            // Ensure the chart's animation is reset to its final state before capturing for GIF
-            if (rankJourneyChartInstance) {
-                console.log('DEBUG: Resetting chart animation for GIF capture.');
-                rankJourneyChartInstance.data.datasets[0].data = managerOverallRankHistory.map(d => ({ x: d.round, y: d.rank }));
-                rankJourneyChartInstance.data.datasets[0].pointRadius = 3; 
-                const lastDataPoint = managerOverallRankHistory[managerOverallRankHistory.length - 1];
-                if (lastDataPoint) {
-                    rankJourneyChartInstance.data.datasets[1].data = [{ x: lastDataPoint.round, y: lastDataPoint.rank }];
-                } else {
-                    rankJourneyChartInstance.data.datasets[1].data = [];
-                }
-                rankJourneyChartInstance.update();
-                await new Promise(resolve => setTimeout(resolve, 100)); // Give chart time to render
-            }
+            // Prepare the chart (ensure final state) before any capture happens
+            await prepareChartForCapture();
 
-            // Temporarily make the main stats container visible if it's hidden, for full capture
-            const originalManagerStatsDisplay = managerStatsDiv.style.display;
-            managerStatsDiv.style.display = 'block'; // Set to block, without !important
-            await new Promise(resolve => setTimeout(resolve, 50)); // Allow layout to settle
+            // Store original display states to revert after capture
+            const originalDisplayStates = {};
+            sectionsToCaptureConfig.forEach(config => {
+                const element = document.getElementById(config.id);
+                if (element) {
+                    originalDisplayStates[config.id] = element.style.display;
+                    element.style.display = config.display; // Ensure visible for capture
+                }
+            });
+            await new Promise(resolve => setTimeout(resolve, 100)); // Allow layout to settle
 
             for (const sectionConfig of sectionsToCaptureConfig) {
                 const element = document.getElementById(sectionConfig.id);
                 if (element) {
                     console.log(`DEBUG: Capturing section for GIF: ${sectionConfig.id}`);
                     try {
-                        const canvas = await html2canvas(element, {
+                        const h2cCanvas = await html2canvas(element, {
                             useCORS: true, 
-                            scale: 2, // High resolution capture
+                            scale: 2, // Capture at high resolution (e.g., 2x for sharper details)
                             backgroundColor: null, // Let html2canvas use element's background
                             allowTaint: true, 
-                            ignoreElements: (el) => {
-                                return el.id === 'shareVideoButton' || 
-                                       el.id === 'videoGeneratingMessage' || 
-                                       el.id === 'compatibilityWarning' ||
-                                       el.classList.contains('theme-switch-wrapper') ||
-                                       el.id === 'gifCaptureCanvas';
-                            },
+                            // Force desktop-like dimensions for cloning context
+                            windowWidth: gifWidth, 
+                            windowHeight: gifHeight * 2, // Give more height to avoid vertical clipping in cloned context initially
                             onclone: (clonedDoc) => {
                                 // Apply the current theme to the cloned document
                                 if (document.body.classList.contains('dark-mode')) {
@@ -1713,40 +1691,91 @@
                                 }
                                 
                                 // Make ALL content sections visible in the cloned DOM for capture
-                                // Use setProperty for consistency, but no !important unless truly needed
+                                // Also ensure no overflow or fixed height issues in the cloned DOM
                                 clonedDoc.getElementById('managerStats').style.display = 'block';
+                                clonedDoc.getElementById('managerStats').style.overflow = 'visible';
+                                clonedDoc.getElementById('managerStats').style.height = 'auto';
+
                                 clonedDoc.getElementById('rankJourneyChartContainer').style.display = 'flex';
+                                clonedDoc.getElementById('rankJourneyChartContainer').style.overflow = 'visible';
+                                clonedDoc.getElementById('rankJourneyChartContainer').style.height = 'auto';
+
                                 clonedDoc.getElementById('topCaptainsTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('topCaptainsTableContainer').style.overflow = 'visible';
+                                clonedDoc.getElementById('topCaptainsTableContainer').style.height = 'auto';
+
                                 clonedDoc.getElementById('bestPlayersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('bestPlayersTableContainer').style.overflow = 'visible';
+                                clonedDoc.getElementById('bestPlayersTableContainer').style.height = 'auto';
+                                
                                 clonedDoc.getElementById('worstPlayersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('worstPlayersTableContainer').style.overflow = 'visible';
+                                clonedDoc.getElementById('worstPlayersTableContainer').style.height = 'auto';
+
                                 clonedDoc.getElementById('missedPointsTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('missedPointsTableContainer').style.overflow = 'visible';
+                                clonedDoc.getElementById('missedPointsTableContainer').style.height = 'auto';
+
                                 clonedDoc.getElementById('transfersSummaryContainer').style.display = 'block';
+                                clonedDoc.getElementById('transfersSummaryContainer').style.overflow = 'visible';
+                                clonedDoc.getElementById('transfersSummaryContainer').style.height = 'auto';
+
                                 clonedDoc.getElementById('profitableTransfersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('profitableTransfersTableContainer').style.overflow = 'visible';
+                                clonedDoc.getElementById('profitableTransfersTableContainer').style.height = 'auto';
+
                                 clonedDoc.getElementById('lossMakingTransfersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.overflow = 'visible';
+                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.height = 'auto';
+
 
                                 // Adjust cloned body styles to fit content without scrolling
                                 clonedDoc.body.style.overflow = 'visible';
                                 clonedDoc.body.style.height = 'auto';
 
                                 // Specific fix for Chart.js canvas in cloned DOM
-                                const clonedChartCanvas = clonedDoc.getElementById('rankJourneyChart');
-                                if (clonedChartCanvas) {
-                                    // Ensure chart is not displaying 'Animating rank journey...' text in clone
-                                    const clonedVideoLoadingMessage = clonedDoc.getElementById('videoLoadingMessage');
-                                    if (clonedVideoLoadingMessage) {
-                                        clonedVideoLoadingMessage.style.display = 'none';
-                                    }
+                                const clonedVideoLoadingMessage = clonedDoc.getElementById('videoLoadingMessage');
+                                if (clonedVideoLoadingMessage) {
+                                    clonedVideoLoadingMessage.style.display = 'none'; // Hide animation message in cloned context
                                 }
                             }
                         });
+
+                        // Create a new canvas with target GIF dimensions
+                        const finalFrameCanvas = document.createElement('canvas');
+                        finalFrameCanvas.width = gifWidth;
+                        finalFrameCanvas.height = gifHeight;
+                        const finalFrameCtx = finalFrameCanvas.getContext('2d');
+
+                        // Calculate scaling to fit h2cCanvas onto finalFrameCanvas maintaining aspect ratio
+                        const hRatio = finalFrameCanvas.width / h2cCanvas.width;
+                        const vRatio = finalFrameCanvas.height / h2cCanvas.height;
+                        const ratio = Math.min(hRatio, vRatio); // Use 'contain' logic
+
+                        const sx = 0;
+                        const sy = 0;
+                        const sWidth = h2cCanvas.width;
+                        const sHeight = h2cCanvas.height;
+
+                        const dWidth = sWidth * ratio;
+                        const dHeight = sHeight * ratio;
+                        const dx = (finalFrameCanvas.width - dWidth) / 2; // Center horizontally
+                        const dy = (finalFrameCanvas.height - dHeight) / 2; // Center vertically
+
+                        // Draw background color first, in case content doesn't fill the frame
+                        finalFrameCtx.fillStyle = getComputedStyle(document.body).backgroundColor;
+                        finalFrameCtx.fillRect(0, 0, finalFrameCanvas.width, finalFrameCanvas.height);
+                        
+                        // Draw the captured content onto the new canvas, scaled and centered
+                        finalFrameCtx.drawImage(h2cCanvas, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+
                         capturedCanvases.push({
-                            canvas: canvas,
-                            delay: sectionConfig.duration // Delay for this frame in the GIF
+                            canvas: finalFrameCanvas, // Use the scaled and centered canvas
+                            delay: sectionConfig.duration 
                         });
-                        console.log(`DEBUG: Successfully captured ${sectionConfig.id} for GIF.`);
+                        console.log(`DEBUG: Successfully captured and scaled ${sectionConfig.id} for GIF.`);
                     } catch (e) {
                         console.error(`ERROR: Failed to capture section ${sectionConfig.id} for GIF:`, e);
-                        // Push a blank/error image if capture fails
                         const errorCanvas = document.createElement('canvas');
                         errorCanvas.width = gifWidth; errorCanvas.height = gifHeight;
                         const errorCtx = errorCanvas.getContext('2d');
@@ -1767,8 +1796,13 @@
                 }
             }
             
-            // Restore original manager stats display state
-            managerStatsDiv.style.display = originalManagerStatsDisplay;
+            // Revert display states
+            for (const id in originalDisplayStates) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.style.display = originalDisplayStates[id];
+                }
+            }
             console.log("DEBUG: Finished captureAndPrepareSectionsForGIF.");
             return capturedCanvases;
         }
@@ -1791,8 +1825,7 @@
                 height: gifHeight,
                 transparent: 'rgba(0,0,0,0)', // Ensure transparency is handled
                 background: getComputedStyle(document.body).backgroundColor, // Set background from current theme
-                // IMPORTANT: Point to the locally hosted worker script
-                workerScript: './gif.worker.js' 
+                workerScript: './gif.worker.js' // Path to locally hosted worker script
             });
 
             // Add each captured canvas as a frame with its specific delay
@@ -1826,7 +1859,6 @@
                 analyzeButton.disabled = false;
                 createRankJourneyButton.disabled = false;
                 darkModeToggle.disabled = false;
-                compatibilityWarning.style.display = 'block'; // Re-show warning after completion
             });
 
             gif.on('error', function(error) {
