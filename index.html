@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>Fantasy SPL Manager Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- NEW: html2canvas library for capturing screenshots -->
+    <!-- html2canvas library for capturing screenshots -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> 
+    <!-- NEW: gif.js library for GIF encoding -->
+    <script src="https://unpkg.com/gif.js@0.2.0/dist/gif.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* Base colors for light mode (current default) */
@@ -173,7 +175,7 @@
             line-height: 1.3;
             margin-bottom: 30px;
             color: var(--spl-text-dark); /* Darker text for main header */
-            text-align: center; /* Ensure it's centered */
+            text-align: center;
             transition: color 0.3s ease; /* Smooth transition */
         }
         #managerName span {
@@ -323,6 +325,29 @@
         }
         body.dark-mode #shareVideoButton:hover {
             background-color: #1aae88;
+        }
+
+        /* Compatibility Warning Message */
+        #compatibilityWarning {
+            background-color: #ffe0e6; /* Light red/pink */
+            color: #DC3545; /* Dark red text */
+            border: 1px solid #DC3545;
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px; /* Space above */
+            margin-bottom: 20px; /* Space below button */
+            font-weight: bold;
+            display: none; /* Hidden by default */
+            width: 100%;
+            max-width: 600px; /* Aligned with instructions box */
+            box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        body.dark-mode #compatibilityWarning {
+            background-color: #58161f; /* Darker red */
+            color: #ffcdd2; /* Lighter red text */
+            border-color: #9b1e2e;
         }
 
 
@@ -686,8 +711,14 @@
             <label for="managerIdInput">Enter Manager ID:</label>
             <input type="text" id="managerIdInput" placeholder="e.g., 1234" oninput="this.value = convertArabicToWesternNumerals(this.value)">
             <button id="analyzeButton">Full Season Report</button>
-            <!-- NEW: Share Video Button - Initially hidden -->
-            <button id="shareVideoButton" style="display: none;">Share Report as Video</button>
+            
+            <!-- NEW: Compatibility Warning Message (placed above share button) -->
+            <div id="compatibilityWarning" style="display: none;">
+                <strong>Note:</strong> Generating an animated GIF. This format is widely compatible across most devices and platforms.
+            </div>
+
+            <!-- Share Video Button - Initially hidden -->
+            <button id="shareVideoButton" style="display: none;">Share Report as GIF</button>
 
             <div id="instructionsBox" class="instructions">
                 <h3>How to get your Manager ID:</h3>
@@ -706,7 +737,7 @@
         <div id="errorMessage" class="error-message" style="display: none;"></div>
         <!-- NEW: Video Generating Message - Initially hidden -->
         <div id="videoGeneratingMessage" class="loading-message" style="display: none;">
-            Generating video... This might take a moment. Please keep this tab open.
+            Generating GIF... This might take a moment. Please keep this tab open.
         </div>
 
         <div id="managerStats" style="display: none;">
@@ -890,8 +921,8 @@
         </div>
     </div>
 
-    <!-- Hidden canvas for video recording - positioned off-screen -->
-    <canvas id="videoRecordingCanvas" style="position: absolute; left: -9999px; top: -9999px;"></canvas>
+    <!-- Hidden canvas for GIF generation - positioned off-screen -->
+    <canvas id="gifCaptureCanvas" style="position: absolute; left: -9999px; top: -9999px;"></canvas>
 
     <script>
         // --- DOM Element References ---
@@ -931,10 +962,11 @@
         const darkModeToggle = document.getElementById('darkModeToggle');
         const mainLogo = document.getElementById('mainLogo');
 
-        // NEW: Share Video Button & Video Generating Message & Video Recording Canvas
+        // NEW: Share Video Button & Video Generating Message & GIF Capture Canvas & Compatibility Warning
         const shareVideoButton = document.getElementById('shareVideoButton');
-        const videoGeneratingMessage = document.getElementById('videoGeneratingMessage'); // For video generation loading
-        const videoRecordingCanvas = document.getElementById('videoRecordingCanvas');
+        const videoGeneratingMessage = document.getElementById('videoGeneratingMessage'); // Renamed for GIF context
+        const gifCaptureCanvas = document.getElementById('gifCaptureCanvas'); // Renamed from videoRecordingCanvas
+        const compatibilityWarning = document.getElementById('compatibilityWarning');
 
         const lightModeLogoSrc = 'unnamed.jpg';
         const darkModeLogoSrc = 'dark mode logo.png';
@@ -948,17 +980,11 @@
         let animationStartTime = null;
         let animationFrameId = null;
 
-        // --- Video Recording Specific Variables ---
-        const videoFrameRate = 30; // Frames per second for video output
-        const sectionDisplayDuration = 5000; // 5 seconds in milliseconds for most sections
-        const chartDisplayDuration = 10000; // 10 seconds in milliseconds for the chart section
-
-        let mediaRecorder;
-        let recordedChunks = [];
-        let videoRecordingAnimationFrameId; // For the video generation loop
-        let videoCurrentSectionIndex = 0;
-        let videoSectionStartTime = 0;
-        let capturedSectionImages = []; // Stores ImageBitmap objects for drawing
+        // --- GIF Generation Specific Variables ---
+        const gifWidth = 1280; // Standard HD width for GIF frames
+        const gifHeight = 720; // Standard HD height for GIF frames
+        const sectionFrameDelay = 5000; // 5 seconds in milliseconds for most sections (delay for GIF frames)
+        const chartFrameDelay = 10000; // 10 seconds in milliseconds for the chart section (delay for GIF frame)
 
         // --- Helper Functions ---
 
@@ -1012,6 +1038,7 @@
         // Analyze Button click
         analyzeButton.addEventListener('click', () => {
             instructionsBox.style.display = 'none'; // Hide instructions when analysis starts
+            compatibilityWarning.style.display = 'none'; // Hide warning
             fetchManagerData();
         });
 
@@ -1019,6 +1046,7 @@
         managerIdInput.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 instructionsBox.style.display = 'none';
+                compatibilityWarning.style.display = 'none'; // Hide warning
                 fetchManagerData();
                 managerIdInput.blur(); // Remove focus from input
             }
@@ -1037,33 +1065,34 @@
             renderRankJourneyChart(managerOverallRankHistory);
         });
 
-        // NEW: Share Video Button Click Listener
+        // NEW: Share Report as GIF Button Click Listener
         shareVideoButton.addEventListener('click', async () => {
-            // Disable all interactive buttons during video generation
+            // Disable all interactive buttons during GIF generation
             shareVideoButton.disabled = true;
             analyzeButton.disabled = true;
             createRankJourneyButton.disabled = true;
             darkModeToggle.disabled = true;
 
-            // Show video generation loading message
-            videoGeneratingMessage.style.display = 'block';
+            // Show GIF generation loading message
+            videoGeneratingMessage.style.display = 'block'; // Reusing this element
             errorMessage.style.display = 'none'; // Hide any previous error messages
+            compatibilityWarning.style.display = 'none'; // Hide the warning during generation
 
             // Ensure the main manager stats are visible before trying to capture them
             managerStatsDiv.style.display = 'block'; 
-
-            // Scroll to the top for consistent screenshots starting point
+            
+            // Scroll to the top for consistent screenshots starting point (though html2canvas clones now)
             window.scrollTo({ top: 0, behavior: 'instant' });
 
             // Give browser a moment to settle after layout changes/scroll
             await new Promise(resolve => setTimeout(resolve, 500)); 
             
             try {
-                // Initialize and start the video generation process
-                await generateVideo();
+                // Initialize and start the GIF generation process
+                await generateGIF();
             } catch (error) {
-                console.error("Error generating video:", error);
-                errorMessage.textContent = `Failed to generate video: ${error.message}. Please try again.`;
+                console.error("Error generating GIF:", error);
+                errorMessage.textContent = `Failed to generate GIF: ${error.message}. Please try again.`;
                 errorMessage.style.display = 'block';
             } finally {
                 // Always re-enable buttons and hide loading message, regardless of success/failure
@@ -1072,6 +1101,10 @@
                 createRankJourneyButton.disabled = false;
                 darkModeToggle.disabled = false;
                 videoGeneratingMessage.style.display = 'none';
+                // Show compatibility warning again if it was previously visible
+                if (shareVideoButton.style.display === 'block') { // Only show if button is visible
+                    compatibilityWarning.style.display = 'block';
+                }
             }
         });
 
@@ -1085,6 +1118,7 @@
                 managerStatsDiv.style.display = 'none';
                 rankJourneyBox.style.display = 'none';
                 shareVideoButton.style.display = 'none'; // Hide share button if input is invalid
+                compatibilityWarning.style.display = 'none'; // Hide warning
                 return;
             }
 
@@ -1097,6 +1131,7 @@
             rankJourneyBox.style.display = 'none'; // Hide rank journey box
             createRankJourneyButton.textContent = 'Click Here'; // Reset button text
             shareVideoButton.style.display = 'none'; // Hide share button during initial fetch
+            compatibilityWarning.style.display = 'none'; // Hide warning during fetch
 
             // Clean up previous chart instance and animation
             if (rankJourneyChartInstance) {
@@ -1288,10 +1323,12 @@
 
                     managerStatsDiv.style.display = 'block'; // Show the main stats container
                     shareVideoButton.style.display = 'block'; // Show share button after all data is loaded and displayed
+                    compatibilityWarning.style.display = 'block'; // Show compatibility warning
                 } else {
                     errorMessage.textContent = data.error || 'An unknown error occurred.';
                     errorMessage.style.display = 'block';
                     shareVideoButton.style.display = 'none'; // Keep share button hidden on error
+                    compatibilityWarning.style.display = 'none'; // Hide warning
                 }
 
             } catch (error) {
@@ -1300,6 +1337,7 @@
                 errorMessage.style.display = 'block';
                 console.error("Fetch error:", error);
                 shareVideoButton.style.display = 'none'; // Keep share button hidden on error
+                compatibilityWarning.style.display = 'none'; // Hide warning
             }
         }
 
@@ -1596,119 +1634,32 @@
             animationFrameId = requestAnimationFrame(animateChart);
         }
 
-        // --- NEW: Video Generation Logic ---
+        // --- NEW: GIF Generation Logic ---
 
         /**
-         * Captures specified sections as high-resolution ImageBitmaps using html2canvas.
-         * Scrolls the page to ensure elements are in view before capturing.
-         * Temporarily hides the scrollbar to prevent it from appearing in screenshots.
-         * Applies current theme to the cloned document for accurate color representation.
-         * @returns {Promise<Array<Object>>} An array of objects, each containing an ImageBitmap and its display duration.
+         * Captures specified sections as high-resolution canvases using html2canvas.
+         * Temporarily makes elements visible in the cloned DOM for accurate capture.
+         * @returns {Promise<Array<Object>>} An array of objects, each containing a canvas and its display duration.
          */
-        async function captureAndPrepareSections() {
+        async function captureAndPrepareSectionsForGIF() {
+            console.log("Starting captureAndPrepareSectionsForGIF...");
             // Define the sections to capture and their durations
-            // Ensure these IDs correspond to actual elements in your HTML
-            const sectionsToCapture = [
-                { id: 'managerStats', duration: sectionDisplayDuration }, // Covers manager name, rank, and stat cards
-                { id: 'rankJourneyChartContainer', duration: chartDisplayDuration }, // The chart itself
-                { id: 'topCaptainsTableContainer', duration: sectionDisplayDuration },
-                { id: 'bestPlayersTableContainer', duration: sectionDisplayDuration },
-                { id: 'worstPlayersTableContainer', duration: sectionDisplayDuration },
-                { id: 'missedPointsTableContainer', duration: sectionDisplayDuration },
-                { id: 'transfersSummaryContainer', duration: sectionDisplayDuration }, // Covers total transfers and hits
-                { id: 'profitableTransfersTableContainer', duration: sectionDisplayDuration },
-                { id: 'lossMakingTransfersTableContainer', duration: sectionDisplayDuration },
+            const sectionsToCaptureConfig = [
+                { id: 'managerStats', duration: sectionFrameDelay, display: 'block' },
+                { id: 'rankJourneyChartContainer', duration: chartFrameDelay, display: 'flex' }, 
+                { id: 'topCaptainsTableContainer', duration: sectionFrameDelay, display: 'block' },
+                { id: 'bestPlayersTableContainer', duration: sectionFrameDelay, display: 'block' },
+                { id: 'worstPlayersTableContainer', duration: sectionFrameDelay, display: 'block' },
+                { id: 'missedPointsTableContainer', duration: sectionFrameDelay, display: 'block' },
+                { id: 'transfersSummaryContainer', duration: sectionFrameDelay, display: 'block' },
+                { id: 'profitableTransfersTableContainer', duration: sectionFrameDelay, display: 'block' },
+                { id: 'lossMakingTransfersTableContainer', duration: sectionFrameDelay, display: 'block' },
             ];
 
-            const capturedImages = [];
-            const originalScrollPosition = window.scrollY; // Remember current scroll position
-            const originalOverflow = document.body.style.overflow; // Remember original overflow style
+            const capturedCanvases = [];
 
-            // Temporarily hide the main body scrollbar to prevent it from appearing in screenshots
-            document.body.style.overflow = 'hidden';
-
-            for (const section of sectionsToCapture) {
-                const element = document.getElementById(section.id);
-                if (element) {
-                    // Scroll element into view without animation for immediate capture readiness
-                    element.scrollIntoView({ behavior: 'instant', block: 'start' });
-                    // Give the browser a tiny moment to render the element after scrolling
-                    await new Promise(resolve => setTimeout(resolve, 50)); 
-
-                    try {
-                        // Use html2canvas to render the element to a canvas
-                        const canvas = await html2canvas(element, {
-                            useCORS: true, // Attempt to load cross-origin resources
-                            scale: 2, // Capture at a higher resolution (e.g., 2x) for better video quality
-                            backgroundColor: null, // Let html2canvas use the element's actual background
-                            allowTaint: true, // Allows rendering images from other origins (will taint canvas)
-                            ignoreElements: (element) => {
-                                // Ignore any elements that should not be part of the screenshot, e.g., the share button itself
-                                return element.id === 'shareVideoButton' || element.id === 'videoGeneratingMessage';
-                            },
-                            onclone: (clonedDoc) => {
-                                // Apply the current theme (dark-mode class) to the cloned document
-                                // This ensures the screenshot has the correct light/dark mode colors
-                                if (document.body.classList.contains('dark-mode')) {
-                                    clonedDoc.body.classList.add('dark-mode');
-                                }
-                                // Hide the video recording canvas itself in the cloned document
-                                const clonedVideoCanvas = clonedDoc.getElementById('videoRecordingCanvas');
-                                if (clonedVideoCanvas) {
-                                    clonedVideoCanvas.style.display = 'none';
-                                }
-                                // Hide the theme switch as well
-                                const clonedThemeSwitch = clonedDoc.querySelector('.theme-switch-wrapper');
-                                if (clonedThemeSwitch) {
-                                    clonedThemeSwitch.style.display = 'none';
-                                }
-                            }
-                        });
-                        // Convert the html2canvas output canvas into an ImageBitmap for efficient drawing on the video canvas
-                        const imageBitmap = await createImageBitmap(canvas);
-                        capturedImages.push({
-                            image: imageBitmap,
-                            duration: section.duration
-                        });
-                    } catch (e) {
-                        console.error(`Error capturing section ${section.id}:`, e);
-                        // In case of capture failure, push a blank/error image to prevent video breaking
-                        const errorCanvas = document.createElement('canvas');
-                        errorCanvas.width = 1280; errorCanvas.height = 720; // Default video dimensions
-                        const ctx = errorCanvas.getContext('2d');
-                        ctx.fillStyle = 'lightgrey';
-                        ctx.fillRect(0, 0, errorCanvas.width, errorCanvas.height);
-                        ctx.fillStyle = 'red';
-                        ctx.font = '24px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(`Error loading section: ${section.id}`, errorCanvas.width / 2, errorCanvas.height / 2);
-                        const errorImageBitmap = await createImageBitmap(errorCanvas);
-                        capturedImages.push({
-                            image: errorImageBitmap,
-                            duration: section.duration
-                        });
-                    }
-                } else {
-                    console.warn(`Element with ID ${section.id} not found, skipping capture for this section.`);
-                }
-            }
-
-            // Restore original scroll position and overflow style after all captures
-            window.scrollTo({ top: originalScrollPosition, behavior: 'instant' });
-            document.body.style.overflow = originalOverflow; 
-
-            return capturedImages;
-        }
-
-        /**
-         * Orchestrates the video generation process by drawing pre-captured images
-         * onto a hidden canvas and recording it with MediaRecorder.
-         */
-        async function generateVideo() {
-            // Ensure the chart's animation is reset to its final state before capturing for video
+            // Ensure the chart's animation is reset to its final state before capturing for GIF
             if (rankJourneyChartInstance) {
-                // Ensure the chart fully updates to its final state for the screenshot
                 rankJourneyChartInstance.data.datasets[0].data = managerOverallRankHistory.map(d => ({ x: d.round, y: d.rank }));
                 rankJourneyChartInstance.data.datasets[0].pointRadius = 3; 
                 const lastDataPoint = managerOverallRankHistory[managerOverallRankHistory.length - 1];
@@ -1718,120 +1669,165 @@
                     rankJourneyChartInstance.data.datasets[1].data = [];
                 }
                 rankJourneyChartInstance.update();
+                await new Promise(resolve => setTimeout(resolve, 100)); // Give chart time to render
             }
 
-            capturedSectionImages = await captureAndPrepareSections();
+            // Temporarily make the main stats container visible if it's hidden, for full capture
+            const originalManagerStatsDisplay = managerStatsDiv.style.display;
+            managerStatsDiv.style.display = 'block';
+            await new Promise(resolve => setTimeout(resolve, 50)); // Allow layout to settle
 
-            if (capturedSectionImages.length === 0) {
-                throw new Error("Video generation cancelled: No sections were captured.");
+            for (const sectionConfig of sectionsToCaptureConfig) {
+                const element = document.getElementById(sectionConfig.id);
+                if (element) {
+                    console.log(`Capturing section for GIF: ${sectionConfig.id}`);
+                    try {
+                        const canvas = await html2canvas(element, {
+                            useCORS: true, 
+                            scale: 2, // High resolution capture
+                            backgroundColor: null, // Let html2canvas use element's background
+                            allowTaint: true, 
+                            ignoreElements: (el) => {
+                                return el.id === 'shareVideoButton' || 
+                                       el.id === 'videoGeneratingMessage' || 
+                                       el.id === 'compatibilityWarning' ||
+                                       el.classList.contains('theme-switch-wrapper') ||
+                                       el.id === 'gifCaptureCanvas'; // Exclude the hidden GIF canvas itself
+                            },
+                            onclone: (clonedDoc) => {
+                                // Apply the current theme to the cloned document
+                                if (document.body.classList.contains('dark-mode')) {
+                                    clonedDoc.body.classList.add('dark-mode');
+                                }
+                                // Ensure the main logo in cloned doc reflects the current theme
+                                const clonedMainLogo = clonedDoc.getElementById('mainLogo');
+                                if (clonedMainLogo) {
+                                    clonedMainLogo.src = mainLogo.src; // Copy current src
+                                }
+                                
+                                // Make ALL content sections visible in the cloned DOM for capture
+                                clonedDoc.getElementById('managerStats').style.display = 'block';
+                                clonedDoc.getElementById('rankJourneyChartContainer').style.display = 'flex';
+                                clonedDoc.getElementById('topCaptainsTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('bestPlayersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('worstPlayersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('missedPointsTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('transfersSummaryContainer').style.display = 'block';
+                                clonedDoc.getElementById('profitableTransfersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.display = 'block';
+
+                                // Adjust cloned body styles to fit content without scrolling
+                                clonedDoc.body.style.overflow = 'visible';
+                                clonedDoc.body.style.height = 'auto';
+
+                                // Specific fix for Chart.js canvas in cloned DOM
+                                const clonedChartCanvas = clonedDoc.getElementById('rankJourneyChart');
+                                if (clonedChartCanvas) {
+                                    // Ensure chart is not displaying 'Animating rank journey...' text in clone
+                                    const clonedVideoLoadingMessage = clonedDoc.getElementById('videoLoadingMessage');
+                                    if (clonedVideoLoadingMessage) {
+                                        clonedVideoLoadingMessage.style.display = 'none';
+                                    }
+                                }
+                            }
+                        });
+                        capturedCanvases.push({
+                            canvas: canvas,
+                            delay: sectionConfig.duration // Delay for this frame in the GIF
+                        });
+                        console.log(`Successfully captured ${sectionConfig.id} for GIF.`);
+                    } catch (e) {
+                        console.error(`ERROR: Failed to capture section ${sectionConfig.id} for GIF:`, e);
+                        // Push a blank/error image if capture fails
+                        const errorCanvas = document.createElement('canvas');
+                        errorCanvas.width = gifWidth; errorCanvas.height = gifHeight;
+                        const errorCtx = errorCanvas.getContext('2d');
+                        errorCtx.fillStyle = '#333';
+                        errorCtx.fillRect(0, 0, gifWidth, gifHeight);
+                        errorCtx.fillStyle = 'white';
+                        errorCtx.font = '24px Arial';
+                        errorCtx.textAlign = 'center';
+                        errorCtx.textBaseline = 'middle';
+                        errorCtx.fillText(`Capture failed: ${sectionConfig.id}`, gifWidth / 2, gifHeight / 2);
+                        capturedCanvases.push({
+                            canvas: errorCanvas,
+                            delay: sectionConfig.duration
+                        });
+                    }
+                } else {
+                    console.warn(`Element with ID ${sectionConfig.id} not found, skipping capture for GIF.`);
+                }
             }
-
-            // Set the resolution for the output video
-            const videoWidth = 1280; // Standard HD width
-            const videoHeight = 720; // Standard HD height
-            videoRecordingCanvas.width = videoWidth;
-            videoRecordingCanvas.height = videoHeight;
-            const ctx = videoRecordingCanvas.getContext('2d');
-
-            // Get a stream from the canvas to feed to MediaRecorder
-            const stream = videoRecordingCanvas.captureStream(videoFrameRate);
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp8' });
-            recordedChunks = []; // Reset chunks for a new recording
-
-            // Event handler for when video data is available
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    recordedChunks.push(event.data);
-                }
-            };
-
-            // Event handler for when recording stops
-            mediaRecorder.onstop = () => {
-                // Combine all recorded chunks into a single Blob
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob); // Create a URL for the Blob
-
-                // Create a temporary anchor element to trigger download
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'fantasy_spl_report.webm'; // Suggested filename
-                document.body.appendChild(a);
-                a.click(); // Programmatically click the link to trigger download
-                window.URL.revokeObjectURL(url); // Clean up the Blob URL
-
-                // Clear any lingering animation frame for video recording
-                if (videoRecordingAnimationFrameId) {
-                    cancelAnimationFrame(videoRecordingAnimationFrameId);
-                    videoRecordingAnimationFrameId = null;
-                }
-            };
-
-            // Start recording
-            mediaRecorder.start();
-            videoCurrentSectionIndex = 0; // Reset index to the first section
-            videoSectionStartTime = performance.now(); // Get precise start time for timing sections
-            // Start the animation loop for drawing frames onto the recording canvas
-            videoRecordingAnimationFrameId = requestAnimationFrame(animateVideoRecording);
+            
+            // Restore original manager stats display state
+            managerStatsDiv.style.display = originalManagerStatsDisplay;
+            console.log("Finished captureAndPrepareSectionsForGIF.");
+            return capturedCanvases;
         }
 
         /**
-         * Animation loop for drawing static images onto the video recording canvas.
-         * Controls which section is displayed based on elapsed time.
-         * @param {DOMHighResTimeStamp} timestamp - The current time provided by requestAnimationFrame.
+         * Generates an animated GIF from captured section canvases.
          */
-        function animateVideoRecording(timestamp) {
-            const ctx = videoRecordingCanvas.getContext('2d');
+        async function generateGIF() {
+            console.log("Starting GIF generation process...");
+            const sections = await captureAndPrepareSectionsForGIF();
 
-            // Calculate current elapsed time relative to the start of recording
-            const elapsed = timestamp - videoSectionStartTime;
-
-            let cumulativeDuration = 0;
-            let currentSectionFound = false;
-            for (let i = 0; i < capturedSectionImages.length; i++) {
-                cumulativeDuration += capturedSectionImages[i].duration;
-                if (elapsed < cumulativeDuration) {
-                    videoCurrentSectionIndex = i;
-                    currentSectionFound = true;
-                    break;
-                }
+            if (sections.length === 0) {
+                throw new Error("No sections captured for GIF generation.");
             }
 
-            // If all sections have played through, stop the media recorder
-            if (!currentSectionFound && elapsed >= cumulativeDuration) {
-                mediaRecorder.stop();
-                return;
-            }
+            const gif = new GIF({
+                workers: 2, // Use 2 web workers for faster processing
+                quality: 10, // Adjust quality (lower is faster but more lossy)
+                width: gifWidth,
+                height: gifHeight,
+                transparent: 'rgba(0,0,0,0)', // Ensure transparency is handled
+                background: getComputedStyle(document.body).backgroundColor, // Set background from current theme
+                workerScript: 'https://unpkg.com/gif.js@0.2.0/dist/gif.worker.js' // Path to worker script
+            });
 
-            const currentSection = capturedSectionImages[videoCurrentSectionIndex];
+            // Add each captured canvas as a frame with its specific delay
+            sections.forEach(section => {
+                gif.addFrame(section.canvas, { delay: section.delay });
+            });
 
-            // Clear the entire canvas for the new frame to prevent ghosting
-            ctx.clearRect(0, 0, videoRecordingCanvas.width, videoRecordingCanvas.height);
+            gif.on('start', function() {
+                console.log("GIF generation started...");
+            });
 
-            // Draw the current section's image (ImageBitmap) onto the recording canvas
-            const imgBitmap = currentSection.image;
-            
-            // Calculate scaling to fit the image within the video frame while maintaining its aspect ratio
-            const aspectRatio = imgBitmap.width / imgBitmap.height;
-            let drawWidth = videoRecordingCanvas.width;
-            let drawHeight = videoRecordingCanvas.height;
+            gif.on('progress', function(p) {
+                console.log('GIF generation progress: ' + Math.round(p * 100) + '%');
+                videoGeneratingMessage.textContent = `Generating GIF... ${Math.round(p * 100)}% complete.`;
+            });
 
-            if (aspectRatio > videoRecordingCanvas.width / videoRecordingCanvas.height) { 
-                // Image is wider than the video frame aspect ratio, constrain by width
-                drawHeight = videoRecordingCanvas.width / aspectRatio;
-            } else { 
-                // Image is taller or has the same aspect ratio, constrain by height
-                drawWidth = videoRecordingCanvas.height * aspectRatio;
-            }
-            
-            // Center the image within the video frame
-            const x = (videoRecordingCanvas.width - drawWidth) / 2;
-            const y = (videoRecordingCanvas.height - drawHeight) / 2;
+            gif.on('finished', function(blob) {
+                console.log('GIF generation finished! Size:', blob.size, 'bytes');
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `spl_report_${Date.now()}.gif`; // Suggested filename for GIF
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                console.log("GIF download triggered.");
+                videoGeneratingMessage.textContent = 'GIF generated and download started!';
+                // Re-enable buttons immediately after download starts
+                shareVideoButton.disabled = false;
+                analyzeButton.disabled = false;
+                createRankJourneyButton.disabled = false;
+                darkModeToggle.disabled = false;
+                compatibilityWarning.style.display = 'block'; // Re-show warning after completion
+            });
 
-            ctx.drawImage(imgBitmap, x, y, drawWidth, drawHeight);
+            gif.on('error', function(error) {
+                console.error("GIF generation error:", error);
+                errorMessage.textContent = `GIF generation failed: ${error.message}. Please try again.`;
+                errorMessage.style.display = 'block';
+                videoGeneratingMessage.style.display = 'none'; // Hide loading message
+            });
 
-            // Request the next frame for continuous recording
-            videoRecordingAnimationFrameId = requestAnimationFrame(animateVideoRecording);
+            gif.render(); // Start the GIF rendering process
         }
     </script>
 </body>
