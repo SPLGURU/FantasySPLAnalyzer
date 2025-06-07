@@ -10,7 +10,7 @@
     <!-- NEW: gif.js library for GIF encoding -->
     <script src="https://unpkg.com/gif.js@0.2.0/dist/gif.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
-    <style>
+    <style id="main-styles">
         /* Base colors for light mode (current default) */
         :root {
             --spl-light-bg: #F8F9FA;
@@ -233,9 +233,9 @@
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease; /* Smooth transition */
             box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
-            width: 100%; /* Make button full width of its container */
-            max-width: 300px; /* Limit max width */
-            display: block; /* Ensure it takes full width */
+            width: 100%;
+            max-width: 300px;
+            display: block;
             margin: 0 auto; /* Center the button */
         }
 
@@ -925,6 +925,11 @@
     <canvas id="gifCaptureCanvas" style="position: absolute; left: -9999px; top: -9999px;"></canvas>
 
     <script>
+        // THIS IS A DEBUGGING LINE - IF YOU SEE THIS, JS IS RUNNING!
+        console.log('DEBUG: Script loaded and running!');
+        // No longer adding a border to the body as it was distracting.
+        // document.body.style.border = '5px solid red'; // Temporary visual indicator
+
         // --- DOM Element References ---
         const managerIdInput = document.getElementById('managerIdInput');
         const analyzeButton = document.getElementById('analyzeButton');
@@ -1114,10 +1119,10 @@
 
         // --- Core Data Fetching Logic ---
         async function fetchManagerData() {
-            console.log("fetchManagerData started.");
+            console.log("DEBUG: fetchManagerData started.");
             const managerId = convertArabicToWesternNumerals(managerIdInput.value);
             if (!managerId || !/^\d+$/.test(managerId)) {
-                console.warn('Invalid Manager ID entered.');
+                console.warn('DEBUG: Invalid Manager ID entered. Aborting fetch.');
                 errorMessage.textContent = 'Please enter a valid Manager ID (numbers only).';
                 errorMessage.style.display = 'block';
                 managerStatsDiv.style.display = 'none';
@@ -1140,28 +1145,30 @@
             dataDisplayAttempted = false; // Reset flag
 
             if (rankJourneyChartInstance) {
+                console.log('DEBUG: Destroying existing chart instance.');
                 rankJourneyChartInstance.destroy();
                 rankJourneyChartInstance = null;
             }
             if (animationFrameId) {
+                console.log('DEBUG: Cancelling existing chart animation.');
                 cancelAnimationFrame(animationFrameId);
                 animationFrameId = null;
             }
             animationStartTime = null;
 
             try {
-                console.log(`Fetching data for manager ID: ${managerId}`);
+                console.log(`DEBUG: Attempting to fetch data for manager ID: ${managerId}`);
                 const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`);
                 const data = await response.json();
-                console.log('Fetch response received.', { responseOk: response.ok, data: data });
+                console.log('DEBUG: Fetch response received.', { responseOk: response.ok, data: data });
 
                 loadingMessage.style.display = 'none';
 
                 if (response.ok) {
                     dataDisplayAttempted = true; // Set flag
+                    console.log('DEBUG: Response OK. Populating manager data...');
                     managerOverallRankHistory = data.overallRankHistory || [];
                     
-                    // Update manager name and ranks
                     if (data.overallRank && data.overallRank !== 'N/A') {
                         const rankString = String(data.overallRank);
                         managerCurrentOverallRank = Math.round(parseFloat(rankString.replace(/,/g, '')));
@@ -1205,6 +1212,7 @@
                     rankJourneyBox.style.display = 'flex'; // Show the rank journey button box
 
                     // Populate tables
+                    console.log('DEBUG: Populating topCaptainsTable...');
                     topCaptainsTableBody.innerHTML = '';
                     if (data.top3Captains && data.top3Captains.length > 0) {
                         data.top3Captains.forEach(captain => {
@@ -1227,7 +1235,7 @@
                         row.insertCell().textContent = 'No data available.';
                         row.cells[0].colSpan = 6;
                     }
-
+                    console.log('DEBUG: Populating bestPlayersTable...');
                     bestPlayersTableBody.innerHTML = '';
                     if (data.bestPlayers && data.bestPlayers.length > 0) {
                         data.bestPlayers.forEach(player => {
@@ -1248,7 +1256,7 @@
                         row.insertCell().textContent = 'No data available.';
                         row.cells[0].colSpan = 5;
                     }
-
+                    console.log('DEBUG: Populating worstPlayersTable...');
                     worstPlayersTableBody.innerHTML = '';
                     if (data.worstPlayers && data.worstPlayers.length > 0) {
                         data.worstPlayers.forEach(player => {
@@ -1269,7 +1277,7 @@
                         row.insertCell().textContent = 'No data available.';
                         row.cells[0].colSpan = 5;
                     }
-
+                    console.log('DEBUG: Populating missedPointsTable...');
                     missedPointsTableBody.innerHTML = '';
                     if (data.top5MissedPoints && data.top5MissedPoints.length > 0) {
                         data.top5MissedPoints.forEach(item => {
@@ -1286,7 +1294,7 @@
                         row.insertCell().textContent = 'No data available.';
                         row.cells[0].colSpan = 3;
                     }
-
+                    console.log('DEBUG: Populating profitableTransfersTable...');
                     profitableTransfersTableBody.innerHTML = '';
                     if (data.top5ProfitableTransfers && data.top5ProfitableTransfers.length > 0) {
                         data.top5ProfitableTransfers.forEach(transfer => {
@@ -1307,7 +1315,7 @@
                         row.insertCell().textContent = 'No data available.';
                         row.cells[0].colSpan = 4;
                     }
-
+                    console.log('DEBUG: Populating lossMakingTransfersTable...');
                     lossMakingTransfersTableBody.innerHTML = '';
                     if (data.top5LossMakingTransfers && data.top5LossMakingTransfers.length > 0) {
                         data.top5LossMakingTransfers.forEach(transfer => {
@@ -1350,21 +1358,23 @@
                     }, 3000); // Remove after 3 seconds
 
                     // Add a simple CSS animation for the debug indicator
-                    const styleSheet = document.styleSheets[0];
+                    // Get our specific embedded stylesheet
+                    const mainStyleSheet = document.getElementById('main-styles').sheet;
                     // Check if the rule already exists to avoid errors on subsequent calls
-                    const keyframesRule = Array.from(styleSheet.cssRules).find(rule => rule.name === 'fadeOut');
+                    const keyframesRule = Array.from(mainStyleSheet.cssRules).find(rule => rule.name === 'fadeOut');
                     if (!keyframesRule) {
-                        styleSheet.insertRule(`
+                        mainStyleSheet.insertRule(`
                             @keyframes fadeOut {
                                 0% { opacity: 1; }
                                 80% { opacity: 1; }
                                 100% { opacity: 0; display: none; }
                             }
-                        `, styleSheet.cssRules.length);
+                        `, mainStyleSheet.cssRules.length);
                     }
+                    console.log('DEBUG: CSS rule for fadeOut applied to main stylesheet.');
 
                 } else {
-                    console.error('API response not OK:', data.error || 'Unknown error');
+                    console.error('DEBUG: API response not OK:', data.error || 'Unknown error');
                     errorMessage.textContent = data.error || 'An unknown error occurred.';
                     errorMessage.style.display = 'block';
                     shareVideoButton.style.display = 'none';
@@ -1372,14 +1382,14 @@
                 }
 
             } catch (error) {
-                console.error("Critical fetchManagerData error:", error);
-                loadingMessage.style.display = 'none';
+                console.error("DEBUG: Critical fetchManagerData error:", error);
                 errorMessage.textContent = `Failed to fetch data: ${error.message}. This might be due to a network issue, an invalid Manager ID, or a temporary API problem. Please try again.`;
                 errorMessage.style.display = 'block';
+                loadingMessage.style.display = 'none'; // Ensure loading message is hidden
                 shareVideoButton.style.display = 'none';
                 compatibilityWarning.style.display = 'none';
             }
-            console.log("fetchManagerData finished.");
+            console.log("DEBUG: fetchManagerData finished.");
         }
 
         // --- Chart Rendering Logic (Existing) ---
@@ -1396,7 +1406,7 @@
 
         function renderRankJourneyChart(fullRankHistoryData) {
             if (!fullRankHistoryData || fullRankHistoryData.length === 0) {
-                console.warn("No rank data to render chart.");
+                console.warn("DEBUG: No rank data to render chart.");
                 return;
             }
 
@@ -1431,7 +1441,7 @@
 
             overallYAxisMax = Math.min(Math.max(overallYAxisMax, minRankInHistory + 10, 200), 114154); 
 
-            console.log(`Chart Y-axis Debug: Min Rank (History): ${minRankInHistory}, Max Rank (History): ${maxRankInHistory}, Current Overall Rank (for decision): ${decisionRank}, Calculated Y-axis Max: ${overallYAxisMax}`);
+            console.log(`DEBUG: Chart Y-axis Debug: Min Rank (History): ${minRankInHistory}, Max Rank (History): ${maxRankInHistory}, Current Overall Rank (for decision): ${decisionRank}, Calculated Y-axis Max: ${overallYAxisMax}`);
 
             videoLoadingMessage.style.display = 'block';
 
@@ -1656,7 +1666,7 @@
          * @returns {Promise<Array<Object>>} An array of objects, each containing a canvas and its display duration.
          */
         async function captureAndPrepareSectionsForGIF() {
-            console.log("Starting captureAndPrepareSectionsForGIF...");
+            console.log("DEBUG: Starting captureAndPrepareSectionsForGIF...");
             // Define the sections to capture and their durations
             const sectionsToCaptureConfig = [
                 { id: 'managerStats', duration: sectionFrameDelay, display: 'block' },
@@ -1674,6 +1684,7 @@
 
             // Ensure the chart's animation is reset to its final state before capturing for GIF
             if (rankJourneyChartInstance) {
+                console.log('DEBUG: Resetting chart animation for GIF capture.');
                 rankJourneyChartInstance.data.datasets[0].data = managerOverallRankHistory.map(d => ({ x: d.round, y: d.rank }));
                 rankJourneyChartInstance.data.datasets[0].pointRadius = 3; 
                 const lastDataPoint = managerOverallRankHistory[managerOverallRankHistory.length - 1];
@@ -1694,7 +1705,7 @@
             for (const sectionConfig of sectionsToCaptureConfig) {
                 const element = document.getElementById(sectionConfig.id);
                 if (element) {
-                    console.log(`Capturing section for GIF: ${sectionConfig.id}`);
+                    console.log(`DEBUG: Capturing section for GIF: ${sectionConfig.id}`);
                     try {
                         const canvas = await html2canvas(element, {
                             useCORS: true, 
@@ -1750,7 +1761,7 @@
                             canvas: canvas,
                             delay: sectionConfig.duration // Delay for this frame in the GIF
                         });
-                        console.log(`Successfully captured ${sectionConfig.id} for GIF.`);
+                        console.log(`DEBUG: Successfully captured ${sectionConfig.id} for GIF.`);
                     } catch (e) {
                         console.error(`ERROR: Failed to capture section ${sectionConfig.id} for GIF:`, e);
                         // Push a blank/error image if capture fails
@@ -1770,13 +1781,13 @@
                         });
                     }
                 } else {
-                    console.warn(`Element with ID ${sectionConfig.id} not found, skipping capture for GIF.`);
+                    console.warn(`DEBUG: Element with ID ${sectionConfig.id} not found, skipping capture for GIF.`);
                 }
             }
             
             // Restore original manager stats display state
             managerStatsDiv.style.display = originalManagerStatsDisplay;
-            console.log("Finished captureAndPrepareSectionsForGIF.");
+            console.log("DEBUG: Finished captureAndPrepareSectionsForGIF.");
             return capturedCanvases;
         }
 
@@ -1784,7 +1795,7 @@
          * Generates an animated GIF from captured section canvases.
          */
         async function generateGIF() {
-            console.log("Starting GIF generation process...");
+            console.log("DEBUG: Starting GIF generation process...");
             const sections = await captureAndPrepareSectionsForGIF();
 
             if (sections.length === 0) {
@@ -1807,16 +1818,16 @@
             });
 
             gif.on('start', function() {
-                console.log("GIF generation started...");
+                console.log("DEBUG: GIF generation started...");
             });
 
             gif.on('progress', function(p) {
-                console.log('GIF generation progress: ' + Math.round(p * 100) + '%');
+                console.log('DEBUG: GIF generation progress: ' + Math.round(p * 100) + '%');
                 videoGeneratingMessage.textContent = `Generating GIF... ${Math.round(p * 100)}% complete.`;
             });
 
             gif.on('finished', function(blob) {
-                console.log('GIF generation finished! Size:', blob.size, 'bytes');
+                console.log('DEBUG: GIF generation finished! Size:', blob.size, 'bytes');
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
@@ -1825,7 +1836,7 @@
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
-                console.log("GIF download triggered.");
+                console.log("DEBUG: GIF download triggered.");
                 videoGeneratingMessage.textContent = 'GIF generated and download started!';
                 // Re-enable buttons immediately after download starts
                 shareVideoButton.disabled = false;
@@ -1836,7 +1847,7 @@
             });
 
             gif.on('error', function(error) {
-                console.error("GIF generation error:", error);
+                console.error("DEBUG: GIF generation error:", error);
                 errorMessage.textContent = `GIF generation failed: ${error.message}. Please try again.`;
                 errorMessage.style.display = 'block';
                 videoGeneratingMessage.style.display = 'none'; // Hide loading message
