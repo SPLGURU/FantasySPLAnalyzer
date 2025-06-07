@@ -324,14 +324,14 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
                     console.warn(`Could not get points for Player OUT ID ${playerOutId} in Round ${round}.`);
                 }
 
-                // Calculate Profit/Loss using the user's formula
-                const profitLoss = playerInPoints - playerOutPoints - currentRoundTransfersCost;
+                // UPDATED: Calculate Profit/Loss - Removed currentRoundTransfersCost
+                const profitLoss = playerInPoints - playerOutPoints;
 
                 allTransfersAnalysis.push({
                     playerInName: playerNameMap[playerInId] || `Unknown (ID:${playerInId})`,
                     playerOutName: playerNameMap[playerOutId] || `Unknown (ID:${playerOutId})`,
                     round: round,
-                    tcValue: currentRoundTransfersCost,
+                    tcValue: currentRoundTransfersCost, // Still store TC for context if needed elsewhere, but not used in profitLoss
                     profitLoss: profitLoss
                 });
             }
@@ -381,7 +381,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             times: timesCaptained,
             successful: successfulCaptaincies,
             failed: failedCaptaincies,
-            // NEW: Multiply totalCaptainedPoints by 2 as requested
+            // Multiply totalCaptainedPoints by 2 as requested
             totalCaptainedPoints: totalCaptainedPoints * 2, 
             captainedRounds: captainedRoundsTracker[captainId]
         });
