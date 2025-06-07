@@ -609,15 +609,25 @@
         .instructions a:hover {
             text-decoration: underline;
         }
+
+        /* Dark mode specific styles for the instructions box text */
+        body.dark-mode .instructions {
+            background-color: var(--spl-light-bg); /* Match body background for a unified look */
+            border-left-color: var(--spl-primary-accent); /* Keep accent border */
+            color: var(--spl-text-dark); /* Ensure main text is light */
+        }
+        body.dark-mode .instructions h3,
+        body.dark-mode .instructions a {
+            color: #FFD700; /* Bright gold for heading and links in dark mode */
+        }
     </style>
 </head>
 <body>
     <div id="logo-container">
-        <!-- Added id="mainLogo" to the image tag -->
         <img id="mainLogo" src="unnamed.jpg" alt="Fantasy SPL Data Center Logo">
     </div>
 
-    <!-- NEW: Theme Switch -->
+    <!-- Theme Switch -->
     <div class="theme-switch-wrapper">
         <label class="theme-switch" for="darkModeToggle">
             <input type="checkbox" id="darkModeToggle" />
