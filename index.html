@@ -688,6 +688,13 @@
         body.dark-mode .instructions a {
             color: #FFD700; /* Bright gold for heading and links in dark mode */
         }
+
+        /* Temporary debug style for managerStatsDiv */
+        #managerStats {
+            min-height: 500px; /* Ensure it has some height if content collapses */
+            background-color: rgba(255, 165, 0, 0.2); /* Light orange background for visibility */
+            border: 2px dashed orange; /* Dashed border for visibility */
+        }
     </style>
 </head>
 <body>
@@ -927,8 +934,6 @@
     <script>
         // THIS IS A DEBUGGING LINE - IF YOU SEE THIS, JS IS RUNNING!
         console.log('DEBUG: Script loaded and running!');
-        // No longer adding a border to the body as it was distracting.
-        // document.body.style.border = '5px solid red'; // Temporary visual indicator
 
         // --- DOM Element References ---
         const managerIdInput = document.getElementById('managerIdInput');
@@ -1337,41 +1342,33 @@
                         row.cells[0].colSpan = 4;
                     }
 
-                    managerStatsDiv.style.display = 'block'; // Make main container visible
-                    rankJourneyChartContainer.style.display = 'none'; // This remains hidden until button click
+                    // Applying !important for testing display
+                    managerStatsDiv.style.setProperty('display', 'block', 'important'); 
+                    rankJourneyChartContainer.style.display = 'none'; 
                     shareVideoButton.style.display = 'block';
                     compatibilityWarning.style.display = 'block';
 
-                    console.log('DEBUG: managerStatsDiv display style AFTER JS set:', managerStatsDiv.style.display);
-                    console.log('DEBUG: managerStatsDiv computed display style AFTER JS set:', getComputedStyle(managerStatsDiv).display);
+                    console.log('DEBUG: managerStatsDiv display style AFTER JS set (with !important):', managerStatsDiv.style.display);
+                    console.log('DEBUG: managerStatsDiv computed display style AFTER JS set (with !important):', getComputedStyle(managerStatsDiv).display);
                     console.log('DEBUG: managerStatsDiv innerHTML length:', managerStatsDiv.innerHTML.length);
+                    console.log('DEBUG: managerStatsDiv clientHeight:', managerStatsDiv.clientHeight);
+                    console.log('DEBUG: managerStatsDiv offsetHeight:', managerStatsDiv.offsetHeight);
+                    console.log('DEBUG: managerStatsDiv getBoundingClientRect:', managerStatsDiv.getBoundingClientRect());
+
 
                     // Add a temporary visual indicator if managerStatsDiv is supposed to be visible
                     const debugIndicator = document.createElement('div');
                     debugIndicator.id = 'debugIndicator';
                     debugIndicator.textContent = 'Report Loaded!';
-                    debugIndicator.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #28a745; color: white; padding: 20px; border-radius: 10px; z-index: 9999; font-size: 1.5em; animation: fadeOut 3s forwards;';
+                    debugIndicator.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #28a745; color: white; padding: 20px; border-radius: 10px; z-index: 9999; font-size: 1.5em;';
                     document.body.appendChild(debugIndicator);
+                    console.log('DEBUG: "Report Loaded!" indicator appended.');
+
                     setTimeout(() => {
                         const existingIndicator = document.getElementById('debugIndicator');
                         if(existingIndicator) existingIndicator.remove();
+                        console.log('DEBUG: "Report Loaded!" indicator removed.');
                     }, 3000); // Remove after 3 seconds
-
-                    // Add a simple CSS animation for the debug indicator
-                    // Get our specific embedded stylesheet
-                    const mainStyleSheet = document.getElementById('main-styles').sheet;
-                    // Check if the rule already exists to avoid errors on subsequent calls
-                    const keyframesRule = Array.from(mainStyleSheet.cssRules).find(rule => rule.name === 'fadeOut');
-                    if (!keyframesRule) {
-                        mainStyleSheet.insertRule(`
-                            @keyframes fadeOut {
-                                0% { opacity: 1; }
-                                80% { opacity: 1; }
-                                100% { opacity: 0; display: none; }
-                            }
-                        `, mainStyleSheet.cssRules.length);
-                    }
-                    console.log('DEBUG: CSS rule for fadeOut applied to main stylesheet.');
 
                 } else {
                     console.error('DEBUG: API response not OK:', data.error || 'Unknown error');
@@ -1382,7 +1379,7 @@
                 }
 
             } catch (error) {
-                console.error("DEBUG: Critical fetchManagerData error:", error);
+                console.error("DEBUG: Critical fetchManagerData error (outer catch):", error);
                 errorMessage.textContent = `Failed to fetch data: ${error.message}. This might be due to a network issue, an invalid Manager ID, or a temporary API problem. Please try again.`;
                 errorMessage.style.display = 'block';
                 loadingMessage.style.display = 'none'; // Ensure loading message is hidden
@@ -1699,7 +1696,7 @@
 
             // Temporarily make the main stats container visible if it's hidden, for full capture
             const originalManagerStatsDisplay = managerStatsDiv.style.display;
-            managerStatsDiv.style.display = 'block';
+            managerStatsDiv.style.setProperty('display', 'block', 'important'); // Ensure visibility for capture
             await new Promise(resolve => setTimeout(resolve, 50)); // Allow layout to settle
 
             for (const sectionConfig of sectionsToCaptureConfig) {
@@ -1732,15 +1729,15 @@
                                 }
                                 
                                 // Make ALL content sections visible in the cloned DOM for capture
-                                clonedDoc.getElementById('managerStats').style.display = 'block';
-                                clonedDoc.getElementById('rankJourneyChartContainer').style.display = 'flex';
-                                clonedDoc.getElementById('topCaptainsTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('bestPlayersTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('worstPlayersTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('missedPointsTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('transfersSummaryContainer').style.display = 'block';
-                                clonedDoc.getElementById('profitableTransfersTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('managerStats').style.setProperty('display', 'block', 'important');
+                                clonedDoc.getElementById('rankJourneyChartContainer').style.setProperty('display', 'flex', 'important');
+                                clonedDoc.getElementById('topCaptainsTableContainer').style.setProperty('display', 'block', 'important');
+                                clonedDoc.getElementById('bestPlayersTableContainer').style.setProperty('display', 'block', 'important');
+                                clonedDoc.getElementById('worstPlayersTableContainer').style.setProperty('display', 'block', 'important');
+                                clonedDoc.getElementById('missedPointsTableContainer').style.setProperty('display', 'block', 'important');
+                                clonedDoc.getElementById('transfersSummaryContainer').style.setProperty('display', 'block', 'important');
+                                clonedDoc.getElementById('profitableTransfersTableContainer').style.setProperty('display', 'block', 'important');
+                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.setProperty('display', 'block', 'important');
 
                                 // Adjust cloned body styles to fit content without scrolling
                                 clonedDoc.body.style.overflow = 'visible';
