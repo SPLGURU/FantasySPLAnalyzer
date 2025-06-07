@@ -327,9 +327,6 @@
             background-color: #1aae88;
         }
 
-        /* Removed compatibilityWarning styles as it's no longer needed */
-        /* #compatibilityWarning { ... } */
-
 
         .loading-message, .error-message, .video-loading-message, #videoGeneratingMessage { /* Added #videoGeneratingMessage */
             text-align: center;
@@ -692,9 +689,6 @@
             <input type="text" id="managerIdInput" placeholder="e.g., 1234" oninput="this.value = convertArabicToWesternNumerals(this.value)">
             <button id="analyzeButton">Full Season Report</button>
             
-            <!-- Removed compatibility warning message completely -->
-            <!-- <div id="compatibilityWarning" style="display: none;"> ... </div> -->
-
             <!-- Share Video Button - Initially hidden, text changed -->
             <button id="shareVideoButton" style="display: none;">Download/Share Report as GIF</button>
 
@@ -719,45 +713,47 @@
         </div>
 
         <div id="managerStats" style="display: none;">
-            <h2 id="managerName"></h2>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Overall Rank</h3>
-                    <p id="overallRank">N/A</p>
+            <!-- NEW: Wrapper for the first section of the report -->
+            <div id="managerSummarySection">
+                <h2 id="managerName"></h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Overall Rank</h3>
+                        <p id="overallRank">N/A</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Best Overall Rank</h3>
+                        <p id="bestOverallRank">N/A</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Worst Overall Rank</h3>
+                        <p id="worstOverallRank">N/A</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Average Points Per Round</h3>
+                        <p id="averagePoints">N/A</p>
+                        <p class="small-text">vs. 1st Place Average: <span id="averagePointsFor1stPlace">N/A</span></p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Best Round</h3>
+                        <p id="bestRoundDisplay">N/A</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Worst Round</h3>
+                        <p id="worstRoundDisplay">N/A</p>
+                    </div>
+                    <!-- Total Green Arrows Card -->
+                    <div class="stat-card">
+                        <h3>Total Green Arrows</h3>
+                        <p id="greenArrowsCount">N/A 🟢</p>
+                    </div>
+                    <!-- Total Red Arrows Card -->
+                    <div class="stat-card">
+                        <h3>Total Red Arrows</h3>
+                        <p id="redArrowsCount">N/A 🔴</p>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3>Best Overall Rank</h3>
-                    <p id="bestOverallRank">N/A</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Worst Overall Rank</h3>
-                    <p id="worstOverallRank">N/A</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Average Points Per Round</h3>
-                    <p id="averagePoints">N/A</p>
-                    <p class="small-text">vs. 1st Place Average: <span id="averagePointsFor1stPlace">N/A</span></p>
-                </div>
-                <div class="stat-card">
-                    <h3>Best Round</h3>
-                    <p id="bestRoundDisplay">N/A</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Worst Round</h3>
-                    <p id="worstRoundDisplay">N/A</p>
-                </div>
-                <!-- Total Green Arrows Card -->
-                <div class="stat-card">
-                    <h3>Total Green Arrows</h3>
-                    <p id="greenArrowsCount">N/A 🟢</p>
-                </div>
-                <!-- Total Red Arrows Card -->
-                <div class="stat-card">
-                    <h3>Total Red Arrows</h3>
-                    <p id="redArrowsCount">N/A 🔴</p>
-                </div>
-            </div>
+            </div> <!-- End of managerSummarySection -->
 
             <!-- Rank Journey Box -->
             <div id="rankJourneyBox" class="rank-journey-box">
@@ -912,6 +908,8 @@
         const loadingMessage = document.getElementById('loadingMessage');
         const errorMessage = document.getElementById('errorMessage');
         const managerStatsDiv = document.getElementById('managerStats');
+        // NEW: Reference to the new summary section
+        const managerSummarySection = document.getElementById('managerSummarySection'); 
         const managerNameElem = document.getElementById('managerName');
         const overallRankElem = document.getElementById('overallRank');
         const bestOverallRankElem = document.getElementById('bestOverallRank');
@@ -1299,11 +1297,10 @@
                         row.cells[0].colSpan = 4;
                     }
 
-                    // Set display to block - removed !important
+                    // Set display to block 
                     managerStatsDiv.style.display = 'block'; 
                     rankJourneyChartContainer.style.display = 'none'; 
                     shareVideoButton.style.display = 'block';
-                    // compatibilityWarning.style.display = 'block'; // Removed this line
 
                     console.log('DEBUG: managerStatsDiv display style AFTER JS set:', managerStatsDiv.style.display);
                     console.log('DEBUG: managerStatsDiv computed display style AFTER JS set:', getComputedStyle(managerStatsDiv).display);
@@ -1607,6 +1604,7 @@
 
         /**
          * Renders the chart to its final state for GIF capture.
+         * Ensures the Chart.js canvas is updated with all data points visible.
          */
         async function prepareChartForCapture() {
             if (rankJourneyChartInstance && managerOverallRankHistory && managerOverallRankHistory.length > 0) {
@@ -1639,8 +1637,10 @@
             console.log("DEBUG: Starting captureAndPrepareSectionsForGIF...");
             // Define the sections to capture and their durations
             const sectionsToCaptureConfig = [
-                { id: 'managerStats', duration: sectionFrameDelay, display: 'block' },
-                { id: 'rankJourneyChartContainer', duration: chartFrameDelay, display: 'flex' }, 
+                // NEW: First section to capture: managerSummarySection
+                { id: 'managerSummarySection', duration: sectionFrameDelay, display: 'block' },
+                // Chart section will be handled specially
+                { id: 'rankJourneyChartContainer', duration: chartFrameDelay, specialHandling: true }, 
                 { id: 'topCaptainsTableContainer', duration: sectionFrameDelay, display: 'block' },
                 { id: 'bestPlayersTableContainer', duration: sectionFrameDelay, display: 'block' },
                 { id: 'worstPlayersTableContainer', duration: sectionFrameDelay, display: 'block' },
@@ -1659,126 +1659,113 @@
             const originalDisplayStates = {};
             sectionsToCaptureConfig.forEach(config => {
                 const element = document.getElementById(config.id);
-                if (element) {
+                if (element && !config.specialHandling) { // Don't touch display for special handling elements yet
                     originalDisplayStates[config.id] = element.style.display;
                     element.style.display = config.display; // Ensure visible for capture
                 }
             });
+            // Also ensure the managerStatsDiv is visible as a parent for some elements
+            originalDisplayStates['managerStats'] = managerStatsDiv.style.display;
+            managerStatsDiv.style.display = 'block'; 
             await new Promise(resolve => setTimeout(resolve, 100)); // Allow layout to settle
 
             for (const sectionConfig of sectionsToCaptureConfig) {
-                const element = document.getElementById(sectionConfig.id);
-                if (element) {
-                    console.log(`DEBUG: Capturing section for GIF: ${sectionConfig.id}`);
+                let h2cCanvas = null;
+                let element = document.getElementById(sectionConfig.id);
+
+                if (!element) {
+                    console.warn(`DEBUG: Element with ID ${sectionConfig.id} not found, skipping capture for GIF.`);
+                    continue; // Skip if element not found
+                }
+
+                // Special handling for the chart: capture the live canvas directly
+                if (sectionConfig.specialHandling && sectionConfig.id === 'rankJourneyChartContainer') {
+                    // Ensure the container is visible for the chart to potentially render correctly its own canvas size
+                    const originalChartContainerDisplay = rankJourneyChartContainer.style.display;
+                    rankJourneyChartContainer.style.display = 'flex';
+                    await new Promise(resolve => setTimeout(resolve, 50)); // Give it a moment
+
+                    if (rankJourneyChartCanvas) {
+                        h2cCanvas = rankJourneyChartCanvas; // Use the live Chart.js canvas
+                        console.log(`DEBUG: Using live canvas for ${sectionConfig.id}.`);
+                    } else {
+                        console.error(`ERROR: Live chart canvas for ${sectionConfig.id} not found!`);
+                        // Fallback to error canvas
+                        h2cCanvas = document.createElement('canvas');
+                        h2cCanvas.width = gifWidth; h2cCanvas.height = gifHeight;
+                        const errorCtx = h2cCanvas.getContext('2d');
+                        errorCtx.fillStyle = '#333';
+                        errorCtx.fillRect(0, 0, gifWidth, gifHeight);
+                        errorCtx.fillStyle = 'white';
+                        errorCtx.font = '24px Arial';
+                        errorCtx.textAlign = 'center';
+                        errorCtx.textBaseline = 'middle';
+                        errorCtx.fillText(`Chart not found: ${sectionConfig.id}`, gifWidth / 2, gifHeight / 2);
+                    }
+                    // Restore original display for chart container
+                    rankJourneyChartContainer.style.display = originalChartContainerDisplay;
+
+                } else {
+                    // For all other sections, use html2canvas as usual
+                    console.log(`DEBUG: Capturing section with html2canvas: ${sectionConfig.id}`);
                     try {
-                        const h2cCanvas = await html2canvas(element, {
+                        h2cCanvas = await html2canvas(element, {
                             useCORS: true, 
-                            scale: 2, // Capture at high resolution (e.g., 2x for sharper details)
-                            backgroundColor: null, // Let html2canvas use element's background
+                            scale: 2, // Capture at high resolution
+                            backgroundColor: null, 
                             allowTaint: true, 
-                            // Force desktop-like dimensions for cloning context
-                            windowWidth: gifWidth, 
-                            windowHeight: gifHeight * 2, // Give more height to avoid vertical clipping in cloned context initially
+                            windowWidth: gifWidth, // Force desktop-like width for cloning
+                            windowHeight: gifHeight * 2, // Give more height for cloning to prevent vertical clipping
                             onclone: (clonedDoc) => {
                                 // Apply the current theme to the cloned document
                                 if (document.body.classList.contains('dark-mode')) {
                                     clonedDoc.body.classList.add('dark-mode');
                                 }
-                                // Ensure the main logo in cloned doc reflects the current theme
                                 const clonedMainLogo = clonedDoc.getElementById('mainLogo');
                                 if (clonedMainLogo) {
-                                    clonedMainLogo.src = mainLogo.src; // Copy current src
+                                    clonedMainLogo.src = mainLogo.src; 
                                 }
                                 
                                 // Make ALL content sections visible in the cloned DOM for capture
-                                // Also ensure no overflow or fixed height issues in the cloned DOM
-                                clonedDoc.getElementById('managerStats').style.display = 'block';
-                                clonedDoc.getElementById('managerStats').style.overflow = 'visible';
-                                clonedDoc.getElementById('managerStats').style.height = 'auto';
+                                // This ensures html2canvas renders them, even if they are display:none on the live page
+                                // during normal interaction, but needed for a specific frame capture.
+                                // We ensure they are visible and can expand vertically.
+                                const elementsToDisplayInClone = [
+                                    'managerStats', // Parent container
+                                    'managerSummarySection', // NEW: Specific section for first frame
+                                    'rankJourneyChartContainer',
+                                    'topCaptainsTableContainer',
+                                    'bestPlayersTableContainer',
+                                    'worstPlayersTableContainer',
+                                    'missedPointsTableContainer',
+                                    'transfersSummaryContainer',
+                                    'profitableTransfersTableContainer',
+                                    'lossMakingTransfersTableContainer'
+                                ];
+                                elementsToDisplayInClone.forEach(id => {
+                                    const el = clonedDoc.getElementById(id);
+                                    if (el) {
+                                        el.style.display = el.id === 'rankJourneyChartContainer' ? 'flex' : 'block';
+                                        el.style.overflow = 'visible';
+                                        el.style.height = 'auto';
+                                    }
+                                });
 
-                                clonedDoc.getElementById('rankJourneyChartContainer').style.display = 'flex';
-                                clonedDoc.getElementById('rankJourneyChartContainer').style.overflow = 'visible';
-                                clonedDoc.getElementById('rankJourneyChartContainer').style.height = 'auto';
-
-                                clonedDoc.getElementById('topCaptainsTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('topCaptainsTableContainer').style.overflow = 'visible';
-                                clonedDoc.getElementById('topCaptainsTableContainer').style.height = 'auto';
-
-                                clonedDoc.getElementById('bestPlayersTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('bestPlayersTableContainer').style.overflow = 'visible';
-                                clonedDoc.getElementById('bestPlayersTableContainer').style.height = 'auto';
-                                
-                                clonedDoc.getElementById('worstPlayersTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('worstPlayersTableContainer').style.overflow = 'visible';
-                                clonedDoc.getElementById('worstPlayersTableContainer').style.height = 'auto';
-
-                                clonedDoc.getElementById('missedPointsTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('missedPointsTableContainer').style.overflow = 'visible';
-                                clonedDoc.getElementById('missedPointsTableContainer').style.height = 'auto';
-
-                                clonedDoc.getElementById('transfersSummaryContainer').style.display = 'block';
-                                clonedDoc.getElementById('transfersSummaryContainer').style.overflow = 'visible';
-                                clonedDoc.getElementById('transfersSummaryContainer').style.height = 'auto';
-
-                                clonedDoc.getElementById('profitableTransfersTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('profitableTransfersTableContainer').style.overflow = 'visible';
-                                clonedDoc.getElementById('profitableTransfersTableContainer').style.height = 'auto';
-
-                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.display = 'block';
-                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.overflow = 'visible';
-                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.height = 'auto';
-
-
-                                // Adjust cloned body styles to fit content without scrolling
                                 clonedDoc.body.style.overflow = 'visible';
                                 clonedDoc.body.style.height = 'auto';
 
-                                // Specific fix for Chart.js canvas in cloned DOM
+                                // Hide animation message in cloned context
                                 const clonedVideoLoadingMessage = clonedDoc.getElementById('videoLoadingMessage');
                                 if (clonedVideoLoadingMessage) {
-                                    clonedVideoLoadingMessage.style.display = 'none'; // Hide animation message in cloned context
+                                    clonedVideoLoadingMessage.style.display = 'none';
                                 }
                             }
                         });
-
-                        // Create a new canvas with target GIF dimensions
-                        const finalFrameCanvas = document.createElement('canvas');
-                        finalFrameCanvas.width = gifWidth;
-                        finalFrameCanvas.height = gifHeight;
-                        const finalFrameCtx = finalFrameCanvas.getContext('2d');
-
-                        // Calculate scaling to fit h2cCanvas onto finalFrameCanvas maintaining aspect ratio
-                        const hRatio = finalFrameCanvas.width / h2cCanvas.width;
-                        const vRatio = finalFrameCanvas.height / h2cCanvas.height;
-                        const ratio = Math.min(hRatio, vRatio); // Use 'contain' logic
-
-                        const sx = 0;
-                        const sy = 0;
-                        const sWidth = h2cCanvas.width;
-                        const sHeight = h2cCanvas.height;
-
-                        const dWidth = sWidth * ratio;
-                        const dHeight = sHeight * ratio;
-                        const dx = (finalFrameCanvas.width - dWidth) / 2; // Center horizontally
-                        const dy = (finalFrameCanvas.height - dHeight) / 2; // Center vertically
-
-                        // Draw background color first, in case content doesn't fill the frame
-                        finalFrameCtx.fillStyle = getComputedStyle(document.body).backgroundColor;
-                        finalFrameCtx.fillRect(0, 0, finalFrameCanvas.width, finalFrameCanvas.height);
-                        
-                        // Draw the captured content onto the new canvas, scaled and centered
-                        finalFrameCtx.drawImage(h2cCanvas, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-
-                        capturedCanvases.push({
-                            canvas: finalFrameCanvas, // Use the scaled and centered canvas
-                            delay: sectionConfig.duration 
-                        });
-                        console.log(`DEBUG: Successfully captured and scaled ${sectionConfig.id} for GIF.`);
                     } catch (e) {
                         console.error(`ERROR: Failed to capture section ${sectionConfig.id} for GIF:`, e);
-                        const errorCanvas = document.createElement('canvas');
-                        errorCanvas.width = gifWidth; errorCanvas.height = gifHeight;
-                        const errorCtx = errorCanvas.getContext('2d');
+                        h2cCanvas = document.createElement('canvas'); // Create error canvas
+                        h2cCanvas.width = gifWidth; h2cCanvas.height = gifHeight;
+                        const errorCtx = h2cCanvas.getContext('2d');
                         errorCtx.fillStyle = '#333';
                         errorCtx.fillRect(0, 0, gifWidth, gifHeight);
                         errorCtx.fillStyle = 'white';
@@ -1786,17 +1773,47 @@
                         errorCtx.textAlign = 'center';
                         errorCtx.textBaseline = 'middle';
                         errorCtx.fillText(`Capture failed: ${sectionConfig.id}`, gifWidth / 2, gifHeight / 2);
-                        capturedCanvases.push({
-                            canvas: errorCanvas,
-                            delay: sectionConfig.duration
-                        });
                     }
-                } else {
-                    console.warn(`DEBUG: Element with ID ${sectionConfig.id} not found, skipping capture for GIF.`);
+                }
+
+                // If a canvas (either live chart or html2canvas output) was successfully generated/found
+                if (h2cCanvas) {
+                    // Create a new canvas with target GIF dimensions
+                    const finalFrameCanvas = document.createElement('canvas');
+                    finalFrameCanvas.width = gifWidth;
+                    finalFrameCanvas.height = gifHeight;
+                    const finalFrameCtx = finalFrameCanvas.getContext('2d');
+
+                    // Calculate scaling to fit h2cCanvas onto finalFrameCanvas maintaining aspect ratio
+                    const hRatio = finalFrameCanvas.width / h2cCanvas.width;
+                    const vRatio = finalFrameCanvas.height / h2cCanvas.height;
+                    const ratio = Math.min(hRatio, vRatio); // Use 'contain' logic
+
+                    const sx = 0;
+                    const sy = 0;
+                    const sWidth = h2cCanvas.width;
+                    const sHeight = h2cCanvas.height;
+
+                    const dWidth = sWidth * ratio;
+                    const dHeight = sHeight * ratio;
+                    const dx = (finalFrameCanvas.width - dWidth) / 2; // Center horizontally
+                    const dy = (finalFrameCanvas.height - dHeight) / 2; // Center vertically
+
+                    // Draw background color first, based on current theme
+                    finalFrameCtx.fillStyle = getComputedStyle(document.body).backgroundColor;
+                    finalFrameCtx.fillRect(0, 0, finalFrameCanvas.width, finalFrameCanvas.height);
+                    
+                    // Draw the captured content onto the new canvas, scaled and centered
+                    finalFrameCtx.drawImage(h2cCanvas, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+
+                    capturedCanvases.push({
+                        canvas: finalFrameCanvas, 
+                        delay: sectionConfig.duration 
+                    });
                 }
             }
             
-            // Revert display states
+            // Revert original display states for elements captured via html2canvas
             for (const id in originalDisplayStates) {
                 const element = document.getElementById(id);
                 if (element) {
@@ -1819,16 +1836,15 @@
             }
 
             const gif = new GIF({
-                workers: 2, // Use 2 web workers for faster processing
-                quality: 10, // Adjust quality (lower is faster but more lossy)
+                workers: 2, 
+                quality: 10, 
                 width: gifWidth,
                 height: gifHeight,
-                transparent: 'rgba(0,0,0,0)', // Ensure transparency is handled
-                background: getComputedStyle(document.body).backgroundColor, // Set background from current theme
-                workerScript: './gif.worker.js' // Path to locally hosted worker script
+                transparent: 'rgba(0,0,0,0)', 
+                background: getComputedStyle(document.body).backgroundColor, 
+                workerScript: './gif.worker.js' 
             });
 
-            // Add each captured canvas as a frame with its specific delay
             sections.forEach(section => {
                 gif.addFrame(section.canvas, { delay: section.delay });
             });
@@ -1848,13 +1864,13 @@
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                a.download = `spl_report_${Date.now()}.gif`; // Suggested filename for GIF
+                a.download = `spl_report_${Date.now()}.gif`; 
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 console.log("DEBUG: GIF download triggered.");
                 videoGeneratingMessage.textContent = 'GIF generated and download started!';
-                // Re-enable buttons immediately after download starts
+                // Re-enable buttons
                 shareVideoButton.disabled = false;
                 analyzeButton.disabled = false;
                 createRankJourneyButton.disabled = false;
@@ -1865,10 +1881,10 @@
                 console.error("DEBUG: GIF generation error:", error);
                 errorMessage.textContent = `GIF generation failed: ${error.message}. Please try again.`;
                 errorMessage.style.display = 'block';
-                videoGeneratingMessage.style.display = 'none'; // Hide loading message
+                videoGeneratingMessage.style.display = 'none'; 
             });
 
-            gif.render(); // Start the GIF rendering process
+            gif.render(); 
         }
     </script>
 </body>
