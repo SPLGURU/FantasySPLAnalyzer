@@ -7,23 +7,37 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* SPL Fantasy Inspired Design - LIGHT MODE */
+        /* Base colors for light mode (current default) */
         :root {
-            /* Main Colors - Adjusted for a lighter theme and better table contrast */
-            --spl-light-bg: #F8F9FA; /* Very light background for body */
-            --spl-container-bg: #FFFFFF; /* White for main container/cards */
-            --spl-table-bg: #E0E4E8; /* Distinct light grey for table background */
-            --spl-table-header-bg: #B3D9FF; /* Light blue for table headers */
-            --spl-table-row-even: #D6DBE0; /* Slightly different shade for even rows */
-            --spl-table-row-hover: #C7CCD1; /* Lighter grey for hover */
+            --spl-light-bg: #F8F9FA;
+            --spl-container-bg: #FFFFFF;
+            --spl-table-bg: #E0E4E8;
+            --spl-table-header-bg: #B3D9FF;
+            --spl-table-row-even: #D6DBE0;
+            --spl-table-row-hover: #C7CCD1;
+            --spl-text-dark: #212529;
+            --spl-text-medium: #495057;
+            --spl-primary-accent: #034667;
+            --spl-accent-green: #28A745;
+            --spl-accent-red: #DC3545;
+            --spl-border-light: #CED4DA;
+            --spl-shadow: rgba(0, 0, 0, 0.1);
+        }
 
-            --spl-text-dark: #212529; /* Dark text for primary content */
-            --spl-text-medium: #495057; /* Medium dark grey for secondary text */
-            --spl-primary-accent: #034667; /* NEW BLUE COLOR */
-            --spl-accent-green: #28A745; /* Green for positive indicators */
-            --spl-accent-red: #DC3545; /* Red for negative indicators */
-            --spl-border-light: #CED4DA; /* Light border for elements */
-            --spl-shadow: rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        /* Dark mode specific variables */
+        body.dark-mode {
+            --spl-light-bg: #034667; /* User requested background */
+            --spl-container-bg: #1a3e5c; /* Darker blue for cards/containers */
+            --spl-table-bg: #0d283c; /* Even darker blue for tables */
+            --spl-table-header-bg: #0a1c2a; /* Very dark blue/black for table headers */
+            --spl-table-row-even: #123045; /* Dark blue for even rows */
+            --spl-table-row-hover: #1f4f7a; /* Lighter dark blue on hover */
+            --spl-text-dark: #F8F9FA; /* Light text */
+            --spl-text-medium: #CED4DA; /* Lighter medium text */
+            --spl-primary-accent: #007bff; /* Brighter blue for accent */
+            /* Green and Red accents remain the same for clarity */
+            --spl-border-light: #495057; /* Darker border */
+            --spl-shadow: rgba(255, 255, 255, 0.1); /* Light shadow for dark mode */
         }
 
         body {
@@ -38,6 +52,7 @@
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition for theme change */
         }
 
         #logo-container {
@@ -51,6 +66,81 @@
             height: auto;
             display: block; /* Remove extra space below image */
             margin: 0 auto; /* Center the image */
+            transition: src 0.3s ease; /* Smooth transition for logo change */
+        }
+
+        /* Theme switch styles */
+        .theme-switch-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center the switch */
+            margin-bottom: 20px;
+            gap: 10px;
+            color: var(--spl-text-dark); /* Ensure label text changes with theme */
+            font-size: 0.95em;
+            width: 100%; /* Take full width to help centering */
+            max-width: 1200px; /* Align with container max width */
+        }
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 45px;
+            height: 25px;
+        }
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+        input:checked + .slider {
+            background-color: var(--spl-primary-accent);
+        }
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--spl-primary-accent);
+        }
+        input:checked + .slider:before {
+            -webkit-transform: translateX(20px);
+            -ms-transform: translateX(20px);
+            transform: translateX(20px);
+        }
+        /* Rounded sliders */
+        .slider.round {
+            border-radius: 25px;
+        }
+        .slider.round:before {
+            border-radius: 50%;
+        }
+        /* Adjust switch background color for dark mode */
+        body.dark-mode .theme-switch .slider {
+            background-color: #555; /* Darker grey when off in dark mode */
+        }
+        body.dark-mode input:checked + .slider {
+            background-color: var(--spl-primary-accent); /* Brighter blue when on in dark mode */
+        }
+        body.dark-mode .theme-label {
+            color: var(--spl-text-dark); /* Ensure label color changes correctly in dark mode */
         }
 
 
@@ -63,6 +153,7 @@
             width: 100%;
             max-width: 1200px;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
         }
 
         h1, h2, h3 {
@@ -71,6 +162,7 @@
             text-align: center;
             margin-top: 0;
             margin-bottom: 20px;
+            transition: color 0.3s ease; /* Smooth transition */
         }
         
         /* Specific style for the main manager name/rank header */
@@ -80,9 +172,11 @@
             margin-bottom: 30px;
             color: var(--spl-text-dark); /* Darker text for main header */
             text-align: center; /* Ensure it's centered */
+            transition: color 0.3s ease; /* Smooth transition */
         }
         #managerName span {
             color: var(--spl-primary-accent); /* Accent color for the actual name */
+            transition: color 0.3s ease; /* Smooth transition */
         }
 
 
@@ -98,9 +192,10 @@
             font-weight: bold;
             color: var(--spl-text-medium);
             font-size: 1.1em;
+            transition: color 0.3s ease; /* Smooth transition */
         }
 
-        .input-section input[type="text"] { /* Changed to type="text" */
+        .input-section input[type="text"] {
             padding: 12px 15px;
             border: 1px solid var(--spl-border-light);
             border-radius: 8px;
@@ -109,6 +204,9 @@
             max-width: 300px;
             box-sizing: border-box;
             text-align: center;
+            background-color: var(--spl-container-bg); /* Match container background */
+            color: var(--spl-text-dark); /* Match text color */
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; /* Smooth transition */
 
             /* Hide spinner arrows for number input (even though type is text now, some browsers might add them if it looks like a number) */
             -moz-appearance: textfield; /* Firefox */
@@ -129,7 +227,7 @@
             border-radius: 8px;
             font-size: 1.1em;
             cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease; /* Smooth transition */
             box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
             width: 100%; /* Make button full width of its container */
             max-width: 300px; /* Limit max width */
@@ -146,9 +244,9 @@
         .rank-journey-box {
             background-color: var(--spl-primary-accent); /* Dark blue background */
             border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Stronger shadow */
+            box-shadow: 0 8px 16px var(--spl-shadow); /* Use shadow variable */
             padding: 25px;
-            margin: 30px auto; /* UPDATED: Center the box horizontally */
+            margin: 30px auto; /* Center the box horizontally */
             text-align: center;
             width: 100%;
             max-width: 400px; /* Adjust max width for the box */
@@ -156,6 +254,7 @@
             display: none; /* Hidden by default, shown with manager stats */
             flex-direction: column; /* Ensure content stacks vertically */
             align-items: center; /* Center content horizontally within the box */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
         }
 
         .rank-journey-box h3 {
@@ -166,6 +265,7 @@
             margin-bottom: 20px; /* Space between title and button */
             text-transform: uppercase;
             letter-spacing: 1px;
+            transition: color 0.3s ease; /* Smooth transition */
         }
 
         /* Styles for the button inside the Rank Journey box */
@@ -200,6 +300,7 @@
             border-radius: 8px;
             margin-top: 20px;
             font-weight: bold;
+            transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
         }
 
         .loading-message {
@@ -230,9 +331,9 @@
             background-color: var(--spl-table-bg); /* Use a slightly darker background for cards */
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 8px var(--spl-shadow); /* Use shadow variable */
             text-align: center;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
         }
 
         .stat-card:hover {
@@ -244,6 +345,7 @@
             margin-top: 0;
             font-size: 1.3em;
             margin-bottom: 10px;
+            transition: color 0.3s ease; /* Smooth transition */
         }
 
         .stat-card p {
@@ -251,12 +353,14 @@
             font-weight: bold;
             color: var(--spl-text-dark);
             margin: 0;
+            transition: color 0.3s ease; /* Smooth transition */
         }
 
         .stat-card .small-text {
             font-size: 0.9em;
             color: var(--spl-text-medium);
             margin-top: 5px;
+            transition: color 0.3s ease; /* Smooth transition */
         }
 
         .chart-section {
@@ -265,10 +369,10 @@
             background-color: var(--spl-container-bg);
             border-radius: 12px;
             box-shadow: 0 6px 12px var(--spl-shadow);
-            /* Centering the chart within its section */
             display: flex;
             flex-direction: column;
             align-items: center; /* Center horizontally */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
         }
 
         .chart-section h2 {
@@ -288,7 +392,7 @@
             background-color: var(--spl-container-bg);
             border-radius: 12px;
             box-shadow: 0 6px 12px var(--spl-shadow);
-            /* Removed overflow-x: auto; for mobile optimization */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
         }
 
         .table-section h2 {
@@ -299,7 +403,6 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
-            /* Removed min-width: 600px; for mobile optimization */
             table-layout: fixed; /* Ensures columns respect defined widths */
         }
 
@@ -309,6 +412,7 @@
             text-align: left;
             word-break: break-word; /* Allow long words to break */
             white-space: normal; /* Ensure text wraps */
+            transition: border-color 0.3s ease, color 0.3s ease; /* Smooth transition */
         }
 
         th {
@@ -317,6 +421,7 @@
             font-weight: bold;
             text-transform: uppercase;
             font-size: 0.9em;
+            transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
         }
 
         tr:nth-child(even) {
@@ -338,9 +443,7 @@
         }
 
         /* Responsive Adjustments */
-        /* PC Version (Default styles - apply when viewport is wider than 950px) */
         @media (min-width: 951px) {
-            /* Ensure PC specific table layouts are maintained */
             #topCaptainsTable th:nth-child(1), #topCaptainsTable td:nth-child(1) { width: auto; }
             #topCaptainsTable th:nth-child(2), #topCaptainsTable td:nth-child(2) { width: auto; }
             #topCaptainsTable th:nth-child(3), #topCaptainsTable td:nth-child(3) { width: auto; }
@@ -386,7 +489,7 @@
                 padding: 20px;
             }
 
-            .input-section input[type="text"], /* Changed to type="text" */
+            .input-section input[type="text"],
             .input-section button {
                 font-size: 0.95em;
                 padding: 10px 20px;
@@ -415,7 +518,7 @@
                 border: 1px solid var(--spl-border-light);
                 border-radius: 8px;
                 background-color: var(--spl-container-bg); /* Card background */
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                box-shadow: 0 2px 4px var(--spl-shadow); /* Use shadow variable */
                 padding: 10px;
             }
 
@@ -481,12 +584,14 @@
             max-width: 600px; /* Limit width for readability */
             box-sizing: border-box;
             text-align: left; /* Align text left within the instruction box */
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; /* Smooth transition */
         }
         .instructions h3 {
             color: var(--spl-primary-accent);
             margin-top: 0;
             margin-bottom: 10px;
             text-align: left;
+            transition: color 0.3s ease; /* Smooth transition */
         }
         .instructions ol {
             margin-left: 20px;
@@ -499,6 +604,7 @@
             color: var(--spl-primary-accent);
             text-decoration: none;
             font-weight: bold;
+            transition: color 0.3s ease; /* Smooth transition */
         }
         .instructions a:hover {
             text-decoration: underline;
@@ -507,14 +613,24 @@
 </head>
 <body>
     <div id="logo-container">
-        <img src="unnamed.jpg" alt="Fantasy SPL Data Center Logo">
+        <!-- Added id="mainLogo" to the image tag -->
+        <img id="mainLogo" src="unnamed.jpg" alt="Fantasy SPL Data Center Logo">
     </div>
+
+    <!-- NEW: Theme Switch -->
+    <div class="theme-switch-wrapper">
+        <label class="theme-switch" for="darkModeToggle">
+            <input type="checkbox" id="darkModeToggle" />
+            <span class="slider round"></span>
+        </label>
+        <em class="theme-label">Dark Mode</em>
+    </div>
+
     <div class="container">
         <h1>Fantasy SPL Manager Analyzer</h1>
 
         <div class="input-section">
             <label for="managerIdInput">Enter Manager ID:</label>
-            <!-- Changed type to "text" and added oninput for Arabic number conversion -->
             <input type="text" id="managerIdInput" placeholder="e.g., 1234" oninput="this.value = convertArabicToWesternNumerals(this.value)">
             <button id="analyzeButton">Full Season Report</button>
 
@@ -575,13 +691,11 @@
                 </div>
             </div>
 
-            <!-- NEW: Rank Journey Box -->
+            <!-- Rank Journey Box -->
             <div id="rankJourneyBox" class="rank-journey-box">
                 <h3>My Rank Journey</h3>
-                <!-- The existing button is now inside this box -->
                 <button id="createRankJourneyButton">Click Here</button>
             </div>
-            <!-- REMOVED: replayRankJourneyButton is no longer needed as createRankJourneyButton will be dynamic -->
 
             <div class="chart-section" id="rankJourneyChartContainer" style="display: none;">
                 <h2>Overall Rank Journey</h2>
@@ -747,10 +861,16 @@
         const rankJourneyChartCanvas = document.getElementById('rankJourneyChart');
         const rankJourneyChartContainer = document.getElementById('rankJourneyChartContainer');
         const videoLoadingMessage = document.getElementById('videoLoadingMessage');
-        // REPLACED: replayRankJourneyButton is removed, now createRankJourneyButton is dynamic
         const createRankJourneyButton = document.getElementById('createRankJourneyButton');
-        const rankJourneyBox = document.getElementById('rankJourneyBox'); // NEW: Get the new container box
-        const instructionsBox = document.getElementById('instructionsBox'); // Get the instructions box
+        const rankJourneyBox = document.getElementById('rankJourneyBox');
+        const instructionsBox = document.getElementById('instructionsBox');
+
+        // NEW: Dark Mode Elements
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const mainLogo = document.getElementById('mainLogo');
+
+        const lightModeLogoSrc = 'unnamed.jpg';
+        const darkModeLogoSrc = 'dark mode logo.png';
 
         let rankJourneyChartInstance = null;
 
@@ -773,6 +893,41 @@
             }
             return convertedInput;
         }
+
+        // Function to set the theme and persist in localStorage
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+                mainLogo.src = darkModeLogoSrc;
+                darkModeToggle.checked = true;
+            } else {
+                document.body.classList.remove('dark-mode');
+                mainLogo.src = lightModeLogoSrc;
+                darkModeToggle.checked = false;
+            }
+            localStorage.setItem('theme', theme);
+        }
+
+        // Check for saved theme preference on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else {
+                // Default to light mode if no preference is saved
+                setTheme('light');
+            }
+        });
+
+        // Listen for theme toggle changes
+        darkModeToggle.addEventListener('change', () => {
+            if (darkModeToggle.checked) {
+                setTheme('dark');
+            } else {
+                setTheme('light');
+            }
+        });
+
 
         // Event Listeners
         analyzeButton.addEventListener('click', () => {
@@ -862,7 +1017,7 @@
                     worstOverallRankElem.textContent = `${worstRankNumeric} 🌏 ${worstRankRound}`;
 
                     averagePointsElem.textContent = data.averagePoints;
-                    averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
+                    averagePointsFor1stPlaceElem.textContent = averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
                     
                     const bestRound = data.bestRound;
                     bestRoundDisplayElem.textContent = bestRound.points !== 'N/A' 
@@ -882,10 +1037,9 @@
                     redArrowsCountElem.textContent = `${data.redArrowsCount || 0} 🔴`;
                     
                     // Show the new rank journey box instead of the individual button
-                    rankJourneyBox.style.display = 'flex'; // Changed to 'flex' for the box's internal centering
+                    rankJourneyBox.style.display = 'flex';
 
                     // Populate tables
-                    // Top 3 Captains Table
                     topCaptainsTableBody.innerHTML = '';
                     if (data.top3Captains && data.top3Captains.length > 0) {
                         data.top3Captains.forEach(captain => {
@@ -898,7 +1052,7 @@
                             row.cells[2].setAttribute('data-label', 'Success');
                             row.insertCell().textContent = captain.failed;
                             row.cells[3].setAttribute('data-label', 'Failed');
-                            row.insertCell().textContent = captain.totalCaptainedPoints; // This value is now multiplied by 2 from the backend
+                            row.insertCell().textContent = captain.totalCaptainedPoints;
                             row.cells[4].setAttribute('data-label', 'Captained Points');
                             row.insertCell().textContent = captain.captainedRounds ? captain.captainedRounds.join(', ') : 'N/A';
                             row.cells[5].setAttribute('data-label', 'Captained Rounds');
@@ -909,7 +1063,6 @@
                         row.cells[0].colSpan = 6;
                     }
 
-                    // Top 5 Best Players Table
                     bestPlayersTableBody.innerHTML = '';
                     if (data.bestPlayers && data.bestPlayers.length > 0) {
                         data.bestPlayers.forEach(player => {
@@ -931,7 +1084,6 @@
                         row.cells[0].colSpan = 5;
                     }
 
-                    // Top 5 Worst Players Table
                     worstPlayersTableBody.innerHTML = '';
                     if (data.worstPlayers && data.worstPlayers.length > 0) {
                         data.worstPlayers.forEach(player => {
@@ -953,7 +1105,6 @@
                         row.cells[0].colSpan = 5;
                     }
 
-                    // Top 5 Missed Points Table (NOW gets data-labels)
                     missedPointsTableBody.innerHTML = '';
                     if (data.top5MissedPoints && data.top5MissedPoints.length > 0) {
                         data.top5MissedPoints.forEach(item => {
@@ -971,7 +1122,6 @@
                         row.cells[0].colSpan = 3;
                     }
 
-                    // Most Profitable Transfers Table
                     profitableTransfersTableBody.innerHTML = '';
                     if (data.top5ProfitableTransfers && data.top5ProfitableTransfers.length > 0) {
                         data.top5ProfitableTransfers.forEach(transfer => {
@@ -993,7 +1143,6 @@
                         row.cells[0].colSpan = 4;
                     }
 
-                    // Most Loss-making Transfers Table
                     lossMakingTransfersTableBody.innerHTML = '';
                     if (data.top5LossMakingTransfers && data.top5LossMakingTransfers.length > 0) {
                         data.top5LossMakingTransfers.forEach(transfer => {
@@ -1048,13 +1197,11 @@
                 return;
             }
 
-            // Ensure data is sorted by round for correct interpolation
             fullRankHistoryData.sort((a, b) => a.round - b.round);
 
             const fixedMaxRound = 34; 
             const labels = Array.from({ length: fixedMaxRound + 1 }, (_, i) => `Round ${i}`);
             
-            // Create a full 'ranks' array for Y-axis scaling and final line state
             const ranks = Array(fixedMaxRound + 1).fill(null);
             fullRankHistoryData.forEach(d => {
                 if (d.round >= 1 && d.round <= fixedMaxRound) {
@@ -1062,10 +1209,9 @@
                 }
             });
 
-            // Calculate min/max for Y-axis scaling
             const validRanksForScaling = ranks.filter(rank => typeof rank === 'number' && !isNaN(rank));
             const minRankInHistory = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
-            const maxRankInHistory = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114154; // Approximate total managers
+            const maxRankInHistory = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114154;
 
             let overallYAxisMax;
             const decisionRank = managerCurrentOverallRank !== null ? managerCurrentOverallRank : maxRankInHistory;
@@ -1091,69 +1237,66 @@
                 rankJourneyChartInstance.destroy();
             }
 
-            // Determine if on mobile based on screen width
-            const isMobile = window.innerWidth <= 950; // Mobile breakpoint matches the CSS media query
+            const isMobile = window.innerWidth <= 950;
 
             rankJourneyChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels, // Used for x-axis ticks/labels, not directly for data points
+                    labels: labels,
                     datasets: [
-                        { // Main line dataset (draws the trace)
+                        {
                             label: 'Overall Rank',
-                            data: [], // Starts empty, filled by animation
+                            data: [],
                             tension: 0.1,
                             spanGaps: true,
-                            pointRadius: 0, // Hide points during animation
+                            pointRadius: 0,
                             borderColor: (context) => {
-                                // Use the interpolated rank to determine color for the segment
                                 const currentPoint = context.dataset.data[context.dataIndex];
                                 const previousPoint = context.dataset.data[context.dataIndex - 1];
                                 
                                 if (!currentPoint || !previousPoint || typeof currentPoint.y !== 'number' || typeof previousPoint.y !== 'number') {
-                                    return '#007BFF'; // Default blue
+                                    return '#007BFF';
                                 }
                                 if (currentPoint.y < previousPoint.y) {
-                                    return '#28A745'; // Green (improved rank)
+                                    return '#28A745';
                                 } else if (currentPoint.y > previousPoint.y) {
-                                    return '#DC3545'; // Red (worsened rank)
+                                    return '#DC3545';
                                 } else {
-                                    return '#495057'; // Grey (unchanged rank)
+                                    return '#495057';
                                 }
                             },
-                            backgroundColor: 'rgba(0, 0, 0, 0)', // Transparent fill
+                            backgroundColor: 'rgba(0, 0, 0, 0)',
                             fill: false,
-                            xAxisID: 'x-linear', // Use the linear X-axis
-                            yAxisID: 'y-rank' // Share the same Y-axis
+                            xAxisID: 'x-linear',
+                            yAxisID: 'y-rank'
                         },
-                        { // Moving dot dataset (scatter type)
+                        {
                             label: 'Current Rank',
-                            data: [], // Starts empty, updated dynamically
-                            pointRadius: 8, // Larger dot
+                            data: [],
+                            pointRadius: 8,
                             pointBackgroundColor: 'red',
                             pointBorderColor: 'white',
                             pointBorderWidth: 2,
-                            showLine: false, // Important: do not draw a line for this dataset
-                            type: 'scatter', // This dataset is a scatter plot
-                            xAxisID: 'x-linear', // Share the same linear X-axis
-                            yAxisID: 'y-rank', // Share the same Y-axis
-                            hidden: true // Hide this dataset from the legend
+                            showLine: false,
+                            type: 'scatter',
+                            xAxisID: 'x-linear',
+                            yAxisID: 'y-rank',
+                            hidden: true
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    aspectRatio: isMobile ? 1.5 : 2, // Taller aspect ratio for mobile
-                    animation: false, // Disable Chart.js built-in animation
+                    aspectRatio: isMobile ? 1.5 : 2,
+                    animation: false,
                     plugins: {
                         legend: {
                             display: true,
                             position: 'top',
                             labels: {
-                                color: '#495057',
+                                color: 'var(--spl-text-dark)', /* Dynamic color */
                                 filter: function(legendItem, chartData) {
-                                    // Only show "Overall Rank" in the legend
                                     return legendItem.text === 'Overall Rank';
                                 }
                             }
@@ -1163,13 +1306,11 @@
                             intersect: false,
                             callbacks: {
                                 label: function(context) {
-                                    // Custom tooltip for the moving dot (datasetIndex 1)
                                     if (context.datasetIndex === 1) {
                                         const dotData = context.dataset.data[0];
                                         if (!dotData) return '';
-                                        const round = Math.round(dotData.x); // Round the float x-value for display
+                                        const round = Math.round(dotData.x);
                                         const rank = Math.round(dotData.y);
-                                        // Find original data for points and transfers cost
                                         const originalRoundData = fullRankHistoryData.find(d => d.round === round);
                                         const currentPoints = originalRoundData ? originalRoundData.points : 'N/A';
                                         const currentTransfersCost = originalRoundData ? originalRoundData.transfersCost : 'N/A';
@@ -1183,48 +1324,45 @@
                                         }
                                         return labelText;
                                     }
-                                    // Default tooltip for other datasets (main line points if they were interactive)
                                     return context.dataset.label + ': ' + new Intl.NumberFormat().format(context.raw);
                                 }
                             }
                         }
                     },
                     scales: {
-                        'x-linear': { // Unified linear X-axis for both line and dot
+                        'x-linear': {
                             type: 'linear',
                             title: {
                                 display: true,
                                 text: 'Round',
-                                color: '#495057'
+                                color: 'var(--spl-text-dark)' /* Dynamic color */
                             },
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
-                            min: 0, // Start from round 0
-                            max: fixedMaxRound, // End at fixedMaxRound
+                            min: 0,
+                            max: fixedMaxRound,
                             ticks: {
-                                color: '#495057',
-                                autoSkip: false, // Explicitly disable auto-skipping
+                                color: 'var(--spl-text-dark)', /* Dynamic color */
+                                autoSkip: false,
                                 maxRotation: 0,
                                 minRotation: 0,
-                                // Provide explicit values for ticks: 0, 4, 8, ..., 32, and 34
                                 values: [0, 4, 8, 12, 16, 20, 24, 28, 32, 34],
                                 callback: function(value, index) {
-                                    // This callback will now only be invoked for the values in the 'values' array
                                     return labels[value].replace('Round ', '');
                                 },
                                 font: {
-                                    size: isMobile ? 9 : 12 // Smaller font for mobile
+                                    size: isMobile ? 9 : 12
                                 }
                             }
                         },
-                        'y-rank': { // Main Y-axis
+                        'y-rank': {
                             type: 'linear',
                             display: true,
                             title: {
-                                display: !isMobile, // Hide title on mobile
+                                display: !isMobile,
                                 text: 'Overall Rank (Lower is Better)',
-                                color: '#495057'
+                                color: 'var(--spl-text-dark)' /* Dynamic color */
                             },
                             reverse: true,
                             grid: {
@@ -1233,13 +1371,13 @@
                             min: 1,
                             max: overallYAxisMax,
                             ticks: {
-                                color: '#495057',
+                                color: 'var(--spl-text-dark)', /* Dynamic color */
                                 callback: function(value, index, values) {
                                     return new Intl.NumberFormat().format(value);
                                 },
-                                maxTicksLimit: isMobile ? 20 : 10, // More ticks for mobile
+                                maxTicksLimit: isMobile ? 20 : 10,
                                 font: {
-                                    size: isMobile ? 9 : 12 // Smaller font for mobile
+                                    size: isMobile ? 9 : 12
                                 }
                             }
                         }
@@ -1247,31 +1385,24 @@
                 }
             });
 
-            // Animation Logic using requestAnimationFrame for smoother movement
             function animateChart(timestamp) {
                 if (!animationStartTime) {
                     animationStartTime = timestamp;
                 }
 
                 const elapsedTime = timestamp - animationStartTime;
-                const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1); // Progress from 0 to 1
+                const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1);
 
-                // Determine the actual data points range for animation scaling
                 const firstDataRound = fullRankHistoryData.length > 0 ? fullRankHistoryData[0].round : 0;
                 const lastDataRound = fullRankHistoryData.length > 0 ? fullRankHistoryData[fullRankHistoryData.length - 1].round : fixedMaxRound;
                 const dataRoundRange = lastDataRound - firstDataRound;
 
-                // Calculate the current round for the dot based on animation progress
-                // This value will span from firstDataRound to lastDataRound
                 let currentRoundForDot = firstDataRound + (progress * dataRoundRange);
-                
-                // Clamp currentRoundForDot to ensure it doesn't go beyond the last actual data point's round
                 currentRoundForDot = Math.min(currentRoundForDot, lastDataRound);
 
                 let interpolatedRank = null;
-                let dotXPosition = currentRoundForDot; // The X position for the dot, can be float
+                let dotXPosition = currentRoundForDot;
 
-                // Find the two closest data points in fullRankHistoryData for interpolation
                 let prevDataPoint = null;
                 let nextDataPoint = null;
 
@@ -1284,47 +1415,34 @@
                     }
                 }
 
-                // Determine the interpolated rank
                 if (prevDataPoint && nextDataPoint) {
-                    // Interpolate between prevDataPoint and nextDataPoint
                     const roundRange = nextDataPoint.round - prevDataPoint.round;
                     const rankRange = nextDataPoint.rank - prevDataPoint.rank;
                     const factor = (currentRoundForDot - prevDataPoint.round) / roundRange;
                     interpolatedRank = prevDataPoint.rank + (rankRange * factor);
                 } else if (prevDataPoint) {
-                    // If currentRoundForDot is at or beyond the last actual data point, use the last rank
                     interpolatedRank = prevDataPoint.rank;
                 } else {
-                    // If currentRoundForDot is before the first actual data point, hide the dot.
                     interpolatedRank = null; 
                 }
-
-                // Debugging console log (commented out for cleaner console, uncomment if needed)
-                // console.log(`Progress: ${progress.toFixed(2)}, currentRoundForDot: ${currentRoundForDot.toFixed(2)}, interpolatedRank: ${interpolatedRank}`);
-
-                // Update the moving dot's position (Dataset 1)
+                
                 if (interpolatedRank !== null) {
                     rankJourneyChartInstance.data.datasets[1].data = [{ x: dotXPosition, y: interpolatedRank }];
                 } else {
-                    rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no valid position
+                    rankJourneyChartInstance.data.datasets[1].data = [];
                 }
 
-                // Update the main line dataset (Dataset 0) to show the trace
                 const traceData = [];
-                // Add all *actual* data points that have already been passed by the dot
                 for (let i = 0; i < fullRankHistoryData.length; i++) {
                     if (fullRankHistoryData[i].round <= currentRoundForDot) {
                         traceData.push({ x: fullRankHistoryData[i].round, y: fullRankHistoryData[i].rank });
                     } else {
-                        break; // Stop if we've passed the current dot position
+                        break;
                     }
                 }
-                // If the dot is currently between two data points, add its interpolated position to the trace
-                // Ensure this is added only if interpolatedRank is valid and it's not a duplicate of the last actual point
                 if (interpolatedRank !== null && traceData.length > 0 && dotXPosition > traceData[traceData.length - 1].x) {
                     traceData.push({ x: dotXPosition, y: interpolatedRank });
                 } else if (interpolatedRank !== null && traceData.length === 0 && fullRankHistoryData.length > 0 && dotXPosition >= fullRankHistoryData[0].round) {
-                    // This handles the very start of the animation if the first data point is not at round 0
                     traceData.push({ x: dotXPosition, y: interpolatedRank });
                 }
                 
@@ -1336,16 +1454,14 @@
                     animationFrameId = requestAnimationFrame(animateChart);
                 } else {
                     videoLoadingMessage.style.display = 'none';
-                    // Ensure the full line is visible and all its points are shown
                     rankJourneyChartInstance.data.datasets[0].data = fullRankHistoryData.map(d => ({ x: d.round, y: d.rank }));
                     rankJourneyChartInstance.data.datasets[0].pointRadius = 3; 
                     
-                    // Ensure the dot is at the final position
                     const lastDataPoint = fullRankHistoryData[fullRankHistoryData.length - 1];
                     if (lastDataPoint) {
                         rankJourneyChartInstance.data.datasets[1].data = [{ x: lastDataPoint.round, y: lastDataPoint.rank }];
                     } else {
-                        rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no data
+                        rankJourneyChartInstance.data.datasets[1].data = [];
                     }
                     rankJourneyChartInstance.update();
                     animationStartTime = null;
@@ -1353,7 +1469,7 @@
                 }
             }
 
-            animationFrameId = requestAnimationFrame(animateChart); // Start the animation
+            animationFrameId = requestAnimationFrame(animateChart);
         }
     </script>
 </body>
