@@ -324,14 +324,14 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
                     console.warn(`Could not get points for Player OUT ID ${playerOutId} in Round ${round}.`);
                 }
 
-                // UPDATED: Calculate Profit/Loss - Removed currentRoundTransfersCost
+                // Calculate Profit/Loss - Now (Player_in_Score minus Player_out_Score)
                 const profitLoss = playerInPoints - playerOutPoints;
 
                 allTransfersAnalysis.push({
                     playerInName: playerNameMap[playerInId] || `Unknown (ID:${playerInId})`,
                     playerOutName: playerNameMap[playerOutId] || `Unknown (ID:${playerOutId})`,
                     round: round,
-                    tcValue: currentRoundTransfersCost, // Still store TC for context if needed elsewhere, but not used in profitLoss
+                    tcValue: currentRoundTransfersCost,
                     profitLoss: profitLoss
                 });
             }
@@ -381,13 +381,11 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             times: timesCaptained,
             successful: successfulCaptaincies,
             failed: failedCaptaincies,
-            // Multiply totalCaptainedPoints by 2 as requested
             totalCaptainedPoints: totalCaptainedPoints * 2, 
             captainedRounds: captainedRoundsTracker[captainId]
         });
     }
 
-    // Fetch Player Summaries for ALL unique players in the squad (needed for pointsGained/benchedPoints)
     const allPlayerSummaryPromises = Array.from(uniquePlayerIdsInSquad).map(async playerId => {
         try {
             const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${playerId}/`;
@@ -402,7 +400,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     const allPlayerSummariesMap = new Map(allPlayerSummariesResults.filter(p => p.summary).map(p => [p.playerId, p.summary]));
 
 
-    // Calculate "Points Gained" and "Benched Points" for all players
     for (const playerId of uniquePlayerIdsInSquad) {
         const playerSummary = allPlayerSummariesMap.get(playerId);
         if (!playerSummary) continue; 
@@ -417,7 +414,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             const roundNum = parseInt(round);
             const { position, multiplier, isSubbedOut, isSubbedIn } = playerStats.roundsInfo[roundNum];
 
-            // FIX: Correctly define allRoundStatsEntriesForCurrentRound in this scope
             const allRoundStatsEntriesForCurrentRound = playerHistory.filter(h => h.round === roundNum);
             const playerPointsForRound = allRoundStatsEntriesForCurrentRound.reduce((sum, entry) => sum + entry.total_points, 0);
 
@@ -437,7 +433,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         }
     }
 
-    // Sort missed points instances by points in descending order and take top 5
     const top5MissedPoints = missedPointsInstances
         .sort((a, b) => b.points - a.points)
         .slice(0, 5)
@@ -448,7 +443,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         }));
 
 
-    // Prepare Best Players Table Data
     const bestPlayersList = Object.entries(playerSeasonStats)
         .filter(([, stats]) => stats.pointsGained > 0 || stats.benchedPoints > 0) 
         .sort(([, statsA], [, statsB]) => statsB.pointsGained - statsA.pointsGained) 
@@ -461,7 +455,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             benchedPoints: stats.benchedPoints
         }));
 
-    // Prepare Worst Players Table Data
     const worstPlayersList = Object.entries(playerSeasonStats)
         .filter(([, stats]) => stats.started > 0) 
         .sort(([, statsA], [, statsB]) => statsA.pointsGained - statsB.pointsGained) 
@@ -474,7 +467,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             benchedPoints: stats.benchedPoints
         }));
 
-    // Sort allTransfersAnalysis for top 5 profitable and loss-making
     const sortedByProfitLoss = [...allTransfersAnalysis].sort((a, b) => b.profitLoss - a.profitLoss);
     const top5ProfitableTransfers = sortedByProfitLoss.slice(0, 5);
     const top5LossMakingTransfers = sortedByProfitLoss.slice(-5).reverse(); 
@@ -504,8 +496,8 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             deductions: worstRoundDeductions,
             round: worstRoundNumber
         },
-        greenArrowsCount: greenArrowsCount, // NEW
-        redArrowsCount: redArrowsCount       // NEW
+        greenArrowsCount: greenArrowsCount,
+        redArrowsCount: redArrowsCount
     };
 }
 
@@ -515,7 +507,7 @@ async function getTransfersData(managerId, managerBasicData, managerStats) {
     const totalTransfersCount = managerBasicData.lastDeadlineTotalTransfers;
     const totalHitsPoints = managerStats.totalHitsPoints; 
 
-    console.log(`Final Transfers Data: Total Transfers: ${totalTransfersCount}, Total Hits: ${totalHitsPoints}`); // DEBUG LOG
+    console.log(`Final Transfers Data: Total Transfers: ${totalTransfersCount}, Total Hits: ${totalHitsPoints}`);
 
     return {
         totalTransfersCount: totalTransfersCount,
@@ -527,7 +519,7 @@ async function getTransfersData(managerId, managerBasicData, managerStats) {
 // --- Netlify Function Handler (Main entry point) ---
 exports.handler = async function(event, context) {
     const managerId = event.queryStringParameters.id;
-    console.log(`Received request for managerId: ${managerId}`); // Added logging
+    console.log(`Received request for managerId: ${managerId}`);
 
     if (!managerId || typeof managerId !== 'string' || !/^\d+$/.test(managerId)) {
         console.error('Invalid managerId received:', managerId);
@@ -541,23 +533,21 @@ exports.handler = async function(event, context) {
     try {
         const playerMap = await getPlayerNameMap();
 
-        // Step 1: Fetch manager basic data (current event, total transfers, and chips)
         let managerBasicData = {};
         try {
             managerBasicData = await getManagerBasicData(managerId);
-            console.log('Manager Basic Data fetched successfully.'); // DEBUG LOG
-            console.log('Basic Data (in handler):', managerBasicData); // DEBUG LOG
+            console.log('Manager Basic Data fetched successfully.');
+            console.log('Basic Data (in handler):', managerBasicData);
         } catch (error) {
             console.error("getManagerBasicData failed in handler:", error);
-            managerBasicData = { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', managerName: `Manager ID: ${managerId}` }; // Default on failure
+            managerBasicData = { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', managerName: `Manager ID: ${managerId}` };
         }
 
-        // Step 2: Fetch manager history and captaincy stats, and calculate total hits AND transfer analysis
         let managerStats = {};
         try {
             managerStats = await getManagerHistoryAndCaptains(managerId, playerMap, managerBasicData);
-            console.log('Manager History and Captains fetched successfully.'); // DEBUG LOG
-            console.log('Manager Stats (in handler):', JSON.stringify(managerStats, null, 2)); // Added detailed logging
+            console.log('Manager History and Captains fetched successfully.');
+            console.log('Manager Stats (in handler):', JSON.stringify(managerStats, null, 2));
         } catch (error) {
             console.error("getManagerHistoryAndCaptains failed in handler:", error);
             managerStats = {
@@ -577,16 +567,15 @@ exports.handler = async function(event, context) {
                 top5LossMakingTransfers: [],
                 bestRound: { points: 'N/A', deductions: 'N/A', round: 'N/A' },
                 worstRound: { points: 'N/A', deductions: 'N/A', round: 'N/A' },
-                greenArrowsCount: 0, // Default for new stats
-                redArrowsCount: 0    // Default for new stats
+                greenArrowsCount: 0,
+                redArrowsCount: 0
             };
         }
 
-        // Step 3: Get transfers data (now just passing through pre-calculated values)
         let transfersData = {};
         try {
             transfersData = await getTransfersData(managerId, managerBasicData, managerStats); 
-            console.log('Transfers Data retrieved successfully.'); // DEBUG LOG
+            console.log('Transfers Data retrieved successfully.');
         } catch (error) {
             console.error("getTransfersData failed during retrieval in handler:", error);
             transfersData = {
@@ -595,7 +584,7 @@ exports.handler = async function(event, context) {
             };
         }
 
-        const averagePointsFor1stPlace = 75; // Hardcoded as requested
+        const averagePointsFor1stPlace = 75;
 
         const finalResponse = {
             overallRankHistory: managerStats.overallRankHistory,
@@ -612,13 +601,13 @@ exports.handler = async function(event, context) {
             totalHitsPoints: transfersData.totalHitsPoints,
             top5ProfitableTransfers: managerStats.top5ProfitableTransfers, 
             top5LossMakingTransfers: managerStats.top5LossMakingTransfers,
-            managerName: managerBasicData.managerName, // Pass managerName from basic data
+            managerName: managerBasicData.managerName,
             bestRound: managerStats.bestRound,
             worstRound: managerStats.worstRound,
-            greenArrowsCount: managerStats.greenArrowsCount, // NEW: Pass green arrows
-            redArrowsCount: managerStats.redArrowsCount       // NEW: Pass red arrows
+            greenArrowsCount: managerStats.greenArrowsCount,
+            redArrowsCount: managerStats.redArrowsCount
         };
-        console.log('Final JSON response body:', JSON.stringify(finalResponse, null, 2)); // Added final response logging
+        console.log('Final JSON response body:', JSON.stringify(finalResponse, null, 2));
 
         return {
             statusCode: 200,
