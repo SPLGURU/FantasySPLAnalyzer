@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>Fantasy SPL Manager Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
@@ -100,7 +100,7 @@
             font-size: 1.1em;
         }
 
-        .input-section input[type="number"] {
+        .input-section input[type="text"] { /* Changed to type="text" */
             padding: 12px 15px;
             border: 1px solid var(--spl-border-light);
             border-radius: 8px;
@@ -109,7 +109,17 @@
             max-width: 300px;
             box-sizing: border-box;
             text-align: center;
+
+            /* Hide spinner arrows for number input (even though type is text now, some browsers might add them if it looks like a number) */
+            -moz-appearance: textfield; /* Firefox */
         }
+        /* Webkit browsers (Chrome, Safari, Edge) for hiding arrows */
+        .input-section input::-webkit-outer-spin-button,
+        .input-section input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
 
         .input-section button, .chart-button { /* Added .chart-button class */
             background-color: var(--spl-primary-accent);
@@ -131,6 +141,30 @@
             background-color: #0056b3;
             transform: translateY(-2px);
         }
+
+        /* NEW: Styles for the "Create My Rank Journey" button */
+        #createRankJourneyButton, #replayRankJourneyButton {
+            background: linear-gradient(135deg, #034667, #007bff); /* Blue gradient */
+            color: white;
+            padding: 15px 30px;
+            border: 3px solid #FFD700; /* Gold border to make it pop */
+            border-radius: 10px; /* Slightly more rounded */
+            font-size: 1.2em; /* Larger font */
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 215, 0, 0.6); /* Stronger shadow with gold glow */
+            cursor: pointer;
+            transition: all 0.3s ease;
+            max-width: 350px; /* Make it a bit wider if needed */
+        }
+
+        #createRankJourneyButton:hover, #replayRankJourneyButton:hover {
+            background: linear-gradient(135deg, #007bff, #034667); /* Reverse gradient on hover */
+            transform: translateY(-3px) scale(1.02); /* Lift and slightly enlarge */
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 215, 0, 0.8); /* More intense shadow/glow */
+        }
+
 
         .loading-message, .error-message, .video-loading-message {
             text-align: center;
@@ -276,8 +310,8 @@
         }
 
         /* Responsive Adjustments */
-        /* PC Version (Default styles) */
-        @media (min-width: 769px) {
+        /* PC Version (Default styles - apply when viewport is wider than 950px) */
+        @media (min-width: 951px) { /* UPDATED: Changed breakpoint from 769px to 951px */
             /* Ensure PC specific table layouts are maintained */
             #topCaptainsTable th:nth-child(1), #topCaptainsTable td:nth-child(1) { width: auto; }
             #topCaptainsTable th:nth-child(2), #topCaptainsTable td:nth-child(2) { width: auto; }
@@ -314,8 +348,8 @@
         }
 
 
-        /* Mobile Version */
-        @media (max-width: 768px) {
+        /* Mobile Version (apply when viewport is 950px or narrower) */
+        @media (max-width: 950px) { /* UPDATED: Changed breakpoint from 768px to 950px */
             body {
                 padding: 15px;
             }
@@ -324,7 +358,7 @@
                 padding: 20px;
             }
 
-            .input-section input[type="number"],
+            .input-section input[type="text"], /* Changed to type="text" */
             .input-section button {
                 font-size: 0.95em;
                 padding: 10px 20px;
@@ -452,7 +486,8 @@
 
         <div class="input-section">
             <label for="managerIdInput">Enter Manager ID:</label>
-            <input type="number" id="managerIdInput" placeholder="e.g., 1234">
+            <!-- Changed type to "text" and added oninput for Arabic number conversion -->
+            <input type="text" id="managerIdInput" placeholder="e.g., 1234" oninput="this.value = convertArabicToWesternNumerals(this.value)">
             <button id="analyzeButton">Full Season Report</button>
 
             <div id="instructionsBox" class="instructions">
@@ -512,6 +547,7 @@
                 </div>
             </div>
 
+            <!-- Enhanced styles for these buttons -->
             <button id="createRankJourneyButton" class="chart-button" style="display: none; margin-top: 20px; margin-bottom: 30px;">Create My Rank Journey</button>
             <button id="replayRankJourneyButton" class="chart-button" style="display: none; margin-top: 20px; margin-bottom: 30px;">Replay Rank Journey</button>
 
@@ -694,6 +730,17 @@
         let animationStartTime = null;
         let animationFrameId = null;
 
+        // Function to convert Arabic numerals to Western numerals
+        function convertArabicToWesternNumerals(input) {
+            const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+            const westernNumerals = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            let convertedInput = input;
+            for (let i = 0; i < arabicNumerals.length; i++) {
+                const regex = new RegExp(arabicNumerals[i], 'g');
+                convertedInput = convertedInput.replace(regex, westernNumerals[i]);
+            }
+            return convertedInput;
+        }
 
         // Event Listeners
         analyzeButton.addEventListener('click', () => {
@@ -726,9 +773,10 @@
 
 
         async function fetchManagerData() {
-            const managerId = managerIdInput.value;
-            if (!managerId) {
-                errorMessage.textContent = 'Please enter a Manager ID.';
+            // Ensure the managerId is converted to Western numerals before fetching
+            const managerId = convertArabicToWesternNumerals(managerIdInput.value);
+            if (!managerId || !/^\d+$/.test(managerId)) { // Validate after conversion
+                errorMessage.textContent = 'Please enter a valid Manager ID (numbers only).';
                 errorMessage.style.display = 'block';
                 managerStatsDiv.style.display = 'none';
                 return;
@@ -819,7 +867,7 @@
                             row.cells[2].setAttribute('data-label', 'Success');
                             row.insertCell().textContent = captain.failed;
                             row.cells[3].setAttribute('data-label', 'Failed');
-                            row.insertCell().textContent = captain.totalCaptainedPoints;
+                            row.insertCell().textContent = captain.totalCaptainedPoints; // This value is now multiplied by 2 from the backend
                             row.cells[4].setAttribute('data-label', 'Captained Points');
                             row.insertCell().textContent = captain.captainedRounds ? captain.captainedRounds.join(', ') : 'N/A';
                             row.cells[5].setAttribute('data-label', 'Captained Rounds');
@@ -1013,7 +1061,7 @@
             }
 
             // Determine if on mobile based on screen width
-            const isMobile = window.innerWidth <= 768;
+            const isMobile = window.innerWidth <= 950; // UPDATED: Mobile breakpoint matches the CSS media query
 
             rankJourneyChartInstance = new Chart(ctx, {
                 type: 'line',
@@ -1128,7 +1176,7 @@
                                 autoSkip: false, // Explicitly disable auto-skipping
                                 maxRotation: 0,
                                 minRotation: 0,
-                                // Provide explicit values for ticks
+                                // Provide explicit values for ticks: 0, 4, 8, ..., 32, and 34
                                 values: [0, 4, 8, 12, 16, 20, 24, 28, 32, 34],
                                 callback: function(value, index) {
                                     // This callback will now only be invoked for the values in the 'values' array

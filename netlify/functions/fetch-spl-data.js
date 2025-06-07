@@ -381,7 +381,8 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
             times: timesCaptained,
             successful: successfulCaptaincies,
             failed: failedCaptaincies,
-            totalCaptainedPoints: totalCaptainedPoints,
+            // NEW: Multiply totalCaptainedPoints by 2 as requested
+            totalCaptainedPoints: totalCaptainedPoints * 2, 
             captainedRounds: captainedRoundsTracker[captainId]
         });
     }
