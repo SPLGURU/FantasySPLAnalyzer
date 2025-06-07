@@ -767,6 +767,8 @@
                     Animating rank journey...
                 </div>
                 <canvas id="rankJourneyChart"></canvas>
+                <!-- NEW: Hidden canvas for Chart.js static capture -->
+                <canvas id="hiddenChartCaptureCanvas" style="display: none;"></canvas>
             </div>
             
             <!-- Added IDs to table-section divs for easier targeting by html2canvas -->
@@ -945,6 +947,8 @@
         const shareVideoButton = document.getElementById('shareVideoButton');
         const videoGeneratingMessage = document.getElementById('videoGeneratingMessage'); // Reusing this element
         const gifCaptureCanvas = document.getElementById('gifCaptureCanvas'); // Renamed from videoRecordingCanvas
+        // NEW: Hidden canvas for chart static capture
+        const hiddenChartCaptureCanvas = document.getElementById('hiddenChartCaptureCanvas');
 
         const lightModeLogoSrc = 'unnamed.jpg';
         const darkModeLogoSrc = 'dark mode logo.png';
@@ -961,8 +965,8 @@
         // --- GIF Generation Specific Variables ---
         const gifWidth = 1280; // Standard HD width for GIF frames
         const gifHeight = 720; // Standard HD height for GIF frames
-        const sectionFrameDelay = 5000; // 5 seconds in milliseconds for most sections (delay for GIF frames)
-        const chartFrameDelay = 10000; // 10 seconds in milliseconds for the chart section (delay for GIF frame)
+        const sectionFrameDelay = 3000; // 3 seconds in milliseconds for most sections (delay for GIF frames)
+        const chartFrameDelay = 3000; // 3 seconds in milliseconds for the chart section (delay for GIF frame)
 
 
         // --- Helper Functions ---
@@ -1603,28 +1607,199 @@
         // --- NEW: GIF Generation Logic ---
 
         /**
-         * Renders the chart to its final state for GIF capture.
+         * Renders the chart to its final state onto a hidden canvas for GIF capture.
          * Ensures the Chart.js canvas is updated with all data points visible.
+         * @returns {HTMLCanvasElement|null} The hidden canvas containing the final chart image.
          */
         async function prepareChartForCapture() {
-            if (rankJourneyChartInstance && managerOverallRankHistory && managerOverallRankHistory.length > 0) {
-                console.log('DEBUG: Preparing chart for static GIF capture (final state).');
-                // Ensure the chart is in its final state (full line, all points)
-                rankJourneyChartInstance.data.datasets[0].data = managerOverallRankHistory.map(d => ({ x: d.round, y: d.rank }));
-                rankJourneyChartInstance.data.datasets[0].pointRadius = 3; 
-                
-                const lastDataPoint = managerOverallRankHistory[managerOverallRankHistory.length - 1];
-                if (lastDataPoint) {
-                    rankJourneyChartInstance.data.datasets[1].data = [{ x: lastDataPoint.round, y: lastDataPoint.rank }];
-                } else {
-                    rankJourneyChartInstance.data.datasets[1].data = [];
-                }
-                rankJourneyChartInstance.update();
-                // Give Chart.js a moment to render the updated state
-                await new Promise(resolve => setTimeout(resolve, 200)); 
-            } else {
-                console.log('DEBUG: No chart instance or history data to prepare for capture.');
+            if (!managerOverallRankHistory || managerOverallRankHistory.length === 0) {
+                console.warn("DEBUG: No rank data to prepare chart for capture.");
+                return null;
             }
+            
+            // Ensure the main chart canvas is visible so Chart.js can render to it first
+            // This is crucial because Chart.js needs a visible canvas to calculate dimensions and render properly
+            const originalChartContainerDisplay = rankJourneyChartContainer.style.display;
+            rankJourneyChartContainer.style.display = 'flex';
+            rankJourneyChartCanvas.style.display = 'block'; // Make sure the original canvas is visible
+            
+            // Temporarily set dimensions for the original chart canvas for consistent rendering if needed
+            // This can help Chart.js render properly before capturing
+            rankJourneyChartCanvas.width = 900; // Use max-width from CSS as a reference
+            rankJourneyChartCanvas.height = rankJourneyChartCanvas.width / (window.innerWidth <= 950 ? 1.5 : 2); // Maintain aspect ratio
+
+            // Ensure the chart instance exists and is up-to-date
+            if (rankJourneyChartInstance) {
+                rankJourneyChartInstance.destroy(); // Destroy existing instance to ensure fresh render
+            }
+
+            // Re-create chart instance to its final state on the *original* canvas
+            // Use the same options as renderRankJourneyChart but with animation: false
+            const isMobile = window.innerWidth <= 950;
+            const ctx = rankJourneyChartCanvas.getContext('2d');
+            
+            // Populate data for the final state
+            const labels = Array.from({ length: 34 + 1 }, (_, i) => `Round ${i}`);
+            const fullRankHistoryData = managerOverallRankHistory.map(d => ({ x: d.round, y: d.rank }));
+
+            const validRanksForScaling = fullRankHistoryData.filter(d => typeof d.y === 'number' && !isNaN(d.y));
+            const minRankInHistory = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling.map(d => d.y)) : 1;
+            const maxRankInHistory = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling.map(d => d.y)) : 114154;
+
+            let overallYAxisMax;
+            const decisionRank = managerCurrentOverallRank !== null ? managerCurrentOverallRank : maxRankInHistory;
+
+            if (decisionRank >= 1 && decisionRank <= 100) {
+                overallYAxisMax = maxRankInHistory + 10;
+            } else if (decisionRank > 100 && decisionRank <= 3000) {
+                overallYAxisMax = maxRankInHistory + 50;
+            } else if (decisionRank > 3000) {
+                overallYAxisMax = maxRankInHistory + 200;
+            } else {
+                overallYAxisMax = maxRankInHistory + 100;
+            }
+            overallYAxisMax = Math.min(Math.max(overallYAxisMax, minRankInHistory + 10, 200), 114154); 
+
+            rankJourneyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Overall Rank',
+                            data: fullRankHistoryData, // Full data for static image
+                            tension: 0.1,
+                            spanGaps: true,
+                            pointRadius: 3, // Show points
+                            borderColor: (context) => {
+                                const currentPoint = context.dataset.data[context.dataIndex];
+                                const previousPoint = context.dataset.data[context.dataIndex - 1];
+                                if (!currentPoint || !previousPoint || typeof currentPoint.y !== 'number' || typeof previousPoint.y !== 'number') {
+                                    return '#007BFF';
+                                }
+                                if (currentPoint.y < previousPoint.y) { return '#28A745'; } 
+                                else if (currentPoint.y > previousPoint.y) { return '#DC3545'; } 
+                                else { return '#495057'; }
+                            },
+                            backgroundColor: 'rgba(0, 0, 0, 0)',
+                            fill: false,
+                            xAxisID: 'x-linear',
+                            yAxisID: 'y-rank'
+                        },
+                        {
+                            label: 'Current Rank',
+                            data: [fullRankHistoryData[fullRankHistoryData.length - 1]], // Only the last point
+                            pointRadius: 8,
+                            pointBackgroundColor: 'red',
+                            pointBorderColor: 'white',
+                            pointBorderWidth: 2,
+                            showLine: false,
+                            type: 'scatter',
+                            xAxisID: 'x-linear',
+                            yAxisID: 'y-rank'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: isMobile ? 1.5 : 2,
+                    animation: false, // No animation for static capture
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: 'var(--spl-text-dark)', 
+                                filter: function(legendItem, chartData) {
+                                    return legendItem.text === 'Overall Rank';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        'x-linear': {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Round',
+                                color: 'var(--spl-text-dark)'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            min: 0,
+                            max: 34,
+                            ticks: {
+                                color: 'var(--spl-text-dark)',
+                                autoSkip: false,
+                                maxRotation: 0,
+                                minRotation: 0,
+                                values: [0, 4, 8, 12, 16, 20, 24, 28, 32, 34],
+                                callback: function(value, index) {
+                                    return labels[value].replace('Round ', '');
+                                },
+                                font: {
+                                    size: isMobile ? 9 : 12
+                                }
+                            }
+                        },
+                        'y-rank': {
+                            type: 'linear',
+                            display: true,
+                            title: {
+                                display: !isMobile,
+                                text: 'Overall Rank (Lower is Better)',
+                                color: 'var(--spl-text-dark)'
+                            },
+                            reverse: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            min: 1,
+                            max: overallYAxisMax,
+                            ticks: {
+                                color: 'var(--spl-text-dark)',
+                                callback: function(value, index, values) {
+                                    return new Intl.NumberFormat().format(value);
+                                },
+                                maxTicksLimit: isMobile ? 20 : 10,
+                                font: {
+                                    size: isMobile ? 9 : 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            rankJourneyChartInstance.update('resize'); // Force update to ensure rendering
+
+            await new Promise(resolve => setTimeout(resolve, 500)); // Give some time for Chart.js to render
+
+            // Now, draw the content of the visible chart canvas onto the hidden canvas
+            // Ensure the hidden canvas has the same dimensions as the intended GIF frame
+            hiddenChartCaptureCanvas.width = gifWidth;
+            hiddenChartCaptureCanvas.height = gifHeight;
+            const hiddenCtx = hiddenChartCaptureCanvas.getContext('2d');
+            
+            // Draw background color first
+            hiddenCtx.fillStyle = getComputedStyle(document.body).backgroundColor;
+            hiddenCtx.fillRect(0, 0, hiddenChartCaptureCanvas.width, hiddenChartCaptureCanvas.height);
+
+            // Calculate scale to fit the original chart canvas into the hidden canvas
+            const chartRatio = Math.min(hiddenChartCaptureCanvas.width / rankJourneyChartCanvas.width, hiddenChartCaptureCanvas.height / rankJourneyChartCanvas.height);
+            const chartWidth = rankJourneyChartCanvas.width * chartRatio;
+            const chartHeight = rankJourneyChartCanvas.height * chartRatio;
+            const chartX = (hiddenChartCaptureCanvas.width - chartWidth) / 2;
+            const chartY = (hiddenChartCaptureCanvas.height - chartHeight) / 2;
+
+            hiddenCtx.drawImage(rankJourneyChartCanvas, chartX, chartY, chartWidth, chartHeight);
+
+            // Hide the original chart container again after capturing
+            rankJourneyChartContainer.style.display = originalChartContainerDisplay;
+
+            console.log('DEBUG: Chart prepared and copied to hidden canvas for GIF.');
+            return hiddenChartCaptureCanvas; // Return the hidden canvas which html2canvas will now target
         }
 
 
@@ -1637,23 +1812,23 @@
             console.log("DEBUG: Starting captureAndPrepareSectionsForGIF...");
             // Define the sections to capture and their durations
             const sectionsToCaptureConfig = [
-                // NEW: First section to capture: managerSummarySection
-                { id: 'managerSummarySection', duration: sectionFrameDelay, display: 'block' },
+                // First section to capture: managerSummarySection
+                { id: 'managerSummarySection', duration: sectionFrameDelay },
                 // Chart section will be handled specially
                 { id: 'rankJourneyChartContainer', duration: chartFrameDelay, specialHandling: true }, 
-                { id: 'topCaptainsTableContainer', duration: sectionFrameDelay, display: 'block' },
-                { id: 'bestPlayersTableContainer', duration: sectionFrameDelay, display: 'block' },
-                { id: 'worstPlayersTableContainer', duration: sectionFrameDelay, display: 'block' },
-                { id: 'missedPointsTableContainer', duration: sectionFrameDelay, display: 'block' },
-                { id: 'transfersSummaryContainer', duration: sectionFrameDelay, display: 'block' },
-                { id: 'profitableTransfersTableContainer', duration: sectionFrameDelay, display: 'block' },
-                { id: 'lossMakingTransfersTableContainer', duration: sectionFrameDelay, display: 'block' },
+                { id: 'topCaptainsTableContainer', duration: sectionFrameDelay },
+                { id: 'bestPlayersTableContainer', duration: sectionFrameDelay },
+                { id: 'worstPlayersTableContainer', duration: sectionFrameDelay },
+                { id: 'missedPointsTableContainer', duration: sectionFrameDelay },
+                { id: 'transfersSummaryContainer', duration: sectionFrameDelay },
+                { id: 'profitableTransfersTableContainer', duration: sectionFrameDelay },
+                { id: 'lossMakingTransfersTableContainer', duration: sectionFrameDelay },
             ];
 
             const capturedCanvases = [];
 
-            // Prepare the chart (ensure final state) before any capture happens
-            await prepareChartForCapture();
+            // Prepare the chart (ensure final state and copy to hidden canvas) before any capture happens
+            const preparedChartCanvas = await prepareChartForCapture();
 
             // Store original display states to revert after capture
             const originalDisplayStates = {};
@@ -1661,7 +1836,8 @@
                 const element = document.getElementById(config.id);
                 if (element && !config.specialHandling) { // Don't touch display for special handling elements yet
                     originalDisplayStates[config.id] = element.style.display;
-                    element.style.display = config.display; // Ensure visible for capture
+                    // Ensure elements are visible for html2canvas capture (will be handled by onclone for desktop size)
+                    element.style.display = 'block'; 
                 }
             });
             // Also ensure the managerStatsDiv is visible as a parent for some elements
@@ -1670,7 +1846,7 @@
             await new Promise(resolve => setTimeout(resolve, 100)); // Allow layout to settle
 
             for (const sectionConfig of sectionsToCaptureConfig) {
-                let h2cCanvas = null;
+                let sourceCanvas = null;
                 let element = document.getElementById(sectionConfig.id);
 
                 if (!element) {
@@ -1678,22 +1854,17 @@
                     continue; // Skip if element not found
                 }
 
-                // Special handling for the chart: capture the live canvas directly
+                // Special handling for the chart: use the pre-rendered hidden canvas
                 if (sectionConfig.specialHandling && sectionConfig.id === 'rankJourneyChartContainer') {
-                    // Ensure the container is visible for the chart to potentially render correctly its own canvas size
-                    const originalChartContainerDisplay = rankJourneyChartContainer.style.display;
-                    rankJourneyChartContainer.style.display = 'flex';
-                    await new Promise(resolve => setTimeout(resolve, 50)); // Give it a moment
-
-                    if (rankJourneyChartCanvas) {
-                        h2cCanvas = rankJourneyChartCanvas; // Use the live Chart.js canvas
-                        console.log(`DEBUG: Using live canvas for ${sectionConfig.id}.`);
+                    if (preparedChartCanvas) {
+                        sourceCanvas = preparedChartCanvas;
+                        console.log(`DEBUG: Using pre-rendered hidden canvas for ${sectionConfig.id}.`);
                     } else {
-                        console.error(`ERROR: Live chart canvas for ${sectionConfig.id} not found!`);
+                        console.error(`ERROR: Pre-rendered chart canvas for ${sectionConfig.id} not available!`);
                         // Fallback to error canvas
-                        h2cCanvas = document.createElement('canvas');
-                        h2cCanvas.width = gifWidth; h2cCanvas.height = gifHeight;
-                        const errorCtx = h2cCanvas.getContext('2d');
+                        sourceCanvas = document.createElement('canvas');
+                        sourceCanvas.width = gifWidth; sourceCanvas.height = gifHeight;
+                        const errorCtx = sourceCanvas.getContext('2d');
                         errorCtx.fillStyle = '#333';
                         errorCtx.fillRect(0, 0, gifWidth, gifHeight);
                         errorCtx.fillStyle = 'white';
@@ -1702,20 +1873,18 @@
                         errorCtx.textBaseline = 'middle';
                         errorCtx.fillText(`Chart not found: ${sectionConfig.id}`, gifWidth / 2, gifHeight / 2);
                     }
-                    // Restore original display for chart container
-                    rankJourneyChartContainer.style.display = originalChartContainerDisplay;
-
                 } else {
                     // For all other sections, use html2canvas as usual
                     console.log(`DEBUG: Capturing section with html2canvas: ${sectionConfig.id}`);
                     try {
-                        h2cCanvas = await html2canvas(element, {
+                        sourceCanvas = await html2canvas(element, {
                             useCORS: true, 
                             scale: 2, // Capture at high resolution
                             backgroundColor: null, 
                             allowTaint: true, 
-                            windowWidth: gifWidth, // Force desktop-like width for cloning
-                            windowHeight: gifHeight * 2, // Give more height for cloning to prevent vertical clipping
+                            // Force desktop-like dimensions for cloning context
+                            windowWidth: gifWidth, 
+                            windowHeight: gifHeight * 2, // Give more height to avoid vertical clipping in cloned context initially
                             onclone: (clonedDoc) => {
                                 // Apply the current theme to the cloned document
                                 if (document.body.classList.contains('dark-mode')) {
@@ -1727,11 +1896,9 @@
                                 }
                                 
                                 // Make ALL content sections visible in the cloned DOM for capture
-                                // This ensures html2canvas renders them, even if they are display:none on the live page
-                                // during normal interaction, but needed for a specific frame capture.
-                                // We ensure they are visible and can expand vertically.
+                                // This ensures html2canvas renders them as if on a desktop, without hidden elements affecting layout.
                                 const elementsToDisplayInClone = [
-                                    'managerStats', // Parent container
+                                    'managerStats', 
                                     'managerSummarySection', // NEW: Specific section for first frame
                                     'rankJourneyChartContainer',
                                     'topCaptainsTableContainer',
@@ -1763,9 +1930,9 @@
                         });
                     } catch (e) {
                         console.error(`ERROR: Failed to capture section ${sectionConfig.id} for GIF:`, e);
-                        h2cCanvas = document.createElement('canvas'); // Create error canvas
-                        h2cCanvas.width = gifWidth; h2cCanvas.height = gifHeight;
-                        const errorCtx = h2cCanvas.getContext('2d');
+                        sourceCanvas = document.createElement('canvas'); // Create error canvas
+                        sourceCanvas.width = gifWidth; sourceCanvas.height = gifHeight;
+                        const errorCtx = sourceCanvas.getContext('2d');
                         errorCtx.fillStyle = '#333';
                         errorCtx.fillRect(0, 0, gifWidth, gifHeight);
                         errorCtx.fillStyle = 'white';
@@ -1777,22 +1944,22 @@
                 }
 
                 // If a canvas (either live chart or html2canvas output) was successfully generated/found
-                if (h2cCanvas) {
-                    // Create a new canvas with target GIF dimensions
+                if (sourceCanvas) {
+                    // Create a new canvas with target GIF dimensions (1280x720)
                     const finalFrameCanvas = document.createElement('canvas');
                     finalFrameCanvas.width = gifWidth;
                     finalFrameCanvas.height = gifHeight;
                     const finalFrameCtx = finalFrameCanvas.getContext('2d');
 
-                    // Calculate scaling to fit h2cCanvas onto finalFrameCanvas maintaining aspect ratio
-                    const hRatio = finalFrameCanvas.width / h2cCanvas.width;
-                    const vRatio = finalFrameCanvas.height / h2cCanvas.height;
+                    // Calculate scaling to fit sourceCanvas onto finalFrameCanvas maintaining aspect ratio
+                    const hRatio = finalFrameCanvas.width / sourceCanvas.width;
+                    const vRatio = finalFrameCanvas.height / sourceCanvas.height;
                     const ratio = Math.min(hRatio, vRatio); // Use 'contain' logic
 
                     const sx = 0;
                     const sy = 0;
-                    const sWidth = h2cCanvas.width;
-                    const sHeight = h2cCanvas.height;
+                    const sWidth = sourceCanvas.width;
+                    const sHeight = sourceCanvas.height;
 
                     const dWidth = sWidth * ratio;
                     const dHeight = sHeight * ratio;
@@ -1804,7 +1971,7 @@
                     finalFrameCtx.fillRect(0, 0, finalFrameCanvas.width, finalFrameCanvas.height);
                     
                     // Draw the captured content onto the new canvas, scaled and centered
-                    finalFrameCtx.drawImage(h2cCanvas, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+                    finalFrameCtx.drawImage(sourceCanvas, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
 
                     capturedCanvases.push({
                         canvas: finalFrameCanvas, 
