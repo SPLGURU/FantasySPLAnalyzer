@@ -964,7 +964,7 @@
 
         // NEW: Share Video Button & Video Generating Message & GIF Capture Canvas & Compatibility Warning
         const shareVideoButton = document.getElementById('shareVideoButton');
-        const videoGeneratingMessage = document.getElementById('videoGeneratingMessage'); // Renamed for GIF context
+        const videoGeneratingMessage = document.getElementById('videoGeneratingMessage'); // Reusing this element
         const gifCaptureCanvas = document.getElementById('gifCaptureCanvas'); // Renamed from videoRecordingCanvas
         const compatibilityWarning = document.getElementById('compatibilityWarning');
 
@@ -985,6 +985,9 @@
         const gifHeight = 720; // Standard HD height for GIF frames
         const sectionFrameDelay = 5000; // 5 seconds in milliseconds for most sections (delay for GIF frames)
         const chartFrameDelay = 10000; // 10 seconds in milliseconds for the chart section (delay for GIF frame)
+
+        // NEW: Global flag to check if data loading and display should have happened
+        let dataDisplayAttempted = false;
 
         // --- Helper Functions ---
 
@@ -1111,29 +1114,31 @@
 
         // --- Core Data Fetching Logic ---
         async function fetchManagerData() {
+            console.log("fetchManagerData started.");
             const managerId = convertArabicToWesternNumerals(managerIdInput.value);
             if (!managerId || !/^\d+$/.test(managerId)) {
+                console.warn('Invalid Manager ID entered.');
                 errorMessage.textContent = 'Please enter a valid Manager ID (numbers only).';
                 errorMessage.style.display = 'block';
                 managerStatsDiv.style.display = 'none';
                 rankJourneyBox.style.display = 'none';
-                shareVideoButton.style.display = 'none'; // Hide share button if input is invalid
-                compatibilityWarning.style.display = 'none'; // Hide warning
+                shareVideoButton.style.display = 'none';
+                compatibilityWarning.style.display = 'none';
+                dataDisplayAttempted = false; // Reset flag
                 return;
             }
 
-            // Show general loading, hide others
             loadingMessage.style.display = 'block';
             errorMessage.style.display = 'none';
             managerStatsDiv.style.display = 'none';
             rankJourneyChartContainer.style.display = 'none';
-            videoLoadingMessage.style.display = 'none'; // Hide chart video loading
-            rankJourneyBox.style.display = 'none'; // Hide rank journey box
-            createRankJourneyButton.textContent = 'Click Here'; // Reset button text
-            shareVideoButton.style.display = 'none'; // Hide share button during initial fetch
-            compatibilityWarning.style.display = 'none'; // Hide warning during fetch
+            videoLoadingMessage.style.display = 'none';
+            rankJourneyBox.style.display = 'none';
+            createRankJourneyButton.textContent = 'Click Here';
+            shareVideoButton.style.display = 'none';
+            compatibilityWarning.style.display = 'none';
+            dataDisplayAttempted = false; // Reset flag
 
-            // Clean up previous chart instance and animation
             if (rankJourneyChartInstance) {
                 rankJourneyChartInstance.destroy();
                 rankJourneyChartInstance = null;
@@ -1145,12 +1150,15 @@
             animationStartTime = null;
 
             try {
+                console.log(`Fetching data for manager ID: ${managerId}`);
                 const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`);
                 const data = await response.json();
+                console.log('Fetch response received.', { responseOk: response.ok, data: data });
 
-                loadingMessage.style.display = 'none'; // Hide general loading now
+                loadingMessage.style.display = 'none';
 
                 if (response.ok) {
+                    dataDisplayAttempted = true; // Set flag
                     managerOverallRankHistory = data.overallRankHistory || [];
                     
                     // Update manager name and ranks
@@ -1321,24 +1329,57 @@
                         row.cells[0].colSpan = 4;
                     }
 
-                    managerStatsDiv.style.display = 'block'; // Show the main stats container
-                    shareVideoButton.style.display = 'block'; // Show share button after all data is loaded and displayed
-                    compatibilityWarning.style.display = 'block'; // Show compatibility warning
+                    managerStatsDiv.style.display = 'block'; // Make main container visible
+                    rankJourneyChartContainer.style.display = 'none'; // This remains hidden until button click
+                    shareVideoButton.style.display = 'block';
+                    compatibilityWarning.style.display = 'block';
+
+                    console.log('DEBUG: managerStatsDiv display style AFTER JS set:', managerStatsDiv.style.display);
+                    console.log('DEBUG: managerStatsDiv computed display style AFTER JS set:', getComputedStyle(managerStatsDiv).display);
+                    console.log('DEBUG: managerStatsDiv innerHTML length:', managerStatsDiv.innerHTML.length);
+
+                    // Add a temporary visual indicator if managerStatsDiv is supposed to be visible
+                    const debugIndicator = document.createElement('div');
+                    debugIndicator.id = 'debugIndicator';
+                    debugIndicator.textContent = 'Report Loaded!';
+                    debugIndicator.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #28a745; color: white; padding: 20px; border-radius: 10px; z-index: 9999; font-size: 1.5em; animation: fadeOut 3s forwards;';
+                    document.body.appendChild(debugIndicator);
+                    setTimeout(() => {
+                        const existingIndicator = document.getElementById('debugIndicator');
+                        if(existingIndicator) existingIndicator.remove();
+                    }, 3000); // Remove after 3 seconds
+
+                    // Add a simple CSS animation for the debug indicator
+                    const styleSheet = document.styleSheets[0];
+                    // Check if the rule already exists to avoid errors on subsequent calls
+                    const keyframesRule = Array.from(styleSheet.cssRules).find(rule => rule.name === 'fadeOut');
+                    if (!keyframesRule) {
+                        styleSheet.insertRule(`
+                            @keyframes fadeOut {
+                                0% { opacity: 1; }
+                                80% { opacity: 1; }
+                                100% { opacity: 0; display: none; }
+                            }
+                        `, styleSheet.cssRules.length);
+                    }
+
                 } else {
+                    console.error('API response not OK:', data.error || 'Unknown error');
                     errorMessage.textContent = data.error || 'An unknown error occurred.';
                     errorMessage.style.display = 'block';
-                    shareVideoButton.style.display = 'none'; // Keep share button hidden on error
-                    compatibilityWarning.style.display = 'none'; // Hide warning
+                    shareVideoButton.style.display = 'none';
+                    compatibilityWarning.style.display = 'none';
                 }
 
             } catch (error) {
+                console.error("Critical fetchManagerData error:", error);
                 loadingMessage.style.display = 'none';
                 errorMessage.textContent = `Failed to fetch data: ${error.message}. This might be due to a network issue, an invalid Manager ID, or a temporary API problem. Please try again.`;
                 errorMessage.style.display = 'block';
-                console.error("Fetch error:", error);
-                shareVideoButton.style.display = 'none'; // Keep share button hidden on error
-                compatibilityWarning.style.display = 'none'; // Hide warning
+                shareVideoButton.style.display = 'none';
+                compatibilityWarning.style.display = 'none';
             }
+            console.log("fetchManagerData finished.");
         }
 
         // --- Chart Rendering Logic (Existing) ---
@@ -1460,33 +1501,6 @@
                                 color: 'var(--spl-text-dark)', 
                                 filter: function(legendItem, chartData) {
                                     return legendItem.text === 'Overall Rank';
-                                }
-                            }
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    if (context.datasetIndex === 1) {
-                                        const dotData = context.dataset.data[0];
-                                        if (!dotData) return '';
-                                        const round = Math.round(dotData.x);
-                                        const rank = Math.round(dotData.y);
-                                        const originalRoundData = fullRankHistoryData.find(d => d.round === round);
-                                        const currentPoints = originalRoundData ? originalRoundData.points : 'N/A';
-                                        const currentTransfersCost = originalRoundData ? originalRoundData.transfersCost : 'N/A';
-
-                                        let labelText = `Round: ${round} | Rank: ${new Intl.NumberFormat().format(rank)}`;
-                                        if (currentPoints !== 'N/A') {
-                                            labelText += ` | Points: ${currentPoints}`;
-                                        }
-                                        if (currentTransfersCost !== 'N/A' && currentTransfersCost > 0) {
-                                            labelText += ` | Hits: -${currentTransfersCost}`;
-                                        }
-                                        return labelText;
-                                    }
-                                    return context.dataset.label + ': ' + new Intl.NumberFormat().format(context.raw);
                                 }
                             }
                         }
@@ -1692,7 +1706,8 @@
                                        el.id === 'videoGeneratingMessage' || 
                                        el.id === 'compatibilityWarning' ||
                                        el.classList.contains('theme-switch-wrapper') ||
-                                       el.id === 'gifCaptureCanvas'; // Exclude the hidden GIF canvas itself
+                                       el.id === 'gifCaptureCanvas' ||
+                                       el.id === 'debugIndicator'; // Ignore the debug indicator
                             },
                             onclone: (clonedDoc) => {
                                 // Apply the current theme to the cloned document
