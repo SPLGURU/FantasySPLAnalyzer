@@ -121,7 +121,7 @@
         }
 
 
-        .input-section button, .chart-button { /* Added .chart-button class */
+        .input-section button { /* Base style for all buttons in input section */
             background-color: var(--spl-primary-accent);
             color: white;
             padding: 12px 25px;
@@ -137,32 +137,59 @@
             margin: 0 auto; /* Center the button */
         }
 
-        .input-section button:hover, .chart-button:hover {
+        .input-section button:hover {
             background-color: #0056b3;
             transform: translateY(-2px);
         }
 
-        /* NEW: Styles for the "Create My Rank Journey" button */
-        #createRankJourneyButton, #replayRankJourneyButton {
-            background: linear-gradient(135deg, #034667, #007bff); /* Blue gradient */
-            color: white;
-            padding: 15px 30px;
-            border: 3px solid #FFD700; /* Gold border to make it pop */
-            border-radius: 10px; /* Slightly more rounded */
+        /* NEW: Styles for the Rank Journey button container */
+        .rank-journey-box {
+            background-color: var(--spl-primary-accent); /* Dark blue background */
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Stronger shadow */
+            padding: 25px;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            width: 100%;
+            max-width: 400px; /* Adjust max width for the box */
+            box-sizing: border-box;
+            display: none; /* Hidden by default, shown with manager stats */
+        }
+
+        .rank-journey-box h3 {
+            color: white; /* White text for the title inside the box */
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8em; /* Large and prominent title */
+            margin-top: 0;
+            margin-bottom: 20px; /* Space between title and button */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* NEW: Styles for the button inside the Rank Journey box */
+        #createRankJourneyButton { /* Reusing the ID, applying new styles */
+            background-color: white; /* White background */
+            color: var(--spl-primary-accent); /* Dark blue text */
+            padding: 15px 35px; /* More padding */
+            border: none; /* No border for a cleaner look */
+            border-radius: 10px; /* Rounded corners */
             font-size: 1.2em; /* Larger font */
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 215, 0, 0.6); /* Stronger shadow with gold glow */
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
             cursor: pointer;
             transition: all 0.3s ease;
-            max-width: 350px; /* Make it a bit wider if needed */
+            width: auto; /* Allow button to size based on content */
+            display: inline-block; /* Allow it to be centered easily */
         }
 
-        #createRankJourneyButton:hover, #replayRankJourneyButton:hover {
-            background: linear-gradient(135deg, #007bff, #034667); /* Reverse gradient on hover */
-            transform: translateY(-3px) scale(1.02); /* Lift and slightly enlarge */
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 215, 0, 0.8); /* More intense shadow/glow */
+        #createRankJourneyButton:hover {
+            background-color: #f0f0f0; /* Slightly grey on hover */
+            color: #0056b3; /* Slightly darker blue text on hover */
+            transform: translateY(-2px); /* Slight lift */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25); /* Slightly larger shadow */
         }
 
 
@@ -311,7 +338,7 @@
 
         /* Responsive Adjustments */
         /* PC Version (Default styles - apply when viewport is wider than 950px) */
-        @media (min-width: 951px) { /* UPDATED: Changed breakpoint from 769px to 951px */
+        @media (min-width: 951px) {
             /* Ensure PC specific table layouts are maintained */
             #topCaptainsTable th:nth-child(1), #topCaptainsTable td:nth-child(1) { width: auto; }
             #topCaptainsTable th:nth-child(2), #topCaptainsTable td:nth-child(2) { width: auto; }
@@ -349,7 +376,7 @@
 
 
         /* Mobile Version (apply when viewport is 950px or narrower) */
-        @media (max-width: 950px) { /* UPDATED: Changed breakpoint from 768px to 950px */
+        @media (max-width: 950px) {
             body {
                 padding: 15px;
             }
@@ -535,22 +562,25 @@
                     <h3>Worst Round</h3>
                     <p id="worstRoundDisplay">N/A</p>
                 </div>
-                <!-- NEW: Total Green Arrows Card -->
+                <!-- Total Green Arrows Card -->
                 <div class="stat-card">
                     <h3>Total Green Arrows</h3>
                     <p id="greenArrowsCount">N/A 🟢</p>
                 </div>
-                <!-- NEW: Total Red Arrows Card -->
+                <!-- Total Red Arrows Card -->
                 <div class="stat-card">
                     <h3>Total Red Arrows</h3>
                     <p id="redArrowsCount">N/A 🔴</p>
                 </div>
             </div>
 
-            <!-- Enhanced styles for these buttons -->
-            <button id="createRankJourneyButton" class="chart-button" style="display: none; margin-top: 20px; margin-bottom: 30px;">Create My Rank Journey</button>
-            <button id="replayRankJourneyButton" class="chart-button" style="display: none; margin-top: 20px; margin-bottom: 30px;">Replay Rank Journey</button>
-
+            <!-- NEW: Rank Journey Box -->
+            <div id="rankJourneyBox" class="rank-journey-box">
+                <h3>My Rank Journey</h3>
+                <!-- The existing button is now inside this box -->
+                <button id="createRankJourneyButton">Click Here</button>
+            </div>
+            <!-- REMOVED: replayRankJourneyButton is no longer needed as createRankJourneyButton will be dynamic -->
 
             <div class="chart-section" id="rankJourneyChartContainer" style="display: none;">
                 <h2>Overall Rank Journey</h2>
@@ -716,8 +746,9 @@
         const rankJourneyChartCanvas = document.getElementById('rankJourneyChart');
         const rankJourneyChartContainer = document.getElementById('rankJourneyChartContainer');
         const videoLoadingMessage = document.getElementById('videoLoadingMessage');
+        // REPLACED: replayRankJourneyButton is removed, now createRankJourneyButton is dynamic
         const createRankJourneyButton = document.getElementById('createRankJourneyButton');
-        const replayRankJourneyButton = document.getElementById('replayRankJourneyButton');
+        const rankJourneyBox = document.getElementById('rankJourneyBox'); // NEW: Get the new container box
         const instructionsBox = document.getElementById('instructionsBox'); // Get the instructions box
 
         let rankJourneyChartInstance = null;
@@ -755,15 +786,12 @@
             }
         });
 
+        // Event listener for the single dynamic button
         createRankJourneyButton.addEventListener('click', () => {
-            rankJourneyChartContainer.style.display = 'flex';
-            renderRankJourneyChart(managerOverallRankHistory);
-            createRankJourneyButton.style.display = 'none';
-            replayRankJourneyButton.style.display = 'block';
-        });
+            rankJourneyChartContainer.style.display = 'flex'; // Show chart container
+            createRankJourneyButton.textContent = 'Replay'; // Change button text to Replay
 
-        replayRankJourneyButton.addEventListener('click', () => {
-            // Reset animation state and re-render
+            // Reset animation state and re-render/replay
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
             }
@@ -779,6 +807,7 @@
                 errorMessage.textContent = 'Please enter a valid Manager ID (numbers only).';
                 errorMessage.style.display = 'block';
                 managerStatsDiv.style.display = 'none';
+                rankJourneyBox.style.display = 'none'; // Ensure the box is hidden if input is invalid
                 return;
             }
 
@@ -787,8 +816,8 @@
             managerStatsDiv.style.display = 'none';
             rankJourneyChartContainer.style.display = 'none';
             videoLoadingMessage.style.display = 'none';
-            createRankJourneyButton.style.display = 'none';
-            replayRankJourneyButton.style.display = 'none';
+            rankJourneyBox.style.display = 'none'; // Hide the box initially
+            createRankJourneyButton.textContent = 'Click Here'; // Reset button text
 
             // Destroy previous chart instance and cancel animation if any
             if (rankJourneyChartInstance) {
@@ -851,7 +880,8 @@
                     greenArrowsCountElem.textContent = `${data.greenArrowsCount || 0} 🟢`;
                     redArrowsCountElem.textContent = `${data.redArrowsCount || 0} 🔴`;
                     
-                    createRankJourneyButton.style.display = 'block';
+                    // Show the new rank journey box instead of the individual button
+                    rankJourneyBox.style.display = 'flex';
 
                     // Populate tables
                     // Top 3 Captains Table
@@ -1061,7 +1091,7 @@
             }
 
             // Determine if on mobile based on screen width
-            const isMobile = window.innerWidth <= 950; // UPDATED: Mobile breakpoint matches the CSS media query
+            const isMobile = window.innerWidth <= 950; // Mobile breakpoint matches the CSS media query
 
             rankJourneyChartInstance = new Chart(ctx, {
                 type: 'line',
