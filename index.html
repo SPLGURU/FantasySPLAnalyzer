@@ -688,13 +688,6 @@
         body.dark-mode .instructions a {
             color: #FFD700; /* Bright gold for heading and links in dark mode */
         }
-
-        /* Temporary debug style for managerStatsDiv */
-        #managerStats {
-            min-height: 500px; /* Ensure it has some height if content collapses */
-            background-color: rgba(255, 165, 0, 0.2); /* Light orange background for visibility */
-            border: 2px dashed orange; /* Dashed border for visibility */
-        }
     </style>
 </head>
 <body>
@@ -719,7 +712,7 @@
             <input type="text" id="managerIdInput" placeholder="e.g., 1234" oninput="this.value = convertArabicToWesternNumerals(this.value)">
             <button id="analyzeButton">Full Season Report</button>
             
-            <!-- NEW: Compatibility Warning Message (placed above share button) -->
+            <!-- Compatibility Warning Message - Initially hidden -->
             <div id="compatibilityWarning" style="display: none;">
                 <strong>Note:</strong> Generating an animated GIF. This format is widely compatible across most devices and platforms.
             </div>
@@ -742,7 +735,7 @@
             Loading
         </div>
         <div id="errorMessage" class="error-message" style="display: none;"></div>
-        <!-- NEW: Video Generating Message - Initially hidden -->
+        <!-- Video Generating Message - Initially hidden -->
         <div id="videoGeneratingMessage" class="loading-message" style="display: none;">
             Generating GIF... This might take a moment. Please keep this tab open.
         </div>
@@ -1051,7 +1044,7 @@
         // Analyze Button click
         analyzeButton.addEventListener('click', () => {
             instructionsBox.style.display = 'none'; // Hide instructions when analysis starts
-            compatibilityWarning.style.display = 'none'; // Hide warning
+            compatibilityWarning.style.display = 'none'; // Hide warning on new analysis
             fetchManagerData();
         });
 
@@ -1059,7 +1052,7 @@
         managerIdInput.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 instructionsBox.style.display = 'none';
-                compatibilityWarning.style.display = 'none'; // Hide warning
+                compatibilityWarning.style.display = 'none'; // Hide warning on new analysis
                 fetchManagerData();
                 managerIdInput.blur(); // Remove focus from input
             }
@@ -1114,8 +1107,8 @@
                 createRankJourneyButton.disabled = false;
                 darkModeToggle.disabled = false;
                 videoGeneratingMessage.style.display = 'none';
-                // Show compatibility warning again if it was previously visible
-                if (shareVideoButton.style.display === 'block') { // Only show if button is visible
+                // Show compatibility warning again if it was previously visible (i.e. if the button itself is block)
+                if (shareVideoButton.style.display === 'block') {
                     compatibilityWarning.style.display = 'block';
                 }
             }
@@ -1130,23 +1123,24 @@
                 console.warn('DEBUG: Invalid Manager ID entered. Aborting fetch.');
                 errorMessage.textContent = 'Please enter a valid Manager ID (numbers only).';
                 errorMessage.style.display = 'block';
+                // Ensure all relevant sections are hidden on error/invalid input
                 managerStatsDiv.style.display = 'none';
                 rankJourneyBox.style.display = 'none';
                 shareVideoButton.style.display = 'none';
-                compatibilityWarning.style.display = 'none';
+                compatibilityWarning.style.display = 'none'; // Ensure hidden on error
                 dataDisplayAttempted = false; // Reset flag
                 return;
             }
 
             loadingMessage.style.display = 'block';
             errorMessage.style.display = 'none';
-            managerStatsDiv.style.display = 'none';
+            managerStatsDiv.style.display = 'none'; // Hide before starting new load
             rankJourneyChartContainer.style.display = 'none';
             videoLoadingMessage.style.display = 'none';
             rankJourneyBox.style.display = 'none';
             createRankJourneyButton.textContent = 'Click Here';
             shareVideoButton.style.display = 'none';
-            compatibilityWarning.style.display = 'none';
+            compatibilityWarning.style.display = 'none'; // Hide on new fetch attempt
             dataDisplayAttempted = false; // Reset flag
 
             if (rankJourneyChartInstance) {
@@ -1342,40 +1336,28 @@
                         row.cells[0].colSpan = 4;
                     }
 
-                    // Applying !important for testing display
-                    managerStatsDiv.style.setProperty('display', 'block', 'important'); 
+                    // Set display to block
+                    managerStatsDiv.style.display = 'block'; 
                     rankJourneyChartContainer.style.display = 'none'; 
                     shareVideoButton.style.display = 'block';
-                    compatibilityWarning.style.display = 'block';
+                    compatibilityWarning.style.display = 'block'; // Show warning on successful data load
 
-                    console.log('DEBUG: managerStatsDiv display style AFTER JS set (with !important):', managerStatsDiv.style.display);
-                    console.log('DEBUG: managerStatsDiv computed display style AFTER JS set (with !important):', getComputedStyle(managerStatsDiv).display);
+                    console.log('DEBUG: managerStatsDiv display style AFTER JS set:', managerStatsDiv.style.display);
+                    console.log('DEBUG: managerStatsDiv computed display style AFTER JS set:', getComputedStyle(managerStatsDiv).display);
                     console.log('DEBUG: managerStatsDiv innerHTML length:', managerStatsDiv.innerHTML.length);
                     console.log('DEBUG: managerStatsDiv clientHeight:', managerStatsDiv.clientHeight);
                     console.log('DEBUG: managerStatsDiv offsetHeight:', managerStatsDiv.offsetHeight);
                     console.log('DEBUG: managerStatsDiv getBoundingClientRect:', managerStatsDiv.getBoundingClientRect());
 
-
-                    // Add a temporary visual indicator if managerStatsDiv is supposed to be visible
-                    const debugIndicator = document.createElement('div');
-                    debugIndicator.id = 'debugIndicator';
-                    debugIndicator.textContent = 'Report Loaded!';
-                    debugIndicator.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #28a745; color: white; padding: 20px; border-radius: 10px; z-index: 9999; font-size: 1.5em;';
-                    document.body.appendChild(debugIndicator);
-                    console.log('DEBUG: "Report Loaded!" indicator appended.');
-
-                    setTimeout(() => {
-                        const existingIndicator = document.getElementById('debugIndicator');
-                        if(existingIndicator) existingIndicator.remove();
-                        console.log('DEBUG: "Report Loaded!" indicator removed.');
-                    }, 3000); // Remove after 3 seconds
-
                 } else {
                     console.error('DEBUG: API response not OK:', data.error || 'Unknown error');
                     errorMessage.textContent = data.error || 'An unknown error occurred.';
                     errorMessage.style.display = 'block';
+                    // Hide all relevant sections on error
+                    managerStatsDiv.style.display = 'none';
+                    rankJourneyBox.style.display = 'none';
                     shareVideoButton.style.display = 'none';
-                    compatibilityWarning.style.display = 'none';
+                    compatibilityWarning.style.display = 'none'; // Hide on error
                 }
 
             } catch (error) {
@@ -1383,6 +1365,9 @@
                 errorMessage.textContent = `Failed to fetch data: ${error.message}. This might be due to a network issue, an invalid Manager ID, or a temporary API problem. Please try again.`;
                 errorMessage.style.display = 'block';
                 loadingMessage.style.display = 'none'; // Ensure loading message is hidden
+                // Hide all relevant sections on error
+                managerStatsDiv.style.display = 'none';
+                rankJourneyBox.style.display = 'none';
                 shareVideoButton.style.display = 'none';
                 compatibilityWarning.style.display = 'none';
             }
@@ -1696,7 +1681,7 @@
 
             // Temporarily make the main stats container visible if it's hidden, for full capture
             const originalManagerStatsDisplay = managerStatsDiv.style.display;
-            managerStatsDiv.style.setProperty('display', 'block', 'important'); // Ensure visibility for capture
+            managerStatsDiv.style.display = 'block'; // Set to block, without !important
             await new Promise(resolve => setTimeout(resolve, 50)); // Allow layout to settle
 
             for (const sectionConfig of sectionsToCaptureConfig) {
@@ -1714,8 +1699,7 @@
                                        el.id === 'videoGeneratingMessage' || 
                                        el.id === 'compatibilityWarning' ||
                                        el.classList.contains('theme-switch-wrapper') ||
-                                       el.id === 'gifCaptureCanvas' ||
-                                       el.id === 'debugIndicator'; // Ignore the debug indicator
+                                       el.id === 'gifCaptureCanvas';
                             },
                             onclone: (clonedDoc) => {
                                 // Apply the current theme to the cloned document
@@ -1729,15 +1713,16 @@
                                 }
                                 
                                 // Make ALL content sections visible in the cloned DOM for capture
-                                clonedDoc.getElementById('managerStats').style.setProperty('display', 'block', 'important');
-                                clonedDoc.getElementById('rankJourneyChartContainer').style.setProperty('display', 'flex', 'important');
-                                clonedDoc.getElementById('topCaptainsTableContainer').style.setProperty('display', 'block', 'important');
-                                clonedDoc.getElementById('bestPlayersTableContainer').style.setProperty('display', 'block', 'important');
-                                clonedDoc.getElementById('worstPlayersTableContainer').style.setProperty('display', 'block', 'important');
-                                clonedDoc.getElementById('missedPointsTableContainer').style.setProperty('display', 'block', 'important');
-                                clonedDoc.getElementById('transfersSummaryContainer').style.setProperty('display', 'block', 'important');
-                                clonedDoc.getElementById('profitableTransfersTableContainer').style.setProperty('display', 'block', 'important');
-                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.setProperty('display', 'block', 'important');
+                                // Use setProperty for consistency, but no !important unless truly needed
+                                clonedDoc.getElementById('managerStats').style.display = 'block';
+                                clonedDoc.getElementById('rankJourneyChartContainer').style.display = 'flex';
+                                clonedDoc.getElementById('topCaptainsTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('bestPlayersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('worstPlayersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('missedPointsTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('transfersSummaryContainer').style.display = 'block';
+                                clonedDoc.getElementById('profitableTransfersTableContainer').style.display = 'block';
+                                clonedDoc.getElementById('lossMakingTransfersTableContainer').style.display = 'block';
 
                                 // Adjust cloned body styles to fit content without scrolling
                                 clonedDoc.body.style.overflow = 'visible';
@@ -1806,7 +1791,8 @@
                 height: gifHeight,
                 transparent: 'rgba(0,0,0,0)', // Ensure transparency is handled
                 background: getComputedStyle(document.body).backgroundColor, // Set background from current theme
-                workerScript: 'https://unpkg.com/gif.js@0.2.0/dist/gif.worker.js' // Path to worker script
+                // IMPORTANT: Point to the locally hosted worker script
+                workerScript: './gif.worker.js' 
             });
 
             // Add each captured canvas as a frame with its specific delay
