@@ -142,19 +142,20 @@
             transform: translateY(-2px);
         }
 
-        /* NEW: Styles for the Rank Journey button container */
+        /* Styles for the Rank Journey button container */
         .rank-journey-box {
             background-color: var(--spl-primary-accent); /* Dark blue background */
             border-radius: 12px;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Stronger shadow */
             padding: 25px;
-            margin-top: 30px;
-            margin-bottom: 30px;
+            margin: 30px auto; /* UPDATED: Center the box horizontally */
             text-align: center;
             width: 100%;
             max-width: 400px; /* Adjust max width for the box */
             box-sizing: border-box;
             display: none; /* Hidden by default, shown with manager stats */
+            flex-direction: column; /* Ensure content stacks vertically */
+            align-items: center; /* Center content horizontally within the box */
         }
 
         .rank-journey-box h3 {
@@ -167,7 +168,7 @@
             letter-spacing: 1px;
         }
 
-        /* NEW: Styles for the button inside the Rank Journey box */
+        /* Styles for the button inside the Rank Journey box */
         #createRankJourneyButton { /* Reusing the ID, applying new styles */
             background-color: white; /* White background */
             color: var(--spl-primary-accent); /* Dark blue text */
@@ -881,7 +882,7 @@
                     redArrowsCountElem.textContent = `${data.redArrowsCount || 0} 🔴`;
                     
                     // Show the new rank journey box instead of the individual button
-                    rankJourneyBox.style.display = 'flex';
+                    rankJourneyBox.style.display = 'flex'; // Changed to 'flex' for the box's internal centering
 
                     // Populate tables
                     // Top 3 Captains Table
