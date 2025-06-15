@@ -1,12 +1,11 @@
     [build]
     publish = "."
     functions = "netlify/functions"
-    command = "sed -i 's|___FIREBASE_API_KEY_PLACEHOLDER___|'\"$REACT_APP_FIREBASE_API_KEY\"'|g' index.html"
+    command = "echo \"DEBUG: REACT_APP_FIREBASE_API_KEY is: $REACT_APP_FIREBASE_API_KEY\" && sed -i 's|___FIREBASE_API_KEY_PLACEHOLDER___|'\"$REACT_APP_FIREBASE_API_KEY\"'|g' index.html"
 
     [build.environment]
     # Allow the Firebase API key to be exposed in the client-side bundle.
-    # This is necessary for client-side Firebase operations but should be restricted in Google Cloud Console.
-    NPM_CONFIG_IGNORE_API_KEY_WARNING = "true" # Or sometimes this specific variable for REACT_APP_ keys
+    NPM_CONFIG_IGNORE_API_KEY_WARNING = "true"
     REACT_APP_FIREBASE_API_KEY = "" # Add this line to explicitly tell Netlify it's an expected client-side var
 
     [functions]
