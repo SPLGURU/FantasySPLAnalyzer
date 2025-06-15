@@ -1,12 +1,12 @@
     [build]
     publish = "."
     functions = "netlify/functions"
-    command = "echo \"DEBUG: REACT_APP_FIREBASE_API_KEY is: $REACT_APP_FIREBASE_API_KEY\" && sed -i 's|___FIREBASE_API_KEY_PLACEHOLDER___|'\"$REACT_APP_FIREBASE_API_KEY\"'|g' index.html"
+    command = "node scripts/inject-api-key.js" # Call the Node.js script
 
     [build.environment]
     # Allow the Firebase API key to be exposed in the client-side bundle.
     NPM_CONFIG_IGNORE_API_KEY_WARNING = "true"
-    REACT_APP_FIREBASE_API_KEY = "" # Add this line to explicitly tell Netlify it's an expected client-side var
+    REACT_APP_FIREBASE_API_KEY = "" 
 
     [functions]
     node_bundler = "esbuild"
