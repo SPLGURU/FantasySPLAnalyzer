@@ -1,3 +1,8 @@
-[build]
-  functions = "netlify/functions"
-  publish = "."
+    [build]
+    publish = "."
+    functions = "netlify/functions"
+    command = "sed -i 's|___FIREBASE_API_KEY_PLACEHOLDER___|'\"$REACT_APP_FIREBASE_API_KEY\"'|g' index.html"
+
+    [functions]
+    node_bundler = "esbuild"
+    
