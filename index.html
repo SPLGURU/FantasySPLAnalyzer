@@ -3,45 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Fantasy SPL Manager Analyzer</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- html2canvas library for capturing screenshots -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> 
-    <!-- NEW: gif.js library for GIF encoding -->
-    <script src="https://unpkg.com/gif.js@0.2.0/dist/gif.js"></script>
+    <title>Control Room V2</title>
+    <!-- Firebase SDK - Core -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <!-- Firebase SDK - Auth -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <!-- Firebase SDK - Firestore -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
-    <style id="main-styles">
-        /* Base colors for light mode (current default) */
+    <style>
+        /* Base colors for light mode */
         :root {
             --spl-light-bg: #F8F9FA;
             --spl-container-bg: #FFFFFF;
-            --spl-table-bg: #E0E4E8;
-            --spl-table-header-bg: #B3D9FF;
-            --spl-table-row-even: #D6DBE0;
-            --spl-table-row-hover: #C7CCD1;
             --spl-text-dark: #212529;
             --spl-text-medium: #495057;
             --spl-primary-accent: #034667;
-            --spl-accent-green: #28A745;
-            --spl-accent-red: #DC3545;
             --spl-border-light: #CED4DA;
             --spl-shadow: rgba(0, 0, 0, 0.1);
         }
 
         /* Dark mode specific variables */
         body.dark-mode {
-            --spl-light-bg: #034667; /* User requested background */
-            --spl-container-bg: #1a3e5c; /* Darker blue for cards/containers */
-            --spl-table-bg: #0d283c; /* Even darker blue for tables */
-            --spl-table-header-bg: #0a1c2a; /* Very dark blue/black for table headers */
-            --spl-table-row-even: #123045; /* Dark blue for even rows */
-            --spl-table-row-hover: #1f4f7a; /* Lighter dark blue on hover */
-            --spl-text-dark: #F8F9FA; /* Light text */
-            --spl-text-medium: #CED4DA; /* Lighter medium text */
-            --spl-primary-accent: #007bff; /* Brighter blue for accent */
-            /* Green and Red accents remain the same for clarity */
-            --spl-border-light: #495057; /* Darker border */
-            --spl-shadow: rgba(255, 255, 255, 0.1); /* Light shadow for dark mode */
+            --spl-light-bg: #034667;
+            --spl-container-bg: #1a3e5c;
+            --spl-text-dark: #F8F9FA;
+            --spl-text-medium: #CED4DA;
+            --spl-primary-accent: #007bff;
+            --spl-border-light: #495057;
+            --spl-shadow: rgba(255, 255, 255, 0.1);
         }
 
         body {
@@ -56,34 +46,33 @@
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
-            transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition for theme change */
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         #logo-container {
             text-align: center;
-            margin-bottom: 20px; /* Space below the logo */
+            margin-bottom: 20px;
             width: 100%;
         }
 
         #logo-container img {
-            max-width: 300px; /* Adjust as needed for PC size */
+            max-width: 300px;
             height: auto;
-            display: block; /* Remove extra space below image */
-            margin: 0 auto; /* Center the image */
-            transition: src 0.3s ease; /* Smooth transition for logo change */
+            display: block;
+            margin: 0 auto;
+            transition: src 0.3s ease;
         }
 
-        /* Theme switch styles */
         .theme-switch-wrapper {
             display: flex;
             align-items: center;
-            justify-content: center; /* Center the switch */
+            justify-content: center;
             margin-bottom: 20px;
             gap: 10px;
-            color: var(--spl-text-dark); /* Ensure label text changes with theme */
+            color: var(--spl-text-dark);
             font-size: 0.95em;
-            width: 100%; /* Take full width to help centering */
-            max-width: 1200px; /* Align with container max width */
+            width: 100%;
+            max-width: 1200px;
         }
         .theme-switch {
             position: relative;
@@ -129,24 +118,21 @@
             -ms-transform: translateX(20px);
             transform: translateX(20px);
         }
-        /* Rounded sliders */
         .slider.round {
             border-radius: 25px;
         }
         .slider.round:before {
             border-radius: 50%;
         }
-        /* Adjust switch background color for dark mode */
         body.dark-mode .theme-switch .slider {
-            background-color: #555; /* Darker grey when off in dark mode */
+            background-color: #555;
         }
         body.dark-mode input:checked + .slider {
-            background-color: var(--spl-primary-accent); /* Brighter blue when on in dark mode */
+            background-color: var(--spl-primary-accent);
         }
         body.dark-mode .theme-label {
-            color: var(--spl-text-dark); /* Ensure label color changes correctly in dark mode */
+            color: var(--spl-text-dark);
         }
-
 
         .container {
             background-color: var(--spl-container-bg);
@@ -155,9 +141,10 @@
             padding: 30px;
             margin-bottom: 20px;
             width: 100%;
-            max-width: 1200px;
+            max-width: 400px;
             box-sizing: border-box;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
+            text-align: center;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         h1, h2, h3 {
@@ -166,513 +153,121 @@
             text-align: center;
             margin-top: 0;
             margin-bottom: 20px;
-            transition: color 0.3s ease; /* Smooth transition */
+            transition: color 0.3s ease;
         }
         
-        /* Specific style for the main manager name/rank header */
-        #managerName {
-            font-size: 2em; /* Adjust as needed */
-            line-height: 1.3;
-            margin-bottom: 30px;
-            color: var(--spl-text-dark); /* Darker text for main header */
-            text-align: center;
-            transition: color 0.3s ease; /* Smooth transition */
+        .input-group {
+            margin-bottom: 15px;
         }
-        #managerName span {
-            color: var(--spl-primary-accent); /* Accent color for the actual name */
-            transition: color 0.3s ease; /* Smooth transition */
-        }
-
-
-        .input-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .input-section label {
-            font-weight: bold;
-            color: var(--spl-text-medium);
-            font-size: 1.1em;
-            transition: color 0.3s ease; /* Smooth transition */
-        }
-
-        .input-section input[type="text"] {
-            padding: 12px 15px;
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
             border: 1px solid var(--spl-border-light);
             border-radius: 8px;
             font-size: 1em;
-            width: 100%;
-            max-width: 300px;
-            box-sizing: border-box;
-            text-align: center;
-            background-color: var(--spl-container-bg); /* Match container background */
-            color: var(--spl-text-dark); /* Match text color */
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; /* Smooth transition */
-
-            /* Hide spinner arrows for number input (even though type is text now, some browsers might add them if it looks like a number) */
-            -moz-appearance: textfield; /* Firefox */
+            background-color: var(--spl-container-bg);
+            color: var(--spl-text-dark);
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
-        /* Webkit browsers (Chrome, Safari, Edge) for hiding arrows */
-        .input-section input::-webkit-outer-spin-button,
-        .input-section input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-
-        .input-section button { /* Base style for all buttons in input section */
-            background-color: var(--spl-primary-accent);
+        button {
+            background-color: #007bff;
             color: white;
-            padding: 12px 25px;
+            padding: 10px 20px;
             border: none;
             border-radius: 8px;
-            font-size: 1.1em;
+            font-size: 1em;
             cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease; /* Smooth transition */
-            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
-            width: 100%;
-            max-width: 300px;
-            display: block;
-            margin: 0 auto; /* Center the button */
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
-
-        .input-section button:hover {
+        button:hover {
             background-color: #0056b3;
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
-
-        /* Styles for the Rank Journey button container */
-        .rank-journey-box {
-            background-color: var(--spl-primary-accent); /* Dark blue background */
-            border-radius: 12px;
-            box-shadow: 0 8px 16px var(--spl-shadow); /* Use shadow variable */
-            padding: 25px;
-            margin: 30px auto; /* Center the box horizontally */
-            text-align: center;
-            width: 100%;
-            max-width: 400px; /* Adjust max width for the box */
-            box-sizing: border-box;
-            display: none; /* Hidden by default, shown with manager stats */
-            flex-direction: column; /* Ensure content stacks vertically */
-            align-items: center; /* Center content horizontally within the box */
-            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
-        }
-
-        .rank-journey-box h3 {
-            color: white; /* White text for the title inside the box */
-            font-family: 'Oswald', sans-serif;
-            font-size: 1.8em; /* Large and prominent title */
-            margin-top: 0;
-            margin-bottom: 20px; /* Space between title and button */
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: color 0.3s ease; /* Smooth transition */
-        }
-
-        /* Styles for the button inside the Rank Journey box */
-        #createRankJourneyButton { /* Reusing the ID, applying new styles */
-            background-color: white; /* White background */
-            color: var(--spl-primary-accent); /* Dark blue text */
-            padding: 15px 35px; /* More padding */
-            border: none; /* No border for a cleaner look */
-            border-radius: 10px; /* Rounded corners */
-            font-size: 1.2em; /* Larger font */
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: auto; /* Allow button to size based on content */
-            display: inline-block; /* Allow it to be centered easily */
-        }
-
-        #createRankJourneyButton:hover {
-            background-color: #f0f0f0; /* Slightly grey on hover */
-            color: #0056b3; /* Slightly darker blue text on hover */
-            transform: translateY(-2px); /* Slight lift */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25); /* Slightly larger shadow */
-        }
-
-        /* Share Video Button Specific Styles */
-        #shareVideoButton {
-            background-color: #17A2B8; /* A vibrant blue for sharing */
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 8px rgba(23, 162, 184, 0.2);
-            width: 100%;
-            max-width: 300px;
-            display: block;
-            margin: 15px auto 0 auto; /* Margin top to separate from analyze button */
-            text-align: center;
-        }
-
-        #shareVideoButton:hover {
-            background-color: #138496;
-            transform: translateY(-2px);
-        }
-        body.dark-mode #shareVideoButton {
-            background-color: #20c997; /* Teal for dark mode share button */
-            box-shadow: 0 4px 8px rgba(32, 201, 151, 0.2);
-        }
-        body.dark-mode #shareVideoButton:hover {
-            background-color: #1aae88;
-        }
-
-
-        .loading-message, .error-message, .video-loading-message, #videoGeneratingMessage { /* Added #videoGeneratingMessage */
-            text-align: center;
-            padding: 20px;
-            border-radius: 8px;
+        #logoutButton {
+            background-color: #DC3545;
             margin-top: 20px;
-            font-weight: bold;
-            transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
+        }
+        #logoutButton:hover {
+            background-color: #C82333;
         }
 
-        .loading-message {
-            background-color: #e0f7fa;
-            color: #007BFF;
-        }
-
-        .error-message {
-            background-color: #ffe0e6;
-            color: #DC3545;
-            border: 1px solid #DC3545;
-        }
-
-        .video-loading-message {
-            background-color: #fff3cd;
-            color: #856404;
-            display: none; /* Hidden by default */
-        }
-        /* Style for the new video generation loading message */
-        #videoGeneratingMessage {
-            background-color: #cfe2ff; /* Light blue */
-            color: #0056b3; /* Dark blue text */
-            display: none; /* Hidden by default */
-        }
-        body.dark-mode #videoGeneratingMessage {
-            background-color: #0a1c2a; /* Dark background */
-            color: #ffffff; /* White text */
-        }
-
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background-color: var(--spl-table-bg); /* Use a slightly darker background for cards */
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 8px var(--spl-shadow); /* Use shadow variable */
+        .message-box {
             text-align: center;
-            transition: transform 0.2s ease, background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
-        }
-
-        .stat-card:hover {
-            transform: translateY(-3px);
-        }
-
-        .stat-card h3 {
-            color: var(--spl-primary-accent);
-            margin-top: 0;
-            font-size: 1.3em;
-            margin-bottom: 10px;
-            transition: color 0.3s ease; /* Smooth transition */
-        }
-
-        .stat-card p {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: var(--spl-text-dark);
-            margin: 0;
-            transition: color 0.3s ease; /* Smooth transition */
-        }
-
-        .stat-card .small-text {
-            font-size: 0.9em;
-            color: var(--spl-text-medium);
-            margin-top: 5px;
-            transition: color 0.3s ease; /* Smooth transition */
-        }
-
-        .chart-section {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: var(--spl-container-bg);
-            border-radius: 12px;
-            box-shadow: 0 6px 12px var(--spl-shadow);
-            display: flex;
-            flex-direction: column;
-            align-items: center; /* Center horizontally */
-            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
-        }
-
-        .chart-section h2 {
-            margin-bottom: 20px;
-        }
-
-        #rankJourneyChart {
-            width: 100%; /* Take full width of its container */
-            max-width: 900px; /* Limit max width on large screens */
-            height: auto; /* Height will be controlled by aspect ratio in JS */
-            box-sizing: border-box;
-        }
-
-        .table-section {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: var(--spl-container-bg);
-            border-radius: 12px;
-            box-shadow: 0 6px 12px var(--spl-shadow);
-            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
-        }
-
-        .table-section h2 {
-            margin-bottom: 20px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
+            padding: 15px;
+            border-radius: 8px;
             margin-top: 15px;
-            table-layout: fixed; /* Ensures columns respect defined widths */
-        }
-
-        th, td {
-            padding: 12px 15px;
-            border: 1px solid var(--spl-border-light);
-            text-align: left;
-            word-break: break-word; /* Allow long words to break */
-            white-space: normal; /* Ensure text wraps */
-            transition: border-color 0.3s ease, color 0.3s ease; /* Smooth transition */
-        }
-
-        th {
-            background-color: var(--spl-table-header-bg);
-            color: var(--spl-text-dark);
             font-weight: bold;
-            text-transform: uppercase;
-            font-size: 0.9em;
-            transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
+            display: none;
         }
+        .message-box.success { background-color: #d4edda; color: #155724; }
+        .message-box.error { background-color: #f8d7da; color: #721c24; }
+        .message-box.info { background-color: #d1ecf1; color: #0c5460; }
 
-        tr:nth-child(even) {
-            background-color: var(--spl-table-row-even);
-        }
-
-        tr:hover {
-            background-color: var(--spl-table-row-hover);
-        }
-
-        .positive {
-            color: var(--spl-accent-green);
-            font-weight: bold;
-        }
-
-        .negative {
-            color: var(--spl-accent-red);
-            font-weight: bold;
-        }
-
-        /* Responsive Adjustments */
-        @media (min-width: 951px) {
-            #topCaptainsTable th:nth-child(1), #topCaptainsTable td:nth-child(1) { width: auto; }
-            #topCaptainsTable th:nth-child(2), #topCaptainsTable td:nth-child(2) { width: auto; }
-            #topCaptainsTable th:nth-child(3), #topCaptainsTable td:nth-child(3) { width: auto; }
-            #topCaptainsTable th:nth-child(4), #topCaptainsTable td:nth-child(4) { width: auto; }
-            #topCaptainsTable th:nth-child(5), #topCaptainsTable td:nth-child(5) { width: auto; }
-            #topCaptainsTable th:nth-child(6), #topCaptainsTable td:nth-child(6) { width: auto; }
-
-            #bestPlayersTable th:nth-child(1), #bestPlayersTable td:nth-child(1) { width: auto; }
-            #bestPlayersTable th:nth-child(2), #bestPlayersTable td:nth-child(2) { width: auto; }
-            #bestPlayersTable th:nth-child(3), #bestPlayersTable td:nth-child(3) { width: auto; }
-            #bestPlayersTable th:nth-child(4), #bestPlayersTable td:nth-child(4) { width: auto; }
-            #bestPlayersTable th:nth-child(5), #bestPlayersTable td:nth-child(5) { width: auto; }
-
-            #worstPlayersTable th:nth-child(1), #worstPlayersTable td:nth-child(1) { width: auto; }
-            #worstPlayersTable th:nth-child(2), #worstPlayersTable td:nth-child(2) { width: auto; }
-            #worstPlayersTable th:nth-child(3), #worstPlayersTable td:nth-child(3) { width: auto; }
-            #worstPlayersTable th:nth-child(4), #worstPlayersTable td:nth-child(4) { width: auto; }
-            #worstPlayersTable th:nth-child(5), #worstPlayersTable td:nth-child(5) { width: auto; }
-
-            #missedPointsTable th:nth-child(1), #missedPointsTable td:nth-child(1) { width: auto; }
-            #missedPointsTable th:nth-child(2), #missedPointsTable td:nth-child(2) { width: auto; }
-            #missedPointsTable th:nth-child(3), #missedPointsTable td:nth-child(3) { width: auto; }
-
-            #profitableTransfersTable th:nth-child(1), #profitableTransfersTable td:nth-child(1) { width: auto; }
-            #profitableTransfersTable th:nth-child(2), #profitableTransfersTable td:nth-child(2) { width: auto; }
-            #profitableTransfersTable th:nth-child(3), #profitableTransfersTable td:nth-child(3) { width: auto; }
-            #profitableTransfersTable th:nth-child(4), #profitableTransfersTable td:nth-child(4) { width: auto; }
-
-            #lossMakingTransfersTable th:nth-child(1), #lossMakingTransfersTable td:nth-child(1) { width: auto; }
-            #lossMakingTransfersTable th:nth-child(2), #lossMakingTransfersTable td:nth-child(2) { width: auto; }
-            #lossMakingTransfersTable th:nth-child(3), #lossMakingTransfersTable td:nth-child(3) { width: auto; }
-            #lossMakingTransfersTable th:nth-child(4), #lossMakingTransfersTable td:nth-child(4) { width: auto; }
-        }
-
-
-        /* Mobile Version (apply when viewport is 950px or narrower) */
-        @media (max-width: 950px) {
-            body {
-                padding: 15px;
-            }
-
-            .container {
-                padding: 20px;
-            }
-
-            .input-section input[type="text"],
-            .input-section button {
-                font-size: 0.95em;
-                padding: 10px 20px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr; /* Stack cards on small screens */
-            }
-
-            .stat-card p {
-                font-size: 1.5em;
-            }
-
-            /* Apply card-like display to ALL tables */
-            table {
-                border: 0;
-            }
-
-            table thead {
-                display: none; /* Hide table headers */
-            }
-
-            table tr {
-                display: block;
-                margin-bottom: 10px;
-                border: 1px solid var(--spl-border-light);
-                border-radius: 8px;
-                background-color: var(--spl-container-bg); /* Card background */
-                box-shadow: 0 2px 4px var(--spl-shadow); /* Use shadow variable */
-                padding: 10px;
-            }
-
-            table td {
-                display: block;
-                text-align: right;
-                padding: 8px 10px;
-                border: none; /* Remove cell borders */
-                border-bottom: 1px solid var(--spl-table-row-even); /* Separator for cells */
-                position: relative; /* For pseudo-element positioning */
-                font-size: 0.9em; /* Adjust font size for mobile cells */
-                padding-left: 50%; /* Make space for the label */
-            }
-
-            table td:last-child {
-                border-bottom: 0; /* No border on the last cell */
-            }
-
-            table td::before {
-                content: attr(data-label); /* Use data-label for content */
-                position: absolute;
-                left: 10px;
-                width: calc(50% - 20px); /* Adjust width to fit */
-                text-align: left;
-                font-weight: bold;
-                color: var(--spl-text-medium);
-                font-size: 0.85em; /* Smaller font for labels */
-                white-space: nowrap; /* Prevent label wrapping */
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-        }
-
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.8em;
-            }
-            h2 {
-                font-size: 1.4em;
-            }
-            .input-section {
-                gap: 10px;
-            }
-            /* Further reduce font size for very small screens if necessary */
-            table td {
-                font-size: 0.85em;
-            }
-            table td::before {
-                font-size: 0.8em;
-            }
-        }
-
-        .instructions {
-            background-color: #e9ecef;
-            border-left: 5px solid var(--spl-primary-accent);
-            padding: 15px 20px;
-            margin-top: 20px;
-            border-radius: 8px;
-            font-size: 0.95em;
-            color: var(--spl-text-dark);
-            line-height: 1.5;
+        /* Styles for the logged-in dashboard content */
+        #loggedInContent {
+            text-align: center;
+            padding: 20px;
             width: 100%;
-            max-width: 600px; /* Limit width for readability */
-            box-sizing: border-box;
-            text-align: left; /* Align text left within the instruction box */
-            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; /* Smooth transition */
+            max-width: 600px;
         }
-        .instructions h3 {
+        #loggedInContent h2 {
+            font-size: 2em;
             color: var(--spl-primary-accent);
-            margin-top: 0;
-            margin-bottom: 10px;
-            text-align: left;
-            transition: color 0.3s ease; /* Smooth transition */
+            margin-bottom: 15px;
         }
-        .instructions ol {
-            margin-left: 20px;
-            padding-left: 0;
-        }
-        .instructions li {
+        #loggedInContent p {
+            font-size: 1.1em;
+            color: var(--spl-text-dark);
             margin-bottom: 8px;
         }
-        .instructions a {
-            color: var(--spl-primary-accent);
-            text-decoration: none;
+        #splOverallRankDisplay, #queueNumberDisplay {
+            font-size: 2.5em;
             font-weight: bold;
-            transition: color 0.3s ease; /* Smooth transition */
+            color: var(--spl-primary-accent);
+            margin: 20px 0 10px 0;
         }
-        .instructions a:hover {
-            text-decoration: underline;
+        .rank-card {
+            background-color: var(--spl-container-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 8px var(--spl-shadow);
+            padding: 25px;
+            margin: 15px auto;
+            max-width: 300px;
         }
-
-        /* Dark mode specific styles for the instructions box text */
-        body.dark-mode .instructions {
-            background-color: var(--spl-light-bg); /* Match body background for a unified look */
-            border-left-color: var(--spl-primary-accent); /* Keep accent border */
-            color: var(--spl-text-dark); /* Ensure main text is light */
+        .rank-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
         }
-        body.dark-mode .instructions h3,
-        body.dark-mode .instructions a {
-            color: #FFD700; /* Bright gold for heading and links in dark mode */
+        .rank-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        @media (min-width: 768px) {
+            .rank-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 20px; }
+            h1 { font-size: 1.8em; }
+            h2 { font-size: 1.5em; }
+            #mainLogo { max-width: 150px; }
+            #splOverallRankDisplay, #queueNumberDisplay { font-size: 2em; }
         }
     </style>
 </head>
 <body>
     <div id="logo-container">
-        <img id="mainLogo" src="unnamed.jpg" alt="Fantasy SPL Data Center Logo">
+        <img id="mainLogo" src="unnamed.jpg" alt="Control Room Logo">
     </div>
 
-    <!-- Theme Switch -->
     <div class="theme-switch-wrapper">
         <label class="theme-switch" for="darkModeToggle">
             <input type="checkbox" id="darkModeToggle" />
@@ -682,296 +277,151 @@
     </div>
 
     <div class="container">
-        <h1>Fantasy SPL Manager Analyzer</h1>
+        <h1>Control Room V2</h1>
 
-        <div class="input-section">
-            <label for="managerIdInput">Enter Manager ID:</label>
-            <input type="text" id="managerIdInput" placeholder="e.g., 1234" oninput="this.value = convertArabicToWesternNumerals(this.value)">
-            <button id="analyzeButton">Full Season Report</button>
-            
-            <!-- Share Video Button - Initially hidden, text changed -->
-            <button id="shareVideoButton" style="display: none;">Download/Share Report as GIF</button>
-
-            <div id="instructionsBox" class="instructions">
-                <h3>How to get your Manager ID:</h3>
-                <ol>
-                    <li>Go to <a href="https://fantasy.spl.com.sa/" target="_blank">https://fantasy.spl.com.sa/</a> from your browser (SPL app does not work to get your ID).</li>
-                    <li>Login with your credentials.</li>
-                    <li>Click on "Points" in the top menu.</li>
-                    <li>Check the address bar and look for the numbers after the word "/entry/". Copy that - it is your ID number.</li>
-                </ol>
-            </div>
-        </div>
-
-        <div id="loadingMessage" class="loading-message" style="display: none;">
-            Loading
-        </div>
-        <div id="errorMessage" class="error-message" style="display: none;"></div>
-        <!-- Video Generating Message - Initially hidden -->
-        <div id="videoGeneratingMessage" class="loading-message" style="display: none;">
-            Generating GIF... This might take a moment. Please keep this tab open.
-        </div>
-
-        <div id="managerStats" style="display: none;">
-            <!-- NEW: Wrapper for the first section of the report -->
-            <div id="managerSummarySection">
-                <h2 id="managerName"></h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Overall Rank</h3>
-                        <p id="overallRank">N/A</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Best Overall Rank</h3>
-                        <p id="bestOverallRank">N/A</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Worst Overall Rank</h3>
-                        <p id="worstOverallRank">N/A</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Average Points Per Round</h3>
-                        <p id="averagePoints">N/A</p>
-                        <p class="small-text">vs. 1st Place Average: <span id="averagePointsFor1stPlace">N/A</span></p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Best Round</h3>
-                        <p id="bestRoundDisplay">N/A</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Worst Round</h3>
-                        <p id="worstRoundDisplay">N/A</p>
-                    </div>
-                    <!-- Total Green Arrows Card -->
-                    <div class="stat-card">
-                        <h3>Total Green Arrows</h3>
-                        <p id="greenArrowsCount">N/A 🟢</p>
-                    </div>
-                    <!-- Total Red Arrows Card -->
-                    <div class="stat-card">
-                        <h3>Total Red Arrows</h3>
-                        <p id="redArrowsCount">N/A 🔴</p>
-                    </div>
+        <!-- Authentication Section -->
+        <div id="authSection">
+            <div id="loginForm">
+                <h2>Login</h2>
+                <div class="input-group">
+                    <input type="email" id="loginEmail" placeholder="Email Address">
+                    <input type="password" id="loginPassword" placeholder="Password">
                 </div>
-            </div> <!-- End of managerSummarySection -->
-
-            <!-- Rank Journey Box -->
-            <div id="rankJourneyBox" class="rank-journey-box">
-                <h3>My Rank Journey</h3>
-                <button id="createRankJourneyButton">Click Here</button>
+                <button id="loginButton">Login</button>
+                <p>Don't have an account? <a href="#" id="showSignupLink">Sign Up</a></p>
             </div>
 
-            <div class="chart-section" id="rankJourneyChartContainer" style="display: none;">
-                <h2>Overall Rank Journey</h2>
-                <div id="videoLoadingMessage" class="video-loading-message">
-                    Animating rank journey...
+            <div id="signupForm" style="display: none;">
+                <h2>Sign Up</h2>
+                <div class="input-group">
+                    <input type="email" id="signupEmail" placeholder="Email Address">
+                    <input type="password" id="signupPassword" placeholder="Password">
+                    <input type="password" id="signupConfirmPassword" placeholder="Confirm Password">
+                    <input type="text" id="signupManagerId" placeholder="Your SPL Manager ID">
                 </div>
-                <canvas id="rankJourneyChart"></canvas>
-                <!-- NEW: Hidden canvas for Chart.js static capture -->
-                <canvas id="hiddenChartCaptureCanvas" style="display: none;"></canvas>
+                <button id="signupButton">Sign Up</button>
+                <p>Already have an account? <a href="#" id="showLoginLink">Login</a></p>
             </div>
             
-            <!-- Added IDs to table-section divs for easier targeting by html2canvas -->
-            <div class="table-section" id="topCaptainsTableContainer">
-                <h2>Top 3 Captains</h2>
-                <table id="topCaptainsTable">
-                    <thead>
-                        <tr>
-                            <th>Player</th>
-                            <th>Times Captained</th>
-                            <th>Success</th>
-                            <th>Failed</th>
-                            <th>Captained Points</th>
-                            <th>Captained Rounds</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
+            <div id="messageBox" class="message-box"></div>
+        </div>
 
-            <div class="table-section" id="bestPlayersTableContainer">
-                <h2>Top 5 Best Players</h2>
-                <table id="bestPlayersTable">
-                    <thead>
-                        <tr>
-                            <th>Player</th>
-                            <th>Started</th>
-                            <th>Auto Subbed In</th>
-                            <th>Points Gained</th>
-                            <th>Benched Points</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="table-section" id="worstPlayersTableContainer">
-                <h2>Top 5 Worst Players</h2>
-                <table id="worstPlayersTable">
-                    <thead>
-                        <tr>
-                            <th>Player</th>
-                            <th>Started</th>
-                            <th>Auto Subbed In</th>
-                            <th>Points Gained</th>
-                            <th>Benched Points</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be inserted here -->
-                    </tbody>
-                    </table>
-            </div>
-
-            <div class="table-section" id="missedPointsTableContainer">
-                <h2>Top 5 Missed Points (Benched Players)</h2>
-                <table id="missedPointsTable">
-                    <thead>
-                        <tr>
-                            <th>Player</th>
-                            <th>Points</th>
-                            <th>Round</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Transfers Summary section - also given an ID -->
-            <div class="table-section" id="transfersSummaryContainer">
-                <h2>Transfers Summary</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Total Transfers</h3>
-                        <p id="totalTransfersCount">N/A</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Hits (Points Deducted)</h3>
-                        <p id="totalHitsPoints">N/A</p>
-                    </div>
+        <!-- Logged In Content Section -->
+        <div id="loggedInContent" style="display: none;">
+            <h2>Welcome, <span id="loggedInUserName"></span>!</h2>
+            
+            <div class="rank-grid">
+                <div class="rank-card">
+                    <h3>Your SPL Overall Rank</h3>
+                    <p id="splOverallRankDisplay">Loading...</p> 
+                    <p class="small-text">Based on SPL Fantasy data</p>
+                </div>
+                <div class="rank-card">
+                    <h3>Your Queue Number</h3>
+                    <p id="queueNumberDisplay">Loading...</p>
+                    <p class="small-text">First registered Managers get lower numbers</p>
                 </div>
             </div>
 
-            <!-- Most Profitable Transfers Table - given an ID -->
-            <div class="table-section" id="profitableTransfersTableContainer">
-                <h2>Most Profitable Transfers</h2>
-                <table id="profitableTransfersTable">
-                    <thead>
-                        <tr>
-                            <th>IN</th>
-                            <th>OUT</th>
-                            <th>Round</th>
-                            <th>Profit/Loss</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Most Loss-making Transfers Table - given an ID -->
-            <div class="table-section" id="lossMakingTransfersTableContainer">
-                <h2>Most Loss-making Transfers</h2>
-                <table id="lossMakingTransfersTable">
-                    <thead>
-                        <tr>
-                            <th>IN</th>
-                            <th>OUT</th>
-                            <th>Round</th>
-                            <th>Profit/Loss</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-
+            <p>Your UID: <span id="displayUid"></span></p>
+            <p>Your Email: <span id="displayEmail"></span></p>
+            <p>Your Role: <span id="displayRole"></span></p>
+            <p>Your SPL Manager ID: <span id="displaySplManagerId"></span></p>
+            <button id="logoutButton">Logout</button>
         </div>
     </div>
 
-    <!-- Hidden canvas for GIF generation - positioned off-screen -->
-    <canvas id="gifCaptureCanvas" style="position: absolute; left: -9999px; top: -9999px;"></canvas>
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            sendEmailVerification, 
+            onAuthStateChanged, 
+            signOut,
+            reload // Needed for reloading user properties from Auth
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc,
+            collection, 
+            query,      
+            where,      
+            getDocs,    
+            serverTimestamp,
+            updateDoc // Needed for updating Firestore document
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    <script>
-        // THIS IS A DEBUGGING LINE - IF YOU SEE THIS, JS IS RUNNING!
-        console.log('DEBUG: Script loaded and running!');
+        // --- Your Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPEOvfoRRppOeJiszienwNv7sExqdxH8k",
+            authDomain: "spl-control-room-v2.firebaseapp.com",
+            projectId: "spl-control-room-v2",
+            storageBucket: "spl-control-room-v2.firebasestorage.app",
+            messagingSenderId: "968811717140",
+            appId: "1:968811717140:web:534392050bc5b3845e7d01"
+        };
+        // ------------------------------------
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // --- DOM Element References ---
-        const managerIdInput = document.getElementById('managerIdInput');
-        const analyzeButton = document.getElementById('analyzeButton');
-        const loadingMessage = document.getElementById('loadingMessage');
-        const errorMessage = document.getElementById('errorMessage');
-        const managerStatsDiv = document.getElementById('managerStats');
-        // NEW: Reference to the new summary section
-        const managerSummarySection = document.getElementById('managerSummarySection'); 
-        const managerNameElem = document.getElementById('managerName');
-        const overallRankElem = document.getElementById('overallRank');
-        const bestOverallRankElem = document.getElementById('bestOverallRank');
-        const worstOverallRankElem = document.getElementById('worstOverallRank');
-        const averagePointsElem = document.getElementById('averagePoints');
-        const averagePointsFor1stPlaceElem = document.getElementById('averagePointsFor1stPlace');
-        const totalTransfersCountElem = document.getElementById('totalTransfersCount');
-        const totalHitsPointsElem = document.getElementById('totalHitsPoints');
-        const bestRoundDisplayElem = document.getElementById('bestRoundDisplay');
-        const worstRoundDisplayElem = document.getElementById('worstRoundDisplay');
-        const greenArrowsCountElem = document.getElementById('greenArrowsCount');
-        const redArrowsCountElem = document.getElementById('redArrowsCount');
-        
-        const topCaptainsTableBody = document.querySelector('#topCaptainsTable tbody');
-        const bestPlayersTableBody = document.querySelector('#bestPlayersTable tbody');
-        const worstPlayersTableBody = document.querySelector('#worstPlayersTable tbody');
-        const missedPointsTableBody = document.querySelector('#missedPointsTable tbody');
-        
-        const profitableTransfersTableBody = document.querySelector('#profitableTransfersTable tbody');
-        const lossMakingTransfersTableBody = document.querySelector('#lossMakingTransfersTable tbody');
-
-        const rankJourneyChartCanvas = document.getElementById('rankJourneyChart');
-        const rankJourneyChartContainer = document.getElementById('rankJourneyChartContainer');
-        const videoLoadingMessage = document.getElementById('videoLoadingMessage'); // For chart animation loading
-        const createRankJourneyButton = document.getElementById('createRankJourneyButton');
-        const rankJourneyBox = document.getElementById('rankJourneyBox');
-        const instructionsBox = document.getElementById('instructionsBox');
-
-        const darkModeToggle = document.getElementById('darkModeToggle');
         const mainLogo = document.getElementById('mainLogo');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const lightModeLogoSrc = 'unnamed.jpg'; 
+        const darkModeLogoSrc = 'dark mode logo.png'; 
 
-        // NEW: Share Video Button & Video Generating Message & GIF Capture Canvas
-        const shareVideoButton = document.getElementById('shareVideoButton');
-        const videoGeneratingMessage = document.getElementById('videoGeneratingMessage'); // Reusing this element
-        const gifCaptureCanvas = document.getElementById('gifCaptureCanvas'); // Renamed from videoRecordingCanvas
-        // NEW: Hidden canvas for chart static capture
-        const hiddenChartCaptureCanvas = document.getElementById('hiddenChartCaptureCanvas');
+        const authSection = document.getElementById('authSection');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        const messageBox = document.getElementById('messageBox');
 
-        const lightModeLogoSrc = 'unnamed.jpg';
-        const darkModeLogoSrc = 'dark mode logo.png';
+        const loginEmailInput = document.getElementById('loginEmail');
+        const loginPasswordInput = document.getElementById('loginPassword');
+        const loginButton = document.getElementById('loginButton');
+        const showSignupLink = document.getElementById('showSignupLink');
 
-        let rankJourneyChartInstance = null;
-        let managerOverallRankHistory = [];
-        let managerCurrentOverallRank = null;
-        
-        // Animation variables for Rank Journey Chart
-        const totalAnimationDurationMs = 10000;
-        let animationStartTime = null;
-        let animationFrameId = null;
+        const signupEmailInput = document.getElementById('signupEmail');
+        const signupPasswordInput = document.getElementById('signupPassword');
+        const signupConfirmPasswordInput = document.getElementById('signupConfirmPassword');
+        const signupManagerIdInput = document.getElementById('signupManagerId');
+        const signupButton = document.getElementById('signupButton');
+        const showLoginLink = document.getElementById('showLoginLink');
 
-        // --- GIF Generation Specific Variables ---
-        const gifWidth = 1280; // Standard HD width for GIF frames
-        const gifHeight = 720; // Standard HD height for GIF frames
-        const sectionFrameDelay = 3000; // 3 seconds in milliseconds for most sections (delay for GIF frames)
-        const chartFrameDelay = 3000; // 3 seconds in milliseconds for the chart section (delay for GIF frame)
+        const loggedInContent = document.getElementById('loggedInContent');
+        const loggedInUserName = document.getElementById('loggedInUserName');
+        const splOverallRankDisplay = document.getElementById('splOverallRankDisplay');
+        const queueNumberDisplay = document.getElementById('queueNumberDisplay');
+        const displayUid = document.getElementById('displayUid');
+        const displayEmail = document.getElementById('displayEmail');
+        const displayRole = document.getElementById('displayRole');
+        const displaySplManagerId = document.getElementById('displaySplManagerId');
+        const logoutButton = document.getElementById('logoutButton');
 
 
         // --- Helper Functions ---
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type}`;
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 5000);
+        }
 
-        // Function to convert Arabic numerals to Western numerals
+        function hideAllContent() {
+            authSection.style.display = 'none';
+            loggedInContent.style.display = 'none';
+            messageBox.style.display = 'none';
+        }
+
         function convertArabicToWesternNumerals(input) {
             const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
             const westernNumerals = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -983,7 +433,6 @@
             return convertedInput;
         }
 
-        // Function to set the theme and persist in localStorage
         function setTheme(theme) {
             if (theme === 'dark') {
                 document.body.classList.add('dark-mode');
@@ -997,1063 +446,372 @@
             localStorage.setItem('theme', theme);
         }
 
-        // --- Event Listeners (UI Interactions) ---
+        /**
+         * Calculates and displays the user's queue number by fetching filtered data and sorting client-side.
+         * @param {string} currentUserUid The UID of the currently logged-in user.
+         * @param {object} currentUserData The Firestore document data of the current user.
+         */
+        async function calculateAndDisplayQueueNumber(currentUserUid, currentUserData) {
+            queueNumberDisplay.textContent = 'Loading...'; 
+            console.log("DEBUG: Attempting to calculate queue number by client-side sorting.");
 
-        // Check for saved theme preference on page load
+            try {
+                if (currentUserData.role !== 'manager' || !currentUserData.createdAt) {
+                    queueNumberDisplay.textContent = 'N/A (Not a Manager or missing data)';
+                    console.log("DEBUG: User not a manager or missing createdAt for queue number calculation.");
+                    return;
+                }
+
+                const managersRef = collection(db, "users");
+                // Fetch all managers filtered by role and emailVerified. NO ORDER BY here.
+                const q = query(
+                    managersRef,
+                    where("role", "==", "manager"),
+                    where("emailVerified", "==", true) 
+                );
+
+                const querySnapshot = await getDocs(q);
+                
+                // Convert snapshot to array and sort client-side
+                const allManagers = querySnapshot.docs.map(docSnapshot => ({
+                    id: docSnapshot.id,
+                    ...docSnapshot.data()
+                }));
+
+                // Sort the managers array by createdAt timestamp
+                const sortedManagers = allManagers.sort((a, b) => {
+                    // Convert Firestore Timestamps to Date objects for comparison
+                    const dateA = a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0;
+                    const dateB = b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0;
+                    return dateA - dateB;
+                });
+
+                let rankFound = false;
+                let rank = 1;
+
+                // Iterate through the sorted list to find the current user's position
+                for (const manager of sortedManagers) {
+                    if (manager.id === currentUserUid) {
+                        queueNumberDisplay.textContent = `#${rank}`;
+                        rankFound = true;
+                        break; 
+                    }
+                    rank++;
+                }
+
+                if (!rankFound) {
+                    queueNumberDisplay.textContent = 'N/A (Not found in queue)';
+                    console.warn("DEBUG: Current user not found in manager queue query results (after client-side sort).");
+                }
+                console.log("DEBUG: Queue number calculation completed via client-side sorting.");
+
+            } catch (error) {
+                console.error("DEBUG: Error calculating queue number:", error);
+                queueNumberDisplay.textContent = 'Error loading queue #';
+                showMessage(`Failed to load queue number: ${error.message}`, "error");
+            }
+        }
+
+        /**
+         * Fetches and displays the user's SPL Overall Rank from the Netlify Function.
+         * This function expects the Netlify function to be located at /.netlify/functions/fetch-spl-data
+         * @param {string} splManagerId The SPL Manager ID of the current user.
+         */
+        async function fetchAndDisplaySPLOverallRank(splManagerId) {
+            splOverallRankDisplay.textContent = 'Loading...';
+            console.log(`DEBUG: Attempting to fetch SPL Overall Rank for ID: ${splManagerId}`);
+
+            try {
+                if (!splManagerId || !/^\d+$/.test(splManagerId)) {
+                    splOverallRankDisplay.textContent = 'N/A (Invalid SPL ID)';
+                    console.warn("DEBUG: Invalid SPL Manager ID provided for rank fetch.");
+                    return;
+                }
+
+                // Call the Netlify Function (which in turn calls the SPL API)
+                const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${splManagerId}`);
+                const data = await response.json();
+                console.log('DEBUG: SPL API fetch response received:', data);
+
+                if (response.ok) {
+                    if (data.overallRank && data.overallRank !== 'N/A') {
+                        splOverallRankDisplay.textContent = `${data.overallRank} 🌏`; 
+                    } else {
+                        splOverallRankDisplay.textContent = 'N/A (Rank not available)';
+                    }
+                } else {
+                    splOverallRankDisplay.textContent = 'Error fetching SPL Rank';
+                    console.error("DEBUG: SPL API Netlify Function returned an error:", data.error || response.statusText);
+                    showMessage(`Failed to fetch SPL Rank: ${data.error || response.statusText}`, "error");
+                }
+            } catch (error) {
+                console.error("DEBUG: Critical error fetching SPL Overall Rank:", error);
+                splOverallRankDisplay.textContent = 'Error fetching SPL Rank';
+                showMessage(`Failed to load SPL Rank: ${error.message}. Network or API issue.`, "error");
+            }
+        }
+
+
+        // --- Authentication Logic ---
+
+        // Handle Self-Registration (Manager)
+        signupButton.addEventListener('click', async () => {
+            messageBox.textContent = '';
+            messageBox.className = '';
+
+            const email = signupEmailInput.value;
+            const password = signupPasswordInput.value;
+            const confirmPassword = signupConfirmPasswordInput.value;
+            const managerId = convertArabicToWesternNumerals(signupManagerIdInput.value);
+
+            if (password !== confirmPassword) {
+                showMessage("Passwords do not match.", "error");
+                return;
+            }
+            if (password.length < 6) {
+                showMessage("Password must be at least 6 characters long.", "error");
+                return;
+            }
+            if (!/^\d+$/.test(managerId)) {
+                showMessage("SPL Manager ID is required and must be a valid number.", "error");
+                return;
+            }
+
+            try {
+                showMessage("Registering your account...", "info");
+
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                await sendEmailVerification(user);
+                
+                console.log("DEBUG: Attempting setDoc for new user profile in Firestore.");
+                await setDoc(doc(db, "users", user.uid), {
+                    email: user.email,
+                    splManagerId: managerId,
+                    role: 'manager', 
+                    createdAt: serverTimestamp(), 
+                    emailVerified: false 
+                });
+
+                showMessage("Account created! Please verify your email and then log in.", "success");
+                console.log("DEBUG: Firestore document creation attempt completed.");
+
+                signupEmailInput.value = '';
+                signupPasswordInput.value = '';
+                signupConfirmPasswordInput.value = '';
+                signupManagerIdInput.value = '';
+                loginForm.style.display = 'block';
+                signupForm.style.display = 'none';
+
+            } catch (error) {
+                console.error("DEBUG: Signup / Firestore setDoc failed:", error); 
+                let friendlyMessage = "Failed to create account.";
+                if (error.code === 'auth/email-already-in-use') {
+                    friendlyMessage = "That email address is already in use.";
+                } else if (error.code === 'auth/invalid-email') {
+                    friendlyMessage = "Please enter a valid email address.";
+                } else if (error.code === 'auth/weak-password') {
+                    friendlyMessage = "Password is too weak.";
+                } else if (error.code === 'permission-denied') { 
+                    friendlyMessage = `Failed to save user data due to permissions. Check Firebase Console. Error: ${error.message}`;
+                } else if (error.message) { 
+                    friendlyMessage = `An unexpected error occurred: ${error.message}`;
+                }
+                showMessage(friendlyMessage, "error");
+            }
+        });
+
+        // Handle Login
+        loginButton.addEventListener('click', async () => {
+            messageBox.textContent = '';
+            messageBox.className = '';
+
+            const email = loginEmailInput.value;
+            const password = loginPasswordInput.value;
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Reload user properties from Firebase Auth to get latest emailVerified status
+                await reload(user); 
+
+                if (!user.emailVerified) {
+                    await signOut(auth);
+                    showMessage("Please verify your email address before logging in.", "info");
+                    return;
+                }
+                
+                const userDocRef = doc(db, "users", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    console.log("DEBUG: User data from Firestore on login:", userData);
+
+                    // Check if Firestore's emailVerified needs updating based on Auth's status
+                    if (!userData.emailVerified && user.emailVerified) {
+                        console.log("DEBUG: Updating Firestore emailVerified status to true for UID:", user.uid);
+                        await updateDoc(userDocRef, { emailVerified: true });
+                        userData.emailVerified = true; // Update local userData for immediate use
+                    }
+                    
+                    loggedInUserName.textContent = user.email; 
+                    displayUid.textContent = user.uid;
+                    displayEmail.textContent = user.email;
+                    displayRole.textContent = userData.role || 'N/A';
+                    displaySplManagerId.textContent = userData.splManagerId || 'N/A';
+                    
+                    showMessage("Successfully logged in!", "success");
+
+                    // Call functions to calculate and display both ranks
+                    if (userData.role === 'manager' && userData.createdAt) {
+                        await calculateAndDisplayQueueNumber(user.uid, userData);
+                    } else {
+                        queueNumberDisplay.textContent = 'N/A (Only for Managers)';
+                    }
+                    
+                    if (userData.splManagerId) {
+                        await fetchAndDisplaySPLOverallRank(userData.splManagerId);
+                    } else {
+                        splOverallRankDisplay.textContent = 'N/A (No SPL ID)';
+                    }
+
+                } else {
+                    console.warn("DEBUG: Firestore user document not found for UID:", user.uid, ". Logging out.");
+                    showMessage("Login successful, but user data not found. Please contact support. Logging out.", "error");
+                    await signOut(auth);
+                }
+                loginPasswordInput.value = ''; 
+
+            } catch (error) {
+                console.error("DEBUG: Login failed:", error);
+                let friendlyMessage = "Login failed. Please check your email and password.";
+                if (error.code === 'auth/invalid-credential') { 
+                    friendlyMessage = "Invalid email or password.";
+                } else if (error.code === 'auth/user-not-found') {
+                    friendlyMessage = "No user found with this email.";
+                } else if (error.code === 'auth/wrong-password') {
+                    friendlyMessage = "Invalid password.";
+                }
+                showMessage(friendlyMessage, "error");
+            }
+        });
+
+        // Handle Logout
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                showMessage("Logged out successfully.", "info");
+            } catch (error) {
+                console.error("DEBUG: Logout error:", error);
+                showMessage("Failed to logout. Please try again.", "error");
+            }
+        });
+
+        // Toggle between Login and Signup forms
+        showSignupLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.style.display = 'none';
+            signupForm.style.display = 'block';
+            messageBox.style.display = 'none';
+        });
+
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.style.display = 'block';
+            signupForm.style.display = 'none';
+            messageBox.style.display = 'none';
+        });
+
+
+        // --- Authentication State Listener (Core UI Logic) ---
+        onAuthStateChanged(auth, async (user) => {
+            hideAllContent(); // Hide everything first
+
+            if (user) {
+                // User is signed in
+                // Reload user properties from Firebase Auth to get latest emailVerified status
+                await reload(user); 
+
+                if (user.emailVerified) {
+                    // User is verified, try to fetch their Firestore doc
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data();
+                        console.log(`DEBUG: User logged in: ${user.email}, UID: ${user.uid}, Role: ${userData.role || 'N/A'}`);
+                        
+                        // Check if Firestore's emailVerified needs updating based on Auth's status
+                        if (!userData.emailVerified && user.emailVerified) {
+                            console.log("DEBUG: onAuthStateChanged: Updating Firestore emailVerified status to true for UID:", user.uid);
+                            await updateDoc(userDocRef, { emailVerified: true });
+                            userData.emailVerified = true; // Update local userData for immediate use
+                        }
+
+                        loggedInContent.style.display = 'block'; // Show logged-in content
+                        loggedInUserName.textContent = user.email; 
+                        displayUid.textContent = user.uid;
+                        displayEmail.textContent = user.email;
+                        displayRole.textContent = userData.role || 'N/A';
+                        displaySplManagerId.textContent = userData.splManagerId || 'N/A';
+
+                        if (userData.role === 'manager' && userData.createdAt) {
+                            await calculateAndDisplayQueueNumber(user.uid, userData);
+                        } else {
+                            queueNumberDisplay.textContent = 'N/A (Only for Managers)';
+                        }
+                        
+                        if (userData.splManagerId) {
+                            await fetchAndDisplaySPLOverallRank(userData.splManagerId);
+                        } else {
+                            splOverallRankDisplay.textContent = 'N/A (No SPL ID)';
+                        }
+
+                    } else {
+                        // User is in Auth but not Firestore, likely a failed signup attempt
+                        console.warn("DEBUG: Firestore document for user does not exist. Logging out.");
+                        showMessage("Your user data could not be found. Please contact support. Logging out.", "error");
+                        await signOut(auth); // Log out if data is inconsistent
+                    }
+                } else {
+                    // User is signed in but email not verified
+                    console.log("DEBUG: User is logged in but email not verified:", user.uid);
+                    authSection.style.display = 'block';
+                    loginForm.style.display = 'block'; 
+                    signupForm.style.display = 'none'; 
+                    showMessage("Your email is not verified. Please check your inbox for a verification link.", "info");
+                }
+            } else {
+                // User is signed out
+                console.log("DEBUG: User is signed out.");
+                authSection.style.display = 'block'; // Show auth forms
+                loginForm.style.display = 'block'; // Default to login
+                signupForm.style.display = 'none';
+            }
+        });
+
+        // --- Initial Load & Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
+            // Set theme on load
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
                 setTheme(savedTheme);
             } else {
-                setTheme('light'); // Default to light mode if no preference saved
+                setTheme('light'); // Default to light mode
             }
+
+            darkModeToggle.addEventListener('change', (e) => {
+                setTheme(e.target.checked ? 'dark' : 'light');
+            });
+
+            // Add listener for managerId input to ensure Arabic numeral conversion
+            signupManagerIdInput.addEventListener('input', function() {
+                this.value = convertArabicToWesternNumerals(this.value);
+            });
         });
-
-        // Listen for theme toggle changes
-        darkModeToggle.addEventListener('change', () => {
-            if (darkModeToggle.checked) {
-                setTheme('dark');
-            } else {
-                setTheme('light');
-            }
-        });
-
-        // Analyze Button click
-        analyzeButton.addEventListener('click', () => {
-            instructionsBox.style.display = 'none'; // Hide instructions when analysis starts
-            fetchManagerData();
-        });
-
-        // Enter key in Manager ID input
-        managerIdInput.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                instructionsBox.style.display = 'none';
-                fetchManagerData();
-                managerIdInput.blur(); // Remove focus from input
-            }
-        });
-
-        // Rank Journey Button click (for chart animation)
-        createRankJourneyButton.addEventListener('click', () => {
-            rankJourneyChartContainer.style.display = 'flex'; // Show chart container
-            createRankJourneyButton.textContent = 'Replay'; // Change button text to Replay
-
-            // Stop any ongoing chart animation before replaying
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-            }
-            animationStartTime = null; // Reset start time for a fresh animation
-            renderRankJourneyChart(managerOverallRankHistory);
-        });
-
-        // Share Report as GIF Button Click Listener
-        shareVideoButton.addEventListener('click', async () => {
-            // Disable all interactive buttons during GIF generation
-            shareVideoButton.disabled = true;
-            analyzeButton.disabled = true;
-            createRankJourneyButton.disabled = true;
-            darkModeToggle.disabled = true;
-
-            // Show GIF generation loading message
-            videoGeneratingMessage.style.display = 'block'; 
-            errorMessage.style.display = 'none'; 
-
-            // Ensure the main manager stats are visible before trying to capture them
-            // This is handled by captureAndPrepareSectionsForGIF internally for its cloned DOM
-            
-            // Scroll to the top for consistent screenshots starting point
-            window.scrollTo({ top: 0, behavior: 'instant' });
-
-            // Give browser a moment to settle after layout changes/scroll
-            await new Promise(resolve => setTimeout(resolve, 500)); 
-            
-            try {
-                // Initialize and start the GIF generation process
-                await generateGIF();
-            } catch (error) {
-                console.error("Error generating GIF:", error);
-                errorMessage.textContent = `Failed to generate GIF: ${error.message}. Please try again.`;
-                errorMessage.style.display = 'block';
-            } finally {
-                // Always re-enable buttons and hide loading message, regardless of success/failure
-                shareVideoButton.disabled = false;
-                analyzeButton.disabled = false;
-                createRankJourneyButton.disabled = false;
-                darkModeToggle.disabled = false;
-                videoGeneratingMessage.style.display = 'none';
-            }
-        });
-
-
-        // --- Core Data Fetching Logic ---
-        async function fetchManagerData() {
-            console.log("DEBUG: fetchManagerData started.");
-            const managerId = convertArabicToWesternNumerals(managerIdInput.value);
-            if (!managerId || !/^\d+$/.test(managerId)) {
-                console.warn('DEBUG: Invalid Manager ID entered. Aborting fetch.');
-                errorMessage.textContent = 'Please enter a valid Manager ID (numbers only).';
-                errorMessage.style.display = 'block';
-                // Ensure all relevant sections are hidden on error/invalid input
-                managerStatsDiv.style.display = 'none';
-                rankJourneyBox.style.display = 'none';
-                shareVideoButton.style.display = 'none';
-                return;
-            }
-
-            loadingMessage.style.display = 'block';
-            errorMessage.style.display = 'none';
-            managerStatsDiv.style.display = 'none'; // Hide before starting new load
-            rankJourneyChartContainer.style.display = 'none';
-            videoLoadingMessage.style.display = 'none';
-            rankJourneyBox.style.display = 'none';
-            createRankJourneyButton.textContent = 'Click Here';
-            shareVideoButton.style.display = 'none';
-
-            if (rankJourneyChartInstance) {
-                console.log('DEBUG: Destroying existing chart instance.');
-                rankJourneyChartInstance.destroy();
-                rankJourneyChartInstance = null;
-            }
-            if (animationFrameId) {
-                console.log('DEBUG: Cancelling existing chart animation.');
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-            animationStartTime = null;
-
-            try {
-                console.log(`DEBUG: Attempting to fetch data for manager ID: ${managerId}`);
-                const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${managerId}`);
-                const data = await response.json();
-                console.log('DEBUG: Fetch response received.', { responseOk: response.ok, data: data });
-
-                loadingMessage.style.display = 'none';
-
-                if (response.ok) {
-                    console.log('DEBUG: Response OK. Populating manager data...');
-                    managerOverallRankHistory = data.overallRankHistory || [];
-                    
-                    if (data.overallRank && data.overallRank !== 'N/A') {
-                        const rankString = String(data.overallRank);
-                        managerCurrentOverallRank = Math.round(parseFloat(rankString.replace(/,/g, '')));
-                    } else {
-                        managerCurrentOverallRank = null; 
-                    }
-
-                    managerNameElem.innerHTML = `Team Name: <span style="color: var(--spl-primary-accent);">${data.managerName || `Manager ID: ${managerId}`}</span><br>Rank & Points`;
-                    
-                    overallRankElem.textContent = `${data.overallRank} 🌏`;
-                    
-                    let bestRankRaw = String(data.bestOverallRank);
-                    let bestRankNumeric = bestRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
-                    let bestRankRound = extractAndFormatRound(bestRankRaw);
-                    bestOverallRankElem.textContent = `${bestRankNumeric} 🌏 ${bestRankRound}`;
-
-                    let worstRankRaw = String(data.worstOverallRank);
-                    let worstRankNumeric = worstRankRaw.split(/\s*\(R|RD\s*\d+\)/i)[0].trim();
-                    let worstRankRound = extractAndFormatRound(worstRankRaw);
-                    worstOverallRankElem.textContent = `${worstRankNumeric} 🌏 ${worstRankRound}`;
-
-                    averagePointsElem.textContent = data.averagePoints;
-                    averagePointsFor1stPlaceElem.textContent = averagePointsFor1stPlaceElem.textContent = data.averagePointsFor1stPlace;
-                    
-                    const bestRound = data.bestRound;
-                    bestRoundDisplayElem.textContent = bestRound.points !== 'N/A' 
-                        ? `${bestRound.points} ${bestRound.deductions !== 0 ? `(-${bestRound.deductions})` : ''} Points in Round ${bestRound.round}`
-                        : 'N/A';
-
-                    const worstRound = data.worstRound;
-                    worstRoundDisplayElem.textContent = worstRound.points !== 'N/A' 
-                        ? `${worstRound.points} ${worstRound.deductions !== 0 ? `(-${worstRound.deductions})` : ''} Points in Round ${worstRound.round}`
-                        : 'N/A';
-
-                    totalTransfersCountElem.textContent = data.totalTransfersCount;
-                    totalHitsPointsElem.textContent = data.totalHitsPoints;
-                    
-                    greenArrowsCountElem.textContent = `${data.greenArrowsCount || 0} 🟢`;
-                    redArrowsCountElem.textContent = `${data.redArrowsCount || 0} 🔴`;
-                    
-                    rankJourneyBox.style.display = 'flex'; // Show the rank journey button box
-
-                    // Populate tables
-                    console.log('DEBUG: Populating topCaptainsTable...');
-                    topCaptainsTableBody.innerHTML = '';
-                    if (data.top3Captains && data.top3Captains.length > 0) {
-                        data.top3Captains.forEach(captain => {
-                            const row = topCaptainsTableBody.insertRow();
-                            row.insertCell().textContent = captain.name;
-                            row.cells[0].setAttribute('data-label', 'Player');
-                            row.insertCell().textContent = captain.times;
-                            row.cells[1].setAttribute('data-label', 'Times Captained');
-                            row.insertCell().textContent = captain.successful;
-                            row.cells[2].setAttribute('data-label', 'Success');
-                            row.insertCell().textContent = captain.failed;
-                            row.cells[3].setAttribute('data-label', 'Failed');
-                            row.insertCell().textContent = captain.totalCaptainedPoints;
-                            row.cells[4].setAttribute('data-label', 'Captained Points');
-                            row.insertCell().textContent = captain.captainedRounds ? captain.captainedRounds.join(', ') : 'N/A';
-                            row.cells[5].setAttribute('data-label', 'Captained Rounds');
-                        });
-                    } else {
-                        const row = topCaptainsTableBody.insertRow();
-                        row.insertCell().textContent = 'No data available.';
-                        row.cells[0].colSpan = 6;
-                    }
-                    console.log('DEBUG: Populating bestPlayersTable...');
-                    bestPlayersTableBody.innerHTML = '';
-                    if (data.bestPlayers && data.bestPlayers.length > 0) {
-                        data.bestPlayers.forEach(player => {
-                            const row = bestPlayersTableBody.insertRow();
-                            row.insertCell().textContent = player.name;
-                            row.cells[0].setAttribute('data-label', 'Player');
-                            row.insertCell().textContent = player.started;
-                            row.cells[1].setAttribute('data-label', 'Started');
-                            row.insertCell().textContent = player.autoSubbed;
-                            row.cells[2].setAttribute('data-label', 'Auto Subbed In');
-                            row.insertCell().textContent = player.pointsGained;
-                            row.cells[3].setAttribute('data-label', 'Points Gained');
-                            row.insertCell().textContent = player.benchedPoints;
-                            row.cells[4].setAttribute('data-label', 'Benched Points');
-                        });
-                    } else {
-                        const row = bestPlayersTableBody.insertRow();
-                        row.insertCell().textContent = 'No data available.';
-                        row.cells[0].colSpan = 5;
-                    }
-                    console.log('DEBUG: Populating worstPlayersTable...');
-                    worstPlayersTableBody.innerHTML = '';
-                    if (data.worstPlayers && data.worstPlayers.length > 0) {
-                        data.worstPlayers.forEach(player => {
-                            const row = worstPlayersTableBody.insertRow();
-                            row.insertCell().textContent = player.name;
-                            row.cells[0].setAttribute('data-label', 'Player');
-                            row.insertCell().textContent = player.started;
-                            row.cells[1].setAttribute('data-label', 'Started');
-                            row.insertCell().textContent = player.autoSubbed;
-                            row.cells[2].setAttribute('data-label', 'Auto Subbed In');
-                            row.insertCell().textContent = player.pointsGained;
-                            row.cells[3].setAttribute('data-label', 'Points Gained');
-                            row.insertCell().textContent = player.benchedPoints;
-                            row.cells[4].setAttribute('data-label', 'Benched Points');
-                        });
-                    } else {
-                        const row = worstPlayersTableBody.insertRow();
-                        row.insertCell().textContent = 'No data available.';
-                        row.cells[0].colSpan = 5;
-                    }
-                    console.log('DEBUG: Populating missedPointsTable...');
-                    missedPointsTableBody.innerHTML = '';
-                    if (data.top5MissedPoints && data.top5MissedPoints.length > 0) {
-                        data.top5MissedPoints.forEach(item => {
-                            const row = missedPointsTableBody.insertRow();
-                            row.insertCell().textContent = item.playerName;
-                            row.cells[0].setAttribute('data-label', 'Player');
-                            row.insertCell().textContent = item.points;
-                            row.cells[1].setAttribute('data-label', 'Points');
-                            row.insertCell().textContent = item.round;
-                            row.cells[2].setAttribute('data-label', 'Round');
-                        });
-                    } else {
-                        const row = missedPointsTableBody.insertRow();
-                        row.insertCell().textContent = 'No data available.';
-                        row.cells[0].colSpan = 3;
-                    }
-                    console.log('DEBUG: Populating profitableTransfersTable...');
-                    profitableTransfersTableBody.innerHTML = '';
-                    if (data.top5ProfitableTransfers && data.top5ProfitableTransfers.length > 0) {
-                        data.top5ProfitableTransfers.forEach(transfer => {
-                            const row = profitableTransfersTableBody.insertRow();
-                            row.insertCell().textContent = transfer.playerInName;
-                            row.cells[0].setAttribute('data-label', 'IN');
-                            row.insertCell().textContent = transfer.playerOutName;
-                            row.cells[1].setAttribute('data-label', 'OUT');
-                            row.insertCell().textContent = transfer.round;
-                            row.cells[2].setAttribute('data-label', 'Round');
-                            const profitLossCell = row.insertCell();
-                            profitLossCell.textContent = transfer.profitLoss;
-                            profitLossCell.classList.add(transfer.profitLoss >= 0 ? 'positive' : 'negative');
-                            profitLossCell.setAttribute('data-label', 'Profit/Loss');
-                        });
-                    } else {
-                        const row = profitableTransfersTableBody.insertRow();
-                        row.insertCell().textContent = 'No data available.';
-                        row.cells[0].colSpan = 4;
-                    }
-                    console.log('DEBUG: Populating lossMakingTransfersTable...');
-                    lossMakingTransfersTableBody.innerHTML = '';
-                    if (data.top5LossMakingTransfers && data.top5LossMakingTransfers.length > 0) {
-                        data.top5LossMakingTransfers.forEach(transfer => {
-                            const row = lossMakingTransfersTableBody.insertRow();
-                            row.insertCell().textContent = transfer.playerInName;
-                            row.cells[0].setAttribute('data-label', 'IN');
-                            row.insertCell().textContent = transfer.playerOutName;
-                            row.cells[1].setAttribute('data-label', 'OUT');
-                            row.insertCell().textContent = transfer.round;
-                            row.cells[2].setAttribute('data-label', 'Round');
-                            const profitLossCell = row.insertCell();
-                            profitLossCell.textContent = transfer.profitLoss;
-                            profitLossCell.classList.add(transfer.profitLoss >= 0 ? 'positive' : 'negative');
-                            profitLossCell.setAttribute('data-label', 'Profit/Loss');
-                        });
-                    } else {
-                        const row = lossMakingTransfersTableBody.insertRow();
-                        row.insertCell().textContent = 'No data available.';
-                        row.cells[0].colSpan = 4;
-                    }
-
-                    // Set display to block 
-                    managerStatsDiv.style.display = 'block'; 
-                    rankJourneyChartContainer.style.display = 'none'; 
-                    shareVideoButton.style.display = 'block';
-
-                    console.log('DEBUG: managerStatsDiv display style AFTER JS set:', managerStatsDiv.style.display);
-                    console.log('DEBUG: managerStatsDiv computed display style AFTER JS set:', getComputedStyle(managerStatsDiv).display);
-                    console.log('DEBUG: managerStatsDiv innerHTML length:', managerStatsDiv.innerHTML.length);
-                    console.log('DEBUG: managerStatsDiv clientHeight:', managerStatsDiv.clientHeight);
-                    console.log('DEBUG: managerStatsDiv offsetHeight:', managerStatsDiv.offsetHeight);
-                    console.log('DEBUG: managerStatsDiv getBoundingClientRect:', managerStatsDiv.getBoundingClientRect());
-
-                } else {
-                    console.error('DEBUG: API response not OK:', data.error || 'Unknown error');
-                    errorMessage.textContent = data.error || 'An unknown error occurred.';
-                    errorMessage.style.display = 'block';
-                    // Hide all relevant sections on error
-                    managerStatsDiv.style.display = 'none';
-                    rankJourneyBox.style.display = 'none';
-                    shareVideoButton.style.display = 'none';
-                }
-
-            } catch (error) {
-                console.error("DEBUG: Critical fetchManagerData error (outer catch):", error);
-                errorMessage.textContent = `Failed to fetch data: ${error.message}. This might be due to a network issue, an invalid Manager ID, or a temporary API problem. Please try again.`;
-                errorMessage.style.display = 'block';
-                loadingMessage.style.display = 'none'; // Ensure loading message is hidden
-                // Hide all relevant sections on error
-                managerStatsDiv.style.display = 'none';
-                rankJourneyBox.style.display = 'none';
-                shareVideoButton.style.display = 'none';
-            }
-            console.log("DEBUG: fetchManagerData finished.");
-        }
-
-        // --- Chart Rendering Logic (Existing) ---
-        function extractAndFormatRound(rankValueString) {
-            if (typeof rankValueString !== 'string' || rankValueString === 'N/A') {
-                return '';
-            }
-            const match = rankValueString.match(/\((R|RD)\s*(\d+)\)/i);
-            if (match && match[2]) {
-                return `(In Round ${match[2]})`;
-            }
-            return '';
-        }
-
-        function renderRankJourneyChart(fullRankHistoryData) {
-            if (!fullRankHistoryData || fullRankHistoryData.length === 0) {
-                console.warn("DEBUG: No rank data to render chart.");
-                return;
-            }
-
-            fullRankHistoryData.sort((a, b) => a.round - b.round);
-
-            const fixedMaxRound = 34; 
-            const labels = Array.from({ length: fixedMaxRound + 1 }, (_, i) => `Round ${i}`);
-            
-            const ranks = Array(fixedMaxRound + 1).fill(null);
-            fullRankHistoryData.forEach(d => {
-                if (d.round >= 1 && d.round <= fixedMaxRound) {
-                    ranks[d.round] = d.rank;
-                }
-            });
-
-            const validRanksForScaling = ranks.filter(rank => typeof rank === 'number' && !isNaN(rank));
-            const minRankInHistory = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling) : 1;
-            const maxRankInHistory = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling) : 114154;
-
-            let overallYAxisMax;
-            const decisionRank = managerCurrentOverallRank !== null ? managerCurrentOverallRank : maxRankInHistory;
-
-            if (decisionRank >= 1 && decisionRank <= 100) {
-                overallYAxisMax = maxRankInHistory + 10;
-            } else if (decisionRank > 100 && decisionRank <= 3000) {
-                overallYAxisMax = maxRankInHistory + 50;
-            } else if (decisionRank > 3000) {
-                overallYAxisMax = maxRankInHistory + 200;
-            } else {
-                overallYAxisMax = maxRankInHistory + 100;
-            }
-
-            overallYAxisMax = Math.min(Math.max(overallYAxisMax, minRankInHistory + 10, 200), 114154); 
-
-            console.log(`DEBUG: Chart Y-axis Debug: Min Rank (History): ${minRankInHistory}, Max Rank (History): ${maxRankInHistory}, Current Overall Rank (for decision): ${decisionRank}, Calculated Y-axis Max: ${overallYAxisMax}`);
-
-            videoLoadingMessage.style.display = 'block';
-
-            const ctx = rankJourneyChartCanvas.getContext('2d');
-            if (rankJourneyChartInstance) {
-                rankJourneyChartInstance.destroy();
-            }
-
-            const isMobile = window.innerWidth <= 950;
-
-            rankJourneyChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Overall Rank',
-                            data: [],
-                            tension: 0.1,
-                            spanGaps: true,
-                            pointRadius: 0,
-                            borderColor: (context) => {
-                                const currentPoint = context.dataset.data[context.dataIndex];
-                                const previousPoint = context.dataset.data[context.dataIndex - 1];
-                                
-                                if (!currentPoint || !previousPoint || typeof currentPoint.y !== 'number' || typeof previousPoint.y !== 'number') {
-                                    return '#007BFF';
-                                }
-                                if (currentPoint.y < previousPoint.y) {
-                                    return '#28A745';
-                                } else if (currentPoint.y > previousPoint.y) {
-                                    return '#DC3545';
-                                } else {
-                                    return '#495057';
-                                }
-                            },
-                            backgroundColor: 'rgba(0, 0, 0, 0)',
-                            fill: false,
-                            xAxisID: 'x-linear',
-                            yAxisID: 'y-rank'
-                        },
-                        {
-                            label: 'Current Rank',
-                            data: [],
-                            pointRadius: 8,
-                            pointBackgroundColor: 'red',
-                            pointBorderColor: 'white',
-                            pointBorderWidth: 2,
-                            showLine: false,
-                            type: 'scatter',
-                            xAxisID: 'x-linear',
-                            yAxisID: 'y-rank',
-                            hidden: true
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: isMobile ? 1.5 : 2,
-                    animation: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                color: 'var(--spl-text-dark)', 
-                                filter: function(legendItem, chartData) {
-                                    return legendItem.text === 'Overall Rank';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        'x-linear': {
-                            type: 'linear',
-                            title: {
-                                display: true,
-                                text: 'Round',
-                                color: 'var(--spl-text-dark)'
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            min: 0,
-                            max: fixedMaxRound,
-                            ticks: {
-                                color: 'var(--spl-text-dark)',
-                                autoSkip: false,
-                                maxRotation: 0,
-                                minRotation: 0,
-                                values: [0, 4, 8, 12, 16, 20, 24, 28, 32, 34],
-                                callback: function(value, index) {
-                                    return labels[value].replace('Round ', '');
-                                },
-                                font: {
-                                    size: isMobile ? 9 : 12
-                                }
-                            }
-                        },
-                        'y-rank': {
-                            type: 'linear',
-                            display: true,
-                            title: {
-                                display: !isMobile,
-                                text: 'Overall Rank (Lower is Better)',
-                                color: 'var(--spl-text-dark)'
-                            },
-                            reverse: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            min: 1,
-                            max: overallYAxisMax,
-                            ticks: {
-                                color: 'var(--spl-text-dark)',
-                                callback: function(value, index, values) {
-                                    return new Intl.NumberFormat().format(value);
-                                },
-                                maxTicksLimit: isMobile ? 20 : 10,
-                                font: {
-                                    size: isMobile ? 9 : 12
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            function animateChart(timestamp) {
-                if (!animationStartTime) {
-                    animationStartTime = timestamp;
-                }
-
-                const elapsedTime = timestamp - animationStartTime;
-                const progress = Math.min(elapsedTime / totalAnimationDurationMs, 1);
-
-                const firstDataRound = fullRankHistoryData.length > 0 ? fullRankHistoryData[0].round : 0;
-                const lastDataRound = fullRankHistoryData.length > 0 ? fullRankHistoryData[fullRankHistoryData.length - 1].round : fixedMaxRound;
-                const dataRoundRange = lastDataRound - firstDataRound;
-
-                let currentRoundForDot = firstDataRound + (progress * dataRoundRange);
-                currentRoundForDot = Math.min(currentRoundForDot, lastDataRound);
-
-                let interpolatedRank = null;
-                let dotXPosition = currentRoundForDot;
-
-                let prevDataPoint = null;
-                let nextDataPoint = null;
-
-                for (let i = 0; i < fullRankHistoryData.length; i++) {
-                    if (fullRankHistoryData[i].round <= currentRoundForDot) {
-                        prevDataPoint = fullRankHistoryData[i];
-                    } else {
-                        nextDataPoint = fullRankHistoryData[i];
-                        break;
-                    }
-                }
-
-                if (prevDataPoint && nextDataPoint) {
-                    const roundRange = nextDataPoint.round - prevDataPoint.round;
-                    const rankRange = nextDataPoint.rank - prevDataPoint.rank;
-                    const factor = (currentRoundForDot - prevDataPoint.round) / roundRange;
-                    interpolatedRank = prevDataPoint.rank + (rankRange * factor);
-                } else if (prevDataPoint) {
-                    interpolatedRank = prevDataPoint.rank;
-                } else {
-                    interpolatedRank = null; 
-                }
-                
-                if (interpolatedRank !== null) {
-                    rankJourneyChartInstance.data.datasets[1].data = [{ x: dotXPosition, y: interpolatedRank }];
-                } else {
-                    rankJourneyChartInstance.data.datasets[1].data = [];
-                }
-
-                const traceData = [];
-                for (let i = 0; i < fullRankHistoryData.length; i++) {
-                    if (fullRankHistoryData[i].round <= currentRoundForDot) {
-                        traceData.push({ x: fullRankHistoryData[i].round, y: fullRankHistoryData[i].rank });
-                    } else {
-                        break;
-                    }
-                }
-                if (interpolatedRank !== null && traceData.length > 0 && dotXPosition > traceData[traceData.length - 1].x) {
-                    traceData.push({ x: dotXPosition, y: interpolatedRank });
-                } else if (interpolatedRank !== null && traceData.length === 0 && fullRankHistoryData.length > 0 && dotXPosition >= fullRankHistoryData[0].round) {
-                    traceData.push({ x: dotXPosition, y: interpolatedRank });
-                }
-                
-                rankJourneyChartInstance.data.datasets[0].data = traceData;
-
-                rankJourneyChartInstance.update();
-
-                if (progress < 1) {
-                    animationFrameId = requestAnimationFrame(animateChart);
-                } else {
-                    videoLoadingMessage.style.display = 'none';
-                    // Ensure the full line is visible and all its points are shown at the end
-                    rankJourneyChartInstance.data.datasets[0].data = fullRankHistoryData.map(d => ({ x: d.round, y: d.rank }));
-                    rankJourneyChartInstance.data.datasets[0].pointRadius = 3; // Show points at the end
-                    
-                    // Ensure the dot is at the final position
-                    const lastDataPoint = fullRankHistoryData[fullRankHistoryData.length - 1];
-                    if (lastDataPoint) {
-                        rankJourneyChartInstance.data.datasets[1].data = [{ x: lastDataPoint.round, y: lastDataPoint.rank }];
-                    } else {
-                        rankJourneyChartInstance.data.datasets[1].data = []; // Hide dot if no data
-                    }
-                    rankJourneyChartInstance.update();
-                    animationStartTime = null;
-                    animationFrameId = null;
-                }
-            }
-
-            animationFrameId = requestAnimationFrame(animateChart); // Start the animation
-        }
-
-        // --- NEW: GIF Generation Logic ---
-
-        /**
-         * Renders the chart to its final state onto a hidden canvas for GIF capture.
-         * Ensures the Chart.js canvas is updated with all data points visible.
-         * @returns {HTMLCanvasElement|null} The hidden canvas containing the final chart image.
-         */
-        async function prepareChartForCapture() {
-            if (!managerOverallRankHistory || managerOverallRankHistory.length === 0) {
-                console.warn("DEBUG: No rank data to prepare chart for capture.");
-                return null;
-            }
-            
-            // Ensure the main chart canvas is visible so Chart.js can render to it first
-            // This is crucial because Chart.js needs a visible canvas to calculate dimensions and render properly
-            const originalChartContainerDisplay = rankJourneyChartContainer.style.display;
-            rankJourneyChartContainer.style.display = 'flex';
-            rankJourneyChartCanvas.style.display = 'block'; // Make sure the original canvas is visible
-            
-            // Temporarily set dimensions for the original chart canvas for consistent rendering if needed
-            // This can help Chart.js render properly before capturing
-            rankJourneyChartCanvas.width = 900; // Use max-width from CSS as a reference
-            rankJourneyChartCanvas.height = rankJourneyChartCanvas.width / (window.innerWidth <= 950 ? 1.5 : 2); // Maintain aspect ratio
-
-            // Ensure the chart instance exists and is up-to-date
-            if (rankJourneyChartInstance) {
-                rankJourneyChartInstance.destroy(); // Destroy existing instance to ensure fresh render
-            }
-
-            // Re-create chart instance to its final state on the *original* canvas
-            // Use the same options as renderRankJourneyChart but with animation: false
-            const isMobile = window.innerWidth <= 950;
-            const ctx = rankJourneyChartCanvas.getContext('2d');
-            
-            // Populate data for the final state
-            const labels = Array.from({ length: 34 + 1 }, (_, i) => `Round ${i}`);
-            const fullRankHistoryData = managerOverallRankHistory.map(d => ({ x: d.round, y: d.rank }));
-
-            const validRanksForScaling = fullRankHistoryData.filter(d => typeof d.y === 'number' && !isNaN(d.y));
-            const minRankInHistory = validRanksForScaling.length > 0 ? Math.min(...validRanksForScaling.map(d => d.y)) : 1;
-            const maxRankInHistory = validRanksForScaling.length > 0 ? Math.max(...validRanksForScaling.map(d => d.y)) : 114154;
-
-            let overallYAxisMax;
-            const decisionRank = managerCurrentOverallRank !== null ? managerCurrentOverallRank : maxRankInHistory;
-
-            if (decisionRank >= 1 && decisionRank <= 100) {
-                overallYAxisMax = maxRankInHistory + 10;
-            } else if (decisionRank > 100 && decisionRank <= 3000) {
-                overallYAxisMax = maxRankInHistory + 50;
-            } else if (decisionRank > 3000) {
-                overallYAxisMax = maxRankInHistory + 200;
-            } else {
-                overallYAxisMax = maxRankInHistory + 100;
-            }
-            overallYAxisMax = Math.min(Math.max(overallYAxisMax, minRankInHistory + 10, 200), 114154); 
-
-            rankJourneyChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Overall Rank',
-                            data: fullRankHistoryData, // Full data for static image
-                            tension: 0.1,
-                            spanGaps: true,
-                            pointRadius: 3, // Show points
-                            borderColor: (context) => {
-                                const currentPoint = context.dataset.data[context.dataIndex];
-                                const previousPoint = context.dataset.data[context.dataIndex - 1];
-                                if (!currentPoint || !previousPoint || typeof currentPoint.y !== 'number' || typeof previousPoint.y !== 'number') {
-                                    return '#007BFF';
-                                }
-                                if (currentPoint.y < previousPoint.y) { return '#28A745'; } 
-                                else if (currentPoint.y > previousPoint.y) { return '#DC3545'; } 
-                                else { return '#495057'; }
-                            },
-                            backgroundColor: 'rgba(0, 0, 0, 0)',
-                            fill: false,
-                            xAxisID: 'x-linear',
-                            yAxisID: 'y-rank'
-                        },
-                        {
-                            label: 'Current Rank',
-                            data: [fullRankHistoryData[fullRankHistoryData.length - 1]], // Only the last point
-                            pointRadius: 8,
-                            pointBackgroundColor: 'red',
-                            pointBorderColor: 'white',
-                            pointBorderWidth: 2,
-                            showLine: false,
-                            type: 'scatter',
-                            xAxisID: 'x-linear',
-                            yAxisID: 'y-rank'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: isMobile ? 1.5 : 2,
-                    animation: false, // No animation for static capture
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                color: 'var(--spl-text-dark)', 
-                                filter: function(legendItem, chartData) {
-                                    return legendItem.text === 'Overall Rank';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        'x-linear': {
-                            type: 'linear',
-                            title: {
-                                display: true,
-                                text: 'Round',
-                                color: 'var(--spl-text-dark)'
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            min: 0,
-                            max: 34,
-                            ticks: {
-                                color: 'var(--spl-text-dark)',
-                                autoSkip: false,
-                                maxRotation: 0,
-                                minRotation: 0,
-                                values: [0, 4, 8, 12, 16, 20, 24, 28, 32, 34],
-                                callback: function(value, index) {
-                                    return labels[value].replace('Round ', '');
-                                },
-                                font: {
-                                    size: isMobile ? 9 : 12
-                                }
-                            }
-                        },
-                        'y-rank': {
-                            type: 'linear',
-                            display: true,
-                            title: {
-                                display: !isMobile,
-                                text: 'Overall Rank (Lower is Better)',
-                                color: 'var(--spl-text-dark)'
-                            },
-                            reverse: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            min: 1,
-                            max: overallYAxisMax,
-                            ticks: {
-                                color: 'var(--spl-text-dark)',
-                                callback: function(value, index, values) {
-                                    return new Intl.NumberFormat().format(value);
-                                },
-                                maxTicksLimit: isMobile ? 20 : 10,
-                                font: {
-                                    size: isMobile ? 9 : 12
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            rankJourneyChartInstance.update('resize'); // Force update to ensure rendering
-
-            await new Promise(resolve => setTimeout(resolve, 500)); // Give some time for Chart.js to render
-
-            // Now, draw the content of the visible chart canvas onto the hidden canvas
-            // Ensure the hidden canvas has the same dimensions as the intended GIF frame
-            hiddenChartCaptureCanvas.width = gifWidth;
-            hiddenChartCaptureCanvas.height = gifHeight;
-            const hiddenCtx = hiddenChartCaptureCanvas.getContext('2d');
-            
-            // Draw background color first
-            hiddenCtx.fillStyle = getComputedStyle(document.body).backgroundColor;
-            hiddenCtx.fillRect(0, 0, hiddenChartCaptureCanvas.width, hiddenChartCaptureCanvas.height);
-
-            // Calculate scale to fit the original chart canvas into the hidden canvas
-            const chartRatio = Math.min(hiddenChartCaptureCanvas.width / rankJourneyChartCanvas.width, hiddenChartCaptureCanvas.height / rankJourneyChartCanvas.height);
-            const chartWidth = rankJourneyChartCanvas.width * chartRatio;
-            const chartHeight = rankJourneyChartCanvas.height * chartRatio;
-            const chartX = (hiddenChartCaptureCanvas.width - chartWidth) / 2;
-            const chartY = (hiddenChartCaptureCanvas.height - chartHeight) / 2;
-
-            hiddenCtx.drawImage(rankJourneyChartCanvas, chartX, chartY, chartWidth, chartHeight);
-
-            // Hide the original chart container again after capturing
-            rankJourneyChartContainer.style.display = originalChartContainerDisplay;
-
-            console.log('DEBUG: Chart prepared and copied to hidden canvas for GIF.');
-            return hiddenChartCaptureCanvas; // Return the hidden canvas which html2canvas will now target
-        }
-
-
-        /**
-         * Captures specified sections as high-resolution canvases using html2canvas.
-         * Draws the captured content onto a standardized GIF frame canvas to ensure correct sizing and aspect ratio.
-         * @returns {Promise<Array<Object>>} An array of objects, each containing a canvas and its display duration.
-         */
-        async function captureAndPrepareSectionsForGIF() {
-            console.log("DEBUG: Starting captureAndPrepareSectionsForGIF...");
-            // Define the sections to capture and their durations
-            const sectionsToCaptureConfig = [
-                // First section to capture: managerSummarySection
-                { id: 'managerSummarySection', duration: sectionFrameDelay },
-                // Chart section will be handled specially
-                { id: 'rankJourneyChartContainer', duration: chartFrameDelay, specialHandling: true }, 
-                { id: 'topCaptainsTableContainer', duration: sectionFrameDelay },
-                { id: 'bestPlayersTableContainer', duration: sectionFrameDelay },
-                { id: 'worstPlayersTableContainer', duration: sectionFrameDelay },
-                { id: 'missedPointsTableContainer', duration: sectionFrameDelay },
-                { id: 'transfersSummaryContainer', duration: sectionFrameDelay },
-                { id: 'profitableTransfersTableContainer', duration: sectionFrameDelay },
-                { id: 'lossMakingTransfersTableContainer', duration: sectionFrameDelay },
-            ];
-
-            const capturedCanvases = [];
-
-            // Prepare the chart (ensure final state and copy to hidden canvas) before any capture happens
-            const preparedChartCanvas = await prepareChartForCapture();
-
-            // Store original display states to revert after capture
-            const originalDisplayStates = {};
-            sectionsToCaptureConfig.forEach(config => {
-                const element = document.getElementById(config.id);
-                if (element && !config.specialHandling) { // Don't touch display for special handling elements yet
-                    originalDisplayStates[config.id] = element.style.display;
-                    // Ensure elements are visible for html2canvas capture (will be handled by onclone for desktop size)
-                    element.style.display = 'block'; 
-                }
-            });
-            // Also ensure the managerStatsDiv is visible as a parent for some elements
-            originalDisplayStates['managerStats'] = managerStatsDiv.style.display;
-            managerStatsDiv.style.display = 'block'; 
-            await new Promise(resolve => setTimeout(resolve, 100)); // Allow layout to settle
-
-            for (const sectionConfig of sectionsToCaptureConfig) {
-                let sourceCanvas = null;
-                let element = document.getElementById(sectionConfig.id);
-
-                if (!element) {
-                    console.warn(`DEBUG: Element with ID ${sectionConfig.id} not found, skipping capture for GIF.`);
-                    continue; // Skip if element not found
-                }
-
-                // Special handling for the chart: use the pre-rendered hidden canvas
-                if (sectionConfig.specialHandling && sectionConfig.id === 'rankJourneyChartContainer') {
-                    if (preparedChartCanvas) {
-                        sourceCanvas = preparedChartCanvas;
-                        console.log(`DEBUG: Using pre-rendered hidden canvas for ${sectionConfig.id}.`);
-                    } else {
-                        console.error(`ERROR: Pre-rendered chart canvas for ${sectionConfig.id} not available!`);
-                        // Fallback to error canvas
-                        sourceCanvas = document.createElement('canvas');
-                        sourceCanvas.width = gifWidth; sourceCanvas.height = gifHeight;
-                        const errorCtx = sourceCanvas.getContext('2d');
-                        errorCtx.fillStyle = '#333';
-                        errorCtx.fillRect(0, 0, gifWidth, gifHeight);
-                        errorCtx.fillStyle = 'white';
-                        errorCtx.font = '24px Arial';
-                        errorCtx.textAlign = 'center';
-                        errorCtx.textBaseline = 'middle';
-                        errorCtx.fillText(`Chart not found: ${sectionConfig.id}`, gifWidth / 2, gifHeight / 2);
-                    }
-                } else {
-                    // For all other sections, use html2canvas as usual
-                    console.log(`DEBUG: Capturing section with html2canvas: ${sectionConfig.id}`);
-                    try {
-                        sourceCanvas = await html2canvas(element, {
-                            useCORS: true, 
-                            scale: 2, // Capture at high resolution
-                            backgroundColor: null, 
-                            allowTaint: true, 
-                            // Force desktop-like dimensions for cloning context
-                            windowWidth: gifWidth, 
-                            windowHeight: gifHeight * 2, // Give more height to avoid vertical clipping in cloned context initially
-                            onclone: (clonedDoc) => {
-                                // Apply the current theme to the cloned document
-                                if (document.body.classList.contains('dark-mode')) {
-                                    clonedDoc.body.classList.add('dark-mode');
-                                }
-                                const clonedMainLogo = clonedDoc.getElementById('mainLogo');
-                                if (clonedMainLogo) {
-                                    clonedMainLogo.src = mainLogo.src; 
-                                }
-                                
-                                // Make ALL content sections visible in the cloned DOM for capture
-                                // This ensures html2canvas renders them as if on a desktop, without hidden elements affecting layout.
-                                const elementsToDisplayInClone = [
-                                    'managerStats', 
-                                    'managerSummarySection', // NEW: Specific section for first frame
-                                    'rankJourneyChartContainer',
-                                    'topCaptainsTableContainer',
-                                    'bestPlayersTableContainer',
-                                    'worstPlayersTableContainer',
-                                    'missedPointsTableContainer',
-                                    'transfersSummaryContainer',
-                                    'profitableTransfersTableContainer',
-                                    'lossMakingTransfersTableContainer'
-                                ];
-                                elementsToDisplayInClone.forEach(id => {
-                                    const el = clonedDoc.getElementById(id);
-                                    if (el) {
-                                        el.style.display = el.id === 'rankJourneyChartContainer' ? 'flex' : 'block';
-                                        el.style.overflow = 'visible';
-                                        el.style.height = 'auto';
-                                    }
-                                });
-
-                                clonedDoc.body.style.overflow = 'visible';
-                                clonedDoc.body.style.height = 'auto';
-
-                                // Hide animation message in cloned context
-                                const clonedVideoLoadingMessage = clonedDoc.getElementById('videoLoadingMessage');
-                                if (clonedVideoLoadingMessage) {
-                                    clonedVideoLoadingMessage.style.display = 'none';
-                                }
-                            }
-                        });
-                    } catch (e) {
-                        console.error(`ERROR: Failed to capture section ${sectionConfig.id} for GIF:`, e);
-                        sourceCanvas = document.createElement('canvas'); // Create error canvas
-                        sourceCanvas.width = gifWidth; sourceCanvas.height = gifHeight;
-                        const errorCtx = sourceCanvas.getContext('2d');
-                        errorCtx.fillStyle = '#333';
-                        errorCtx.fillRect(0, 0, gifWidth, gifHeight);
-                        errorCtx.fillStyle = 'white';
-                        errorCtx.font = '24px Arial';
-                        errorCtx.textAlign = 'center';
-                        errorCtx.textBaseline = 'middle';
-                        errorCtx.fillText(`Capture failed: ${sectionConfig.id}`, gifWidth / 2, gifHeight / 2);
-                    }
-                }
-
-                // If a canvas (either live chart or html2canvas output) was successfully generated/found
-                if (sourceCanvas) {
-                    // Create a new canvas with target GIF dimensions (1280x720)
-                    const finalFrameCanvas = document.createElement('canvas');
-                    finalFrameCanvas.width = gifWidth;
-                    finalFrameCanvas.height = gifHeight;
-                    const finalFrameCtx = finalFrameCanvas.getContext('2d');
-
-                    // Calculate scaling to fit sourceCanvas onto finalFrameCanvas maintaining aspect ratio
-                    const hRatio = finalFrameCanvas.width / sourceCanvas.width;
-                    const vRatio = finalFrameCanvas.height / sourceCanvas.height;
-                    const ratio = Math.min(hRatio, vRatio); // Use 'contain' logic
-
-                    const sx = 0;
-                    const sy = 0;
-                    const sWidth = sourceCanvas.width;
-                    const sHeight = sourceCanvas.height;
-
-                    const dWidth = sWidth * ratio;
-                    const dHeight = sHeight * ratio;
-                    const dx = (finalFrameCanvas.width - dWidth) / 2; // Center horizontally
-                    const dy = (finalFrameCanvas.height - dHeight) / 2; // Center vertically
-
-                    // Draw background color first, based on current theme
-                    finalFrameCtx.fillStyle = getComputedStyle(document.body).backgroundColor;
-                    finalFrameCtx.fillRect(0, 0, finalFrameCanvas.width, finalFrameCanvas.height);
-                    
-                    // Draw the captured content onto the new canvas, scaled and centered
-                    finalFrameCtx.drawImage(sourceCanvas, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-
-                    capturedCanvases.push({
-                        canvas: finalFrameCanvas, 
-                        delay: sectionConfig.duration 
-                    });
-                }
-            }
-            
-            // Revert original display states for elements captured via html2canvas
-            for (const id in originalDisplayStates) {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.style.display = originalDisplayStates[id];
-                }
-            }
-            console.log("DEBUG: Finished captureAndPrepareSectionsForGIF.");
-            return capturedCanvases;
-        }
-
-        /**
-         * Generates an animated GIF from captured section canvases.
-         */
-        async function generateGIF() {
-            console.log("DEBUG: Starting GIF generation process...");
-            const sections = await captureAndPrepareSectionsForGIF();
-
-            if (sections.length === 0) {
-                throw new Error("No sections captured for GIF generation.");
-            }
-
-            const gif = new GIF({
-                workers: 2, 
-                quality: 10, 
-                width: gifWidth,
-                height: gifHeight,
-                transparent: 'rgba(0,0,0,0)', 
-                background: getComputedStyle(document.body).backgroundColor, 
-                workerScript: './gif.worker.js' 
-            });
-
-            sections.forEach(section => {
-                gif.addFrame(section.canvas, { delay: section.delay });
-            });
-
-            gif.on('start', function() {
-                console.log("DEBUG: GIF generation started...");
-            });
-
-            gif.on('progress', function(p) {
-                console.log('DEBUG: GIF generation progress: ' + Math.round(p * 100) + '%');
-                videoGeneratingMessage.textContent = `Generating GIF... ${Math.round(p * 100)}% complete.`;
-            });
-
-            gif.on('finished', function(blob) {
-                console.log('DEBUG: GIF generation finished! Size:', blob.size, 'bytes');
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `spl_report_${Date.now()}.gif`; 
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                console.log("DEBUG: GIF download triggered.");
-                videoGeneratingMessage.textContent = 'GIF generated and download started!';
-                // Re-enable buttons
-                shareVideoButton.disabled = false;
-                analyzeButton.disabled = false;
-                createRankJourneyButton.disabled = false;
-                darkModeToggle.disabled = false;
-            });
-
-            gif.on('error', function(error) {
-                console.error("DEBUG: GIF generation error:", error);
-                errorMessage.textContent = `GIF generation failed: ${error.message}. Please try again.`;
-                errorMessage.style.display = 'block';
-                videoGeneratingMessage.style.display = 'none'; 
-            });
-
-            gif.render(); 
-        }
     </script>
-<!-- Triggered deploy to verify functions are still working -->
 </body>
 </html>
