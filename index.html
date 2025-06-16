@@ -341,7 +341,8 @@
             sendEmailVerification, 
             onAuthStateChanged, 
             signOut,
-            reload // Needed for reloading user properties from Auth
+            reload, // Needed for reloading user properties from Auth
+            applyActionCode // New: For handling email verification redirects
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { 
             getFirestore, 
@@ -373,6 +374,16 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // Crucial for Firebase Auth redirects (e.g., email verification links)
+        // This tells Firebase Auth that it's okay to redirect back to the current domain,
+        // even if it's considered a "localhost" or preview URL for security purposes.
+        // This was the missing piece for email verification.
+        if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.vercel.app')) {
+            auth.useDeviceLanguage(); // Use browser language for auth actions
+            // This line tells Firebase to continue verification/password reset on the current domain
+            auth.languageCode = 'en'; // Or your desired language
+        }
+        
         // --- DOM Element References ---
         const mainLogo = document.getElementById('mainLogo');
         const darkModeToggle = document.getElementById('darkModeToggle');
@@ -585,8 +596,15 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                await sendEmailVerification(user);
-                
+                // Pass the current window's location as the continue URL.
+                // This is crucial for Firebase to know where to redirect after verification.
+                const actionCodeSettings = {
+                    url: window.location.href, // Use the current page as the redirect
+                    handleCodeInApp: true, // This should be true for web apps
+                };
+
+                await sendEmailVerification(user, actionCodeSettings); // Pass actionCodeSettings
+
                 console.log("DEBUG: Attempting setDoc for new user profile in Firestore.");
                 await setDoc(doc(db, "users", user.uid), {
                     email: user.email,
@@ -748,7 +766,7 @@
                         
                         // Check if Firestore's emailVerified needs updating based on Auth's status
                         if (!userData.emailVerified && user.emailVerified) {
-                            console.log("DEBUG: Updating Firestore emailVerified status to true for UID:", user.uid);
+                            console.log("DEBUG: onAuthStateChanged: Updating Firestore emailVerified status to true for UID:", user.uid);
                             await updateDoc(userDocRef, { emailVerified: true });
                             userData.emailVerified = true; // Update local userData for immediate use
                         }
@@ -795,6 +813,42 @@
             }
         });
 
+        // --- Handle direct email action links (e.g., verification from email) ---
+        // This runs when the user clicks the link in their email and is redirected back to your app
+        const handleEmailAction = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            const actionCode = urlParams.get('oobCode'); // out-of-band code for actions like verifyEmail, resetPassword
+
+            if (mode === 'verifyEmail' && actionCode) {
+                try {
+                    await applyActionCode(auth, actionCode);
+                    showMessage('Email successfully verified! You can now log in.', 'success');
+                    // Clear query parameters from URL for a cleaner experience
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (error) {
+                    console.error("Error applying email action code:", error);
+                    let friendlyMessage = 'Email verification failed or link is invalid.';
+                    if (error.code === 'auth/invalid-action-code') {
+                        friendlyMessage = 'The verification link is invalid or has expired.';
+                    } else if (error.code === 'auth/expired-action-code') {
+                        friendlyMessage = 'The verification link has expired. Please sign up again to receive a new link.';
+                    } else if (error.code === 'auth/user-disabled') {
+                        friendlyMessage = 'Your account has been disabled. Please contact support.';
+                    }
+                    showMessage(friendlyMessage, 'error');
+                } finally {
+                    // Always show login form after an email action attempt
+                    hideAllContent(); // Hide everything first
+                    authSection.style.display = 'block';
+                    loginForm.style.display = 'block';
+                    signupForm.style.display = 'none';
+                }
+            }
+            // Add other modes (e.g., resetPassword) if needed in the future
+        };
+
+
         // --- Initial Load & Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
             // Set theme on load
@@ -813,6 +867,9 @@
             signupManagerIdInput.addEventListener('input', function() {
                 this.value = convertArabicToWesternNumerals(this.value);
             });
+
+            // Handle email action links (verification, password reset) on page load
+            handleEmailAction();
         });
     </script>
 </body>
