@@ -1,9 +1,11 @@
-{
-  "buildCommand": "node scripts/inject-api-key.js",
-  "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/"
+      "buildCommand": "node scripts/inject-api-key.js",
+      "outputDirectory": ".",
+      "rewrites": [
+        {
+          "source": "/api/(.*)",
+          "destination": "/api/"
+        }
+      ]
     }
-  ]
-}
+    
