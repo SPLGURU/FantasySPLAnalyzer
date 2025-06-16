@@ -344,7 +344,7 @@
             onAuthStateChanged, 
             signOut,
             reload, // Needed for reloading user properties from Auth
-            applyActionCode // New: For handling email verification redirects
+            applyActionCode // For handling email verification redirects if they are handled in-app
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { 
             getFirestore, 
@@ -376,13 +376,16 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Crucial for Firebase Auth redirects (e.g., email verification links)
-        // This tells Firebase Auth that it's okay to redirect back to the current domain,
-        // even if it's considered a "localhost" or preview URL for security purposes.
+        // This block is only relevant if you handle auth actions (like email verification)
+        // IN-APP by passing handleCodeInApp: true and a specific URL in actionCodeSettings.
+        // As per user's requirement, we are reverting to Firebase's default action handler page
+        // which does not require these explicit settings for the initial sendEmailVerification call.
+        /*
         if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.vercel.app')) {
-            auth.useDeviceLanguage(); // Use browser language for auth actions
-            auth.languageCode = 'en'; // Or your desired language
+            auth.useDeviceLanguage(); 
+            auth.languageCode = 'en'; 
         }
+        */
         
         // --- DOM Element References ---
         const mainLogo = document.getElementById('mainLogo');
@@ -426,7 +429,7 @@
             // Increased duration to 5 minutes (300000 milliseconds) for debugging
             setTimeout(() => { 
                 messageBox.style.display = 'none';
-            }, 300000); // Changed from 10000 to 300000
+            }, 300000); 
         }
 
         function hideAllContent() {
@@ -596,14 +599,9 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Pass the current window's location as the continue URL.
-                // This is crucial for Firebase to know where to redirect after verification.
-                const actionCodeSettings = {
-                    url: window.location.href, // Use the current page as the redirect
-                    handleCodeInApp: true, // This should be true for web apps
-                };
-
-                await sendEmailVerification(user, actionCodeSettings); // Pass actionCodeSettings
+                // Removed actionCodeSettings.url to allow Firebase to use its default verification page.
+                // This resolves the auth/unauthorized-continue-uri error for the sendEmailVerification call itself.
+                await sendEmailVerification(user); // No actionCodeSettings here, Firebase uses default handler.
 
                 console.log("DEBUG: Attempting setDoc for new user profile in Firestore.");
                 await setDoc(doc(db, "users", user.uid), {
@@ -813,17 +811,18 @@
         });
 
         // --- Handle direct email action links (e.g., verification from email) ---
-        // This runs when the user clicks the link in their email and is redirected back to your app
+        // This function remains to handle if Firebase still attempts to pass these parameters
+        // for other flows or if a future explicit continueUrl is desired, but it will
+        // not be triggered by the sendEmailVerification call now.
         const handleEmailAction = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const mode = urlParams.get('mode');
-            const actionCode = urlParams.get('oobCode'); // out-of-band code for actions like verifyEmail, resetPassword
+            const actionCode = urlParams.get('oobCode'); 
 
             if (mode === 'verifyEmail' && actionCode) {
                 try {
                     await applyActionCode(auth, actionCode);
                     showMessage('Email successfully verified! You can now log in.', 'success');
-                    // Clear query parameters from URL for a cleaner experience
                     window.history.replaceState({}, document.title, window.location.pathname);
                 } catch (error) {
                     console.error("Error applying email action code:", error);
@@ -837,14 +836,12 @@
                     }
                     showMessage(friendlyMessage, 'error');
                 } finally {
-                    // Always show login form after an email action attempt
-                    hideAllContent(); // Hide everything first
+                    hideAllContent(); 
                     authSection.style.display = 'block';
                     loginForm.style.display = 'block';
                     signupForm.style.display = 'none';
                 }
             }
-            // Add other modes (e.g., resetPassword) if needed in the future
         };
 
 
