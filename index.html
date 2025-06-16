@@ -202,7 +202,7 @@
             border-radius: 8px;
             margin-top: 15px;
             font-weight: bold;
-            /* NO TIMEOUT FOR DEBUGGING */
+            /* NO TIMEOUT FOR DEBUGGING - messages stay indefinitely */
             display: none; 
         }
         .message-box.success { background-color: #d4edda; color: #155724; }
@@ -412,10 +412,7 @@
 
         // --- Helper Functions ---
         function showMessage(message, type = 'info') {
-            // Hide any currently displayed message first to ensure only one is visible at a time
-            messageBox.style.display = 'none'; 
-            messageBox.textContent = ''; // Clear previous text
-
+            // Clear any existing message and set a new one.
             messageBox.textContent = message;
             messageBox.className = `message-box ${type}`;
             messageBox.style.display = 'block';
@@ -426,6 +423,7 @@
             authSection.style.display = 'none';
             loggedInContent.style.display = 'none';
             messageBox.style.display = 'none'; // Ensure message box is hidden when switching views
+            messageBox.textContent = ''; // Also clear text when hidden
         }
 
         function convertArabicToWesternNumerals(input) {
@@ -562,8 +560,9 @@
 
         // Handle Self-Registration (Manager)
         signupButton.addEventListener('click', async () => {
-            messageBox.textContent = ''; // Clear existing message before showing new
+            messageBox.textContent = ''; // Clear existing message immediately on click
             messageBox.className = '';
+            messageBox.style.display = 'none'; // Ensure it starts hidden
 
             const email = signupEmailInput.value;
             const password = signupPasswordInput.value;
@@ -584,12 +583,12 @@
             }
 
             try {
+                // Display the "Registering..." message, which should now stay
                 showMessage("Registering your account...", "info");
 
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Relying on Firebase's default hosted verification page.
                 await sendEmailVerification(user); 
 
                 console.log("DEBUG: Attempting setDoc for new user profile in Firestore.");
@@ -601,6 +600,7 @@
                     emailVerified: false 
                 });
 
+                // Display the final success message, which will overwrite the "Registering..." one
                 showMessage("Account created! Please verify your email and then log in.", "success");
                 console.log("DEBUG: Firestore document creation attempt completed.");
 
@@ -614,8 +614,6 @@
             } catch (error) {
                 console.error("DEBUG: Signup / Firestore setDoc failed:", error); 
                 let friendlyMessage = "Failed to create account.";
-                // This is the error handler for the SIGNUP button click, not the email verification link click.
-                // The issue you're seeing ('link expired') happens *after* this stage, when you click the email.
                 if (error.code === 'auth/email-already-in-use') {
                     friendlyMessage = "That email address is already in use.";
                 } else if (error.code === 'auth/invalid-email') {
@@ -627,14 +625,16 @@
                 } else if (error.message) { 
                     friendlyMessage = `An unexpected error occurred: ${error.message}`;
                 }
+                // Display the error message, which will overwrite any previous message
                 showMessage(friendlyMessage, "error");
             }
         });
 
         // Handle Login
         loginButton.addEventListener('click', async () => {
-            messageBox.textContent = ''; // Clear existing message before showing new
+            messageBox.textContent = ''; // Clear existing message immediately on click
             messageBox.className = '';
+            messageBox.style.display = 'none'; // Ensure it starts hidden
 
             const email = loginEmailInput.value;
             const password = loginPasswordInput.value;
@@ -648,7 +648,7 @@
 
                 if (!user.emailVerified) {
                     await signOut(auth);
-                    showMessage("Please verify your email address before logging in.", "info");
+                    showMessage("Please verify your email address before logging in.", "info"); // This message will now stay
                     return;
                 }
                 
@@ -672,7 +672,7 @@
                     displayRole.textContent = userData.role || 'N/A';
                     displaySplManagerId.textContent = userData.splManagerId || 'N/A';
                     
-                    showMessage("Successfully logged in!", "success");
+                    showMessage("Successfully logged in!", "success"); // This message will now stay
 
                     // Call functions to calculate and display both ranks
                     if (userData.role === 'manager' && userData.createdAt) {
@@ -689,7 +689,7 @@
 
                 } else {
                     console.warn("DEBUG: Firestore user document not found for UID:", user.uid, ". Logging out.");
-                    showMessage("Login successful, but user data not found. Please contact support. Logging out.", "error");
+                    showMessage("Login successful, but user data not found. Please contact support. Logging out.", "error"); // This message will now stay
                     await signOut(auth);
                 }
                 loginPasswordInput.value = ''; 
@@ -704,7 +704,7 @@
                 } else if (error.code === 'auth/wrong-password') {
                     friendlyMessage = "Invalid password.";
                 }
-                showMessage(friendlyMessage, "error");
+                showMessage(friendlyMessage, "error"); // This message will now stay
             }
         });
 
@@ -712,10 +712,10 @@
         logoutButton.addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                showMessage("Logged out successfully.", "info");
+                showMessage("Logged out successfully.", "info"); // This message will now stay
             } catch (error) {
                 console.error("DEBUG: Logout error:", error);
-                showMessage("Failed to logout. Please try again.", "error");
+                showMessage("Failed to logout. Please try again.", "error"); // This message will now stay
             }
         });
 
@@ -725,6 +725,7 @@
             loginForm.style.display = 'none';
             signupForm.style.display = 'block';
             messageBox.style.display = 'none'; // Ensure message box is hidden when switching forms
+            messageBox.textContent = ''; // Clear message text when switching forms
         });
 
         showLoginLink.addEventListener('click', (e) => {
@@ -732,12 +733,13 @@
             loginForm.style.display = 'block';
             signupForm.style.display = 'none';
             messageBox.style.display = 'none'; // Ensure message box is hidden when switching forms
+            messageBox.textContent = ''; // Clear message text when switching forms
         });
 
 
         // --- Authentication State Listener (Core UI Logic) ---
         onAuthStateChanged(auth, async (user) => {
-            hideAllContent(); // Hide everything first
+            hideAllContent(); // Hide everything first (including message box)
 
             if (user) {
                 // User is signed in
@@ -781,7 +783,7 @@
                     } else {
                         // User is in Auth but not Firestore, likely a failed signup attempt
                         console.warn("DEBUG: Firestore document for user does not exist. Logging out.");
-                        showMessage("Login successful, but user data not found. Please contact support. Logging out.", "error");
+                        // Do NOT showMessage here. Let login/signup flow manage initial messages.
                         await signOut(auth); // Log out if data is inconsistent
                     }
                 } else {
@@ -790,7 +792,8 @@
                     authSection.style.display = 'block'; // Show auth forms
                     loginForm.style.display = 'block'; // Always default to login form for unverified
                     signupForm.style.display = 'none'; 
-                    showMessage("Your email is not verified. Please check your inbox for a verification link.", "info");
+                    // Reverted: Removed showMessage("Your email is not verified...") from here.
+                    // This message is now explicitly shown by the login/signup button handlers when relevant.
                 }
             } else {
                 // User is signed out
