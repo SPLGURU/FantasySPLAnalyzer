@@ -412,11 +412,13 @@
 
         // --- Helper Functions ---
         function showMessage(message, type = 'info') {
-            // Clear any existing message and set a new one.
+            // Ensure message box is visible and clear previous text
+            messageBox.style.display = 'block'; 
+            messageBox.textContent = ''; 
+
             messageBox.textContent = message;
             messageBox.className = `message-box ${type}`;
-            messageBox.style.display = 'block';
-            // Removed setTimeout entirely for debugging, message will stay until new one appears or page reloads.
+            // Messages will now stay indefinitely for debugging, no setTimeout.
         }
 
         function hideAllContent() {
@@ -647,7 +649,7 @@
                 await reload(user); 
 
                 if (!user.emailVerified) {
-                    await signOut(auth);
+                    await signOut(auth); // Correct: Sign out if attempting to LOG IN with unverified email
                     showMessage("Please verify your email address before logging in.", "info"); // This message will now stay
                     return;
                 }
@@ -746,7 +748,7 @@
                 await reload(user); 
 
                 if (user.emailVerified) {
-                    // User is verified, try to fetch their Firestore doc
+                    // User is verified, display logged-in content
                     const userDocRef = doc(db, "users", user.uid);
                     const userDocSnap = await getDoc(userDocRef);
 
@@ -754,14 +756,14 @@
                         const userData = userDocSnap.data();
                         console.log(`DEBUG: User logged in: ${user.email}, UID: ${user.uid}, Role: ${userData.role || 'N/A'}`);
                         
-                        // Check if Firestore's emailVerified needs updating based on Auth's status
+                        // Update Firestore emailVerified status if needed (should already be true here)
                         if (!userData.emailVerified && user.emailVerified) {
                             console.log("DEBUG: onAuthStateChanged: Updating Firestore emailVerified status to true for UID:", user.uid);
                             await updateDoc(userDocRef, { emailVerified: true });
-                            userData.emailVerified = true; // Update local userData for immediate use
+                            userData.emailVerified = true; 
                         }
 
-                        loggedInContent.style.display = 'block'; // Show logged-in content
+                        loggedInContent.style.display = 'block'; 
                         loggedInUserName.textContent = user.email; 
                         displayUid.textContent = user.uid;
                         displayEmail.textContent = user.email;
@@ -781,25 +783,26 @@
                         }
 
                     } else {
-                        // User is in Auth but not Firestore, likely a failed signup attempt
+                        // User is in Auth but not Firestore, likely a failed signup. Log out.
                         console.warn("DEBUG: Firestore document for user does not exist. Logging out.");
-                        // Do NOT showMessage here. Let login/signup flow manage initial messages.
-                        await signOut(auth); // Log out if data is inconsistent
+                        // Do NOT show a message here, as it might conflict with the signup flow.
+                        await signOut(auth); 
                     }
                 } else {
-                    // User is signed in but email not verified
-                    console.log("DEBUG: User is logged in but email not verified:", user.uid);
-                    authSection.style.display = 'block'; // Show auth forms
-                    loginForm.style.display = 'block'; // Always default to login form for unverified
+                    // User is signed in but email not verified (e.g., just signed up, or refreshed page after signup)
+                    console.log("DEBUG: User is signed in but email not verified:", user.uid);
+                    authSection.style.display = 'block';
+                    loginForm.style.display = 'block'; 
                     signupForm.style.display = 'none'; 
-                    // Reverted: Removed showMessage("Your email is not verified...") from here.
-                    // This message is now explicitly shown by the login/signup button handlers when relevant.
+                    // Important: Removed 'showMessage("Your email is not verified...")' from here.
+                    // This message is now explicitly managed by the login/signup button handlers when appropriate.
+                    // For new signups, the signupButton will show "Account created! Please verify..."
                 }
             } else {
-                // User is signed out
+                // User is signed out: show authentication forms.
                 console.log("DEBUG: User is signed out.");
-                authSection.style.display = 'block'; // Show auth forms
-                loginForm.style.display = 'block'; // Default to login
+                authSection.style.display = 'block'; 
+                loginForm.style.display = 'block'; 
                 signupForm.style.display = 'none';
             }
         });
