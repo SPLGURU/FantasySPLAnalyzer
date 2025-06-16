@@ -343,8 +343,7 @@
             sendEmailVerification, 
             onAuthStateChanged, 
             signOut,
-            reload, // Needed for reloading user properties from Auth
-            applyActionCode // For handling email verification redirects if they are handled in-app
+            reload // Needed for reloading user properties from Auth
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { 
             getFirestore, 
@@ -376,16 +375,8 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // This block is only relevant if you handle auth actions (like email verification)
-        // IN-APP by passing handleCodeInApp: true and a specific URL in actionCodeSettings.
-        // As per user's requirement, we are reverting to Firebase's default action handler page
-        // which does not require these explicit settings for the initial sendEmailVerification call.
-        /*
-        if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.vercel.app')) {
-            auth.useDeviceLanguage(); 
-            auth.languageCode = 'en'; 
-        }
-        */
+        // Reverted: Removed explicit auth.useDeviceLanguage() and auth.languageCode = 'en';
+        // as they are not needed for default verification page behavior and were not in prior working versions.
         
         // --- DOM Element References ---
         const mainLogo = document.getElementById('mainLogo');
@@ -599,9 +590,10 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Removed actionCodeSettings.url to allow Firebase to use its default verification page.
-                // This resolves the auth/unauthorized-continue-uri error for the sendEmailVerification call itself.
-                await sendEmailVerification(user); // No actionCodeSettings here, Firebase uses default handler.
+                // Reverted: Removed actionCodeSettings entirely.
+                // This makes sendEmailVerification behave like the original working Netlify version,
+                // relying on Firebase's default hosted verification page.
+                await sendEmailVerification(user); 
 
                 console.log("DEBUG: Attempting setDoc for new user profile in Firestore.");
                 await setDoc(doc(db, "users", user.uid), {
@@ -810,10 +802,10 @@
             }
         });
 
-        // --- Handle direct email action links (e.g., verification from email) ---
-        // This function remains to handle if Firebase still attempts to pass these parameters
-        // for other flows or if a future explicit continueUrl is desired, but it will
-        // not be triggered by the sendEmailVerification call now.
+        // Reverted: Removed handleEmailAction function completely.
+        // It's not needed if Firebase handles verification on its own page,
+        // and its presence was interfering.
+        /*
         const handleEmailAction = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const mode = urlParams.get('mode');
@@ -843,6 +835,7 @@
                 }
             }
         };
+        */
 
 
         // --- Initial Load & Event Listeners ---
@@ -864,8 +857,8 @@
                 this.value = convertArabicToWesternNumerals(this.value);
             });
 
-            // Handle email action links (verification, password reset) on page load
-            handleEmailAction();
+            // Reverted: Removed call to handleEmailAction() as the function is now removed.
+            // handleEmailAction(); 
         });
     </script>
 </body>
