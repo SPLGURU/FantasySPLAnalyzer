@@ -412,9 +412,10 @@
             messageBox.textContent = message;
             messageBox.className = `message-box ${type}`;
             messageBox.style.display = 'block';
-            setTimeout(() => {
+            // Increased duration to 10 seconds (10000 milliseconds)
+            setTimeout(() => { 
                 messageBox.style.display = 'none';
-            }, 5000);
+            }, 10000); // Changed from 5000 to 10000
         }
 
         function hideAllContent() {
@@ -645,18 +646,18 @@
                 }
                 
                 const userDocRef = doc(db, "users", user.uid);
-                const userDocSnap = await getDoc(userDocRef);
+                    const userDocSnap = await getDoc(userDocRef);
 
-                if (userDocSnap.exists()) {
-                    const userData = userDocSnap.data();
-                    console.log("DEBUG: User data from Firestore on login:", userData);
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data();
+                        console.log("DEBUG: User data from Firestore on login:", userData);
 
-                    // Check if Firestore's emailVerified needs updating based on Auth's status
-                    if (!userData.emailVerified && user.emailVerified) {
-                        console.log("DEBUG: Updating Firestore emailVerified status to true for UID:", user.uid);
-                        await updateDoc(userDocRef, { emailVerified: true });
-                        userData.emailVerified = true; // Update local userData for immediate use
-                    }
+                        // Check if Firestore's emailVerified needs updating based on Auth's status
+                        if (!userData.emailVerified && user.emailVerified) {
+                            console.log("DEBUG: Updating Firestore emailVerified status to true for UID:", user.uid);
+                            await updateDoc(userDocRef, { emailVerified: true });
+                            userData.emailVerified = true; // Update local userData for immediate use
+                        }
                     
                     loggedInUserName.textContent = user.email; 
                     displayUid.textContent = user.uid;
@@ -774,7 +775,7 @@
                     } else {
                         // User is in Auth but not Firestore, likely a failed signup attempt
                         console.warn("DEBUG: Firestore document for user does not exist. Logging out.");
-                        showMessage("Your user data could not be found. Please contact support. Logging out.", "error");
+                        showMessage("Login successful, but user data not found. Please contact support. Logging out.", "error");
                         await signOut(auth); // Log out if data is inconsistent
                     }
                 } else {
