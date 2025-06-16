@@ -357,8 +357,9 @@
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- Your Firebase Configuration ---
+        // The API Key will be injected by a build script during deployment.
         const firebaseConfig = {
-            apiKey: "___FIREBASE_API_KEY_PLACEHOLDER___", // Netlify will inject this during build
+            apiKey: "___FIREBASE_API_KEY_PLACEHOLDER___", 
             authDomain: "spl-control-room-v2.firebaseapp.com",
             projectId: "spl-control-room-v2",
             storageBucket: "spl-control-room-v2.firebasestorage.app",
@@ -513,8 +514,8 @@
         }
 
         /**
-         * Fetches and displays the user's SPL Overall Rank from the Netlify Function.
-         * This function expects the Netlify function to be located at /.netlify/functions/fetch-spl-data
+         * Fetches and displays the user's SPL Overall Rank from the Vercel Function.
+         * This function expects the Vercel function to be located at /api/fetch-spl-data
          * @param {string} splManagerId The SPL Manager ID of the current user.
          */
         async function fetchAndDisplaySPLOverallRank(splManagerId) {
@@ -528,8 +529,8 @@
                     return;
                 }
 
-                // Call the Netlify Function (which in turn calls the SPL API)
-                const response = await fetch(`/.netlify/functions/fetch-spl-data?id=${splManagerId}`);
+                // Call the Vercel Function (which in turn calls the SPL API)
+                const response = await fetch(`/api/fetch-spl-data?id=${splManagerId}`);
                 const data = await response.json();
                 console.log('DEBUG: SPL API fetch response received:', data);
 
@@ -541,7 +542,7 @@
                     }
                 } else {
                     splOverallRankDisplay.textContent = 'Error fetching SPL Rank';
-                    console.error("DEBUG: SPL API Netlify Function returned an error:", data.error || response.statusText);
+                    console.error("DEBUG: SPL API Vercel Function returned an error:", data.error || response.statusText);
                     showMessage(`Failed to fetch SPL Rank: ${data.error || response.statusText}`, "error");
                 }
             } catch (error) {
@@ -746,7 +747,7 @@
                         
                         // Check if Firestore's emailVerified needs updating based on Auth's status
                         if (!userData.emailVerified && user.emailVerified) {
-                            console.log("DEBUG: onAuthStateChanged: Updating Firestore emailVerified status to true for UID:", user.uid);
+                            console.log("DEBUG: Updating Firestore emailVerified status to true for UID:", user.uid);
                             await updateDoc(userDocRef, { emailVerified: true });
                             userData.emailVerified = true; // Update local userData for immediate use
                         }
@@ -773,7 +774,7 @@
                     } else {
                         // User is in Auth but not Firestore, likely a failed signup attempt
                         console.warn("DEBUG: Firestore document for user does not exist. Logging out.");
-                        showMessage("Login successful, but user data not found. Please contact support. Logging out.", "error");
+                        showMessage("Your user data could not be found. Please contact support. Logging out.", "error");
                         await signOut(auth); // Log out if data is inconsistent
                     }
                 } else {
