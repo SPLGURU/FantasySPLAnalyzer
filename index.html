@@ -202,7 +202,8 @@
             border-radius: 8px;
             margin-top: 15px;
             font-weight: bold;
-            display: none;
+            /* NO TIMEOUT FOR DEBUGGING */
+            display: none; 
         }
         .message-box.success { background-color: #d4edda; color: #155724; }
         .message-box.error { background-color: #f8d7da; color: #721c24; }
@@ -374,9 +375,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-
-        // Reverted: Removed explicit auth.useDeviceLanguage() and auth.languageCode = 'en';
-        // as they are not needed for default verification page behavior and were not in prior working versions.
         
         // --- DOM Element References ---
         const mainLogo = document.getElementById('mainLogo');
@@ -414,19 +412,20 @@
 
         // --- Helper Functions ---
         function showMessage(message, type = 'info') {
+            // Hide any currently displayed message first to ensure only one is visible at a time
+            messageBox.style.display = 'none'; 
+            messageBox.textContent = ''; // Clear previous text
+
             messageBox.textContent = message;
             messageBox.className = `message-box ${type}`;
             messageBox.style.display = 'block';
-            // Increased duration to 5 minutes (300000 milliseconds) for debugging
-            setTimeout(() => { 
-                messageBox.style.display = 'none';
-            }, 300000); 
+            // Removed setTimeout entirely for debugging, message will stay until new one appears or page reloads.
         }
 
         function hideAllContent() {
             authSection.style.display = 'none';
             loggedInContent.style.display = 'none';
-            messageBox.style.display = 'none';
+            messageBox.style.display = 'none'; // Ensure message box is hidden when switching views
         }
 
         function convertArabicToWesternNumerals(input) {
@@ -563,7 +562,7 @@
 
         // Handle Self-Registration (Manager)
         signupButton.addEventListener('click', async () => {
-            messageBox.textContent = '';
+            messageBox.textContent = ''; // Clear existing message before showing new
             messageBox.className = '';
 
             const email = signupEmailInput.value;
@@ -590,9 +589,7 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Reverted: Removed actionCodeSettings entirely.
-                // This makes sendEmailVerification behave like the original working Netlify version,
-                // relying on Firebase's default hosted verification page.
+                // Relying on Firebase's default hosted verification page.
                 await sendEmailVerification(user); 
 
                 console.log("DEBUG: Attempting setDoc for new user profile in Firestore.");
@@ -617,6 +614,8 @@
             } catch (error) {
                 console.error("DEBUG: Signup / Firestore setDoc failed:", error); 
                 let friendlyMessage = "Failed to create account.";
+                // This is the error handler for the SIGNUP button click, not the email verification link click.
+                // The issue you're seeing ('link expired') happens *after* this stage, when you click the email.
                 if (error.code === 'auth/email-already-in-use') {
                     friendlyMessage = "That email address is already in use.";
                 } else if (error.code === 'auth/invalid-email') {
@@ -634,7 +633,7 @@
 
         // Handle Login
         loginButton.addEventListener('click', async () => {
-            messageBox.textContent = '';
+            messageBox.textContent = ''; // Clear existing message before showing new
             messageBox.className = '';
 
             const email = loginEmailInput.value;
@@ -725,14 +724,14 @@
             e.preventDefault();
             loginForm.style.display = 'none';
             signupForm.style.display = 'block';
-            messageBox.style.display = 'none'; // Ensure message box is hidden
+            messageBox.style.display = 'none'; // Ensure message box is hidden when switching forms
         });
 
         showLoginLink.addEventListener('click', (e) => {
             e.preventDefault();
             loginForm.style.display = 'block';
             signupForm.style.display = 'none';
-            messageBox.style.display = 'none'; // Ensure message box is hidden
+            messageBox.style.display = 'none'; // Ensure message box is hidden when switching forms
         });
 
 
@@ -802,41 +801,6 @@
             }
         });
 
-        // Reverted: Removed handleEmailAction function completely.
-        // It's not needed if Firebase handles verification on its own page,
-        // and its presence was interfering.
-        /*
-        const handleEmailAction = async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const mode = urlParams.get('mode');
-            const actionCode = urlParams.get('oobCode'); 
-
-            if (mode === 'verifyEmail' && actionCode) {
-                try {
-                    await applyActionCode(auth, actionCode);
-                    showMessage('Email successfully verified! You can now log in.', 'success');
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (error) {
-                    console.error("Error applying email action code:", error);
-                    let friendlyMessage = 'Email verification failed or link is invalid.';
-                    if (error.code === 'auth/invalid-action-code') {
-                        friendlyMessage = 'The verification link is invalid or has expired.';
-                    } else if (error.code === 'auth/expired-action-code') {
-                        friendlyMessage = 'The verification link has expired. Please sign up again to receive a new link.';
-                    } else if (error.code === 'auth/user-disabled') {
-                        friendlyMessage = 'Your account has been disabled. Please contact support.';
-                    }
-                    showMessage(friendlyMessage, 'error');
-                } finally {
-                    hideAllContent(); 
-                    authSection.style.display = 'block';
-                    loginForm.style.display = 'block';
-                    signupForm.style.display = 'none';
-                }
-            }
-        };
-        */
-
 
         // --- Initial Load & Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -856,9 +820,6 @@
             signupManagerIdInput.addEventListener('input', function() {
                 this.value = convertArabicToWesternNumerals(this.value);
             });
-
-            // Reverted: Removed call to handleEmailAction() as the function is now removed.
-            // handleEmailAction(); 
         });
     </script>
 </body>
