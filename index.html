@@ -38,20 +38,21 @@
             font-family: 'Roboto', sans-serif;
             background-color: var(--spl-light-bg);
             color: var(--spl-text-dark);
-            margin: 0;
-            padding: 20px;
+            margin: 0; /* Remove default body margin */
+            padding: 10px; /* Reduce overall padding */
             line-height: 1.6;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
+            min-height: unset; /* Allow content to naturally sit at the top */
+            height: auto; /* Ensure content height is natural */
             box-sizing: border-box;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         #logo-container {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px; /* Reduced margin */
             width: 100%;
         }
 
@@ -67,7 +68,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-top: 5px; /* Added slight top margin */
+            margin-bottom: 15px; /* Reduced margin */
             gap: 10px;
             color: var(--spl-text-dark);
             font-size: 0.95em;
@@ -469,7 +471,7 @@
             try {
                 if (currentUserData.role !== 'manager' || !currentUserData.createdAt) {
                     queueNumberDisplay.textContent = 'N/A (Not a Manager or missing data)';
-                    console.warn("DEBUG: User not a manager or missing createdAt for queue number calculation.");
+                    console.log("DEBUG: User not a manager or missing createdAt for queue number calculation.");
                     return;
                 }
 
