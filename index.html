@@ -202,7 +202,7 @@
             border-radius: 8px;
             margin-top: 15px;
             font-weight: bold;
-            /* NO TIMEOUT FOR DEBUGGING - messages stay indefinitely */
+            /* Messages now stay indefinitely for debugging, no setTimeout. */
             display: none; 
         }
         .message-box.success { background-color: #d4edda; color: #155724; }
@@ -375,6 +375,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // --- GLOBAL FLAG to prevent onAuthStateChanged interference during active auth processes ---
+        let isProcessingAuth = false; // NEW GLOBAL FLAG
         
         // --- DOM Element References ---
         const mainLogo = document.getElementById('mainLogo');
@@ -413,11 +416,10 @@
         // --- Helper Functions ---
         function showMessage(message, type = 'info') {
             // Ensure message box is visible and clear previous text
-            messageBox.style.display = 'block'; 
-            messageBox.textContent = ''; 
-
-            messageBox.textContent = message;
-            messageBox.className = `message-box ${type}`;
+            messageBox.textContent = ''; // Clear previous text first
+            messageBox.className = `message-box ${type}`; // Set class for styling
+            messageBox.textContent = message; // Set new message text
+            messageBox.style.display = 'block'; // Ensure it's displayed
             // Messages will now stay indefinitely for debugging, no setTimeout.
         }
 
@@ -566,6 +568,9 @@
             messageBox.className = '';
             messageBox.style.display = 'none'; // Ensure it starts hidden
 
+            // Set flag to indicate auth process is active
+            isProcessingAuth = true; // NEW: Set flag at start of auth process
+
             const email = signupEmailInput.value;
             const password = signupPasswordInput.value;
             const confirmPassword = signupConfirmPasswordInput.value;
@@ -573,19 +578,22 @@
 
             if (password !== confirmPassword) {
                 showMessage("Passwords do not match.", "error");
+                isProcessingAuth = false; // NEW: Clear flag on early exit
                 return;
             }
             if (password.length < 6) {
                 showMessage("Password must be at least 6 characters long.", "error");
+                isProcessingAuth = false; // NEW: Clear flag on early exit
                 return;
             }
             if (!/^\d+$/.test(managerId)) {
                 showMessage("SPL Manager ID is required and must be a valid number.", "error");
+                isProcessingAuth = false; // NEW: Clear flag on early exit
                 return;
             }
 
             try {
-                // Display the "Registering..." message, which should now stay
+                // Display the "Registering..." message
                 showMessage("Registering your account...", "info");
 
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -601,6 +609,10 @@
                     createdAt: serverTimestamp(), 
                     emailVerified: false 
                 });
+
+                // Crucial step: Sign out the user immediately after sending verification email
+                // This prevents them from being "signed in" to the app before verification.
+                await signOut(auth); // NEW: Sign out user immediately after signup
 
                 // Display the final success message, which will overwrite the "Registering..." one
                 showMessage("Account created! Please verify your email and then log in.", "success");
@@ -627,8 +639,11 @@
                 } else if (error.message) { 
                     friendlyMessage = `An unexpected error occurred: ${error.message}`;
                 }
-                // Display the error message, which will overwrite any previous message
+                // Display the error message
                 showMessage(friendlyMessage, "error");
+            } finally {
+                // Ensure the flag is cleared after the process, whether success or failure
+                isProcessingAuth = false; // NEW: Clear flag in finally block
             }
         });
 
@@ -637,6 +652,9 @@
             messageBox.textContent = ''; // Clear existing message immediately on click
             messageBox.className = '';
             messageBox.style.display = 'none'; // Ensure it starts hidden
+
+            // Set flag to indicate auth process is active
+            isProcessingAuth = true; // NEW: Set flag at start of auth process
 
             const email = loginEmailInput.value;
             const password = loginPasswordInput.value;
@@ -707,6 +725,9 @@
                     friendlyMessage = "Invalid password.";
                 }
                 showMessage(friendlyMessage, "error"); // This message will now stay
+            } finally {
+                // Ensure the flag is cleared after the process, whether success or failure
+                isProcessingAuth = false; // NEW: Clear flag in finally block
             }
         });
 
@@ -741,6 +762,13 @@
 
         // --- Authentication State Listener (Core UI Logic) ---
         onAuthStateChanged(auth, async (user) => {
+            // CRITICAL: If an auth process is actively being handled by a button click, exit immediately.
+            // This prevents race conditions and conflicting UI updates during signup/login.
+            if (isProcessingAuth) { // NEW: Check flag
+                console.log("DEBUG: onAuthStateChanged deferred due to active auth process.");
+                return; 
+            }
+
             hideAllContent(); // Hide everything first (including message box)
 
             if (user) {
@@ -785,7 +813,6 @@
                     } else {
                         // User is in Auth but not Firestore, likely a failed signup. Log out.
                         console.warn("DEBUG: Firestore document for user does not exist. Logging out.");
-                        // Do NOT show a message here, as it might conflict with the signup flow.
                         await signOut(auth); 
                     }
                 } else {
@@ -794,9 +821,7 @@
                     authSection.style.display = 'block';
                     loginForm.style.display = 'block'; 
                     signupForm.style.display = 'none'; 
-                    // Important: Removed 'showMessage("Your email is not verified...")' from here.
-                    // This message is now explicitly managed by the login/signup button handlers when appropriate.
-                    // For new signups, the signupButton will show "Account created! Please verify..."
+                    // No showMessage here: the signup flow handles it. This path is for page loads after signup.
                 }
             } else {
                 // User is signed out: show authentication forms.
