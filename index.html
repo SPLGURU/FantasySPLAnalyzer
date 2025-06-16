@@ -380,7 +380,6 @@
         // This was the missing piece for email verification.
         if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.vercel.app')) {
             auth.useDeviceLanguage(); // Use browser language for auth actions
-            // This line tells Firebase to continue verification/password reset on the current domain
             auth.languageCode = 'en'; // Or your desired language
         }
         
@@ -423,10 +422,10 @@
             messageBox.textContent = message;
             messageBox.className = `message-box ${type}`;
             messageBox.style.display = 'block';
-            // Increased duration to 10 seconds (10000 milliseconds)
+            // Increased duration to 5 minutes (300000 milliseconds) for debugging
             setTimeout(() => { 
                 messageBox.style.display = 'none';
-            }, 10000); // Changed from 5000 to 10000
+            }, 300000); // Changed from 10000 to 300000
         }
 
         function hideAllContent() {
@@ -562,7 +561,7 @@
                 splOverallRankDisplay.textContent = 'Error fetching SPL Rank';
                 showMessage(`Failed to load SPL Rank: ${error.message}. Network or API issue.`, "error");
             }
-        }
+        });
 
 
         // --- Authentication Logic ---
