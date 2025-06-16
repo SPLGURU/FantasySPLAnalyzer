@@ -377,7 +377,6 @@
         // Crucial for Firebase Auth redirects (e.g., email verification links)
         // This tells Firebase Auth that it's okay to redirect back to the current domain,
         // even if it's considered a "localhost" or preview URL for security purposes.
-        // This was the missing piece for email verification.
         if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.vercel.app')) {
             auth.useDeviceLanguage(); // Use browser language for auth actions
             auth.languageCode = 'en'; // Or your desired language
@@ -470,7 +469,7 @@
             try {
                 if (currentUserData.role !== 'manager' || !currentUserData.createdAt) {
                     queueNumberDisplay.textContent = 'N/A (Not a Manager or missing data)';
-                    console.log("DEBUG: User not a manager or missing createdAt for queue number calculation.");
+                    console.warn("DEBUG: User not a manager or missing createdAt for queue number calculation.");
                     return;
                 }
 
@@ -561,7 +560,7 @@
                 splOverallRankDisplay.textContent = 'Error fetching SPL Rank';
                 showMessage(`Failed to load SPL Rank: ${error.message}. Network or API issue.`, "error");
             }
-        });
+        }
 
 
         // --- Authentication Logic ---
@@ -734,14 +733,14 @@
             e.preventDefault();
             loginForm.style.display = 'none';
             signupForm.style.display = 'block';
-            messageBox.style.display = 'none';
+            messageBox.style.display = 'none'; // Ensure message box is hidden
         });
 
         showLoginLink.addEventListener('click', (e) => {
             e.preventDefault();
             loginForm.style.display = 'block';
             signupForm.style.display = 'none';
-            messageBox.style.display = 'none';
+            messageBox.style.display = 'none'; // Ensure message box is hidden
         });
 
 
@@ -751,7 +750,6 @@
 
             if (user) {
                 // User is signed in
-                // Reload user properties from Firebase Auth to get latest emailVerified status
                 await reload(user); 
 
                 if (user.emailVerified) {
@@ -798,8 +796,8 @@
                 } else {
                     // User is signed in but email not verified
                     console.log("DEBUG: User is logged in but email not verified:", user.uid);
-                    authSection.style.display = 'block';
-                    loginForm.style.display = 'block'; 
+                    authSection.style.display = 'block'; // Show auth forms
+                    loginForm.style.display = 'block'; // Always default to login form for unverified
                     signupForm.style.display = 'none'; 
                     showMessage("Your email is not verified. Please check your inbox for a verification link.", "info");
                 }
