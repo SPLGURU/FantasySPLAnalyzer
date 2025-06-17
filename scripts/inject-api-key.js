@@ -1,31 +1,42 @@
+// This script runs during the Vercel build process (as specified in vercel.json's buildCommand).
+// Its purpose is to inject the Firebase API key from a Vercel environment variable
+// into the index.html file, replacing a placeholder string.
+
 const fs = require('fs');
 const path = require('path');
 
-// This script should be located in 'scripts/inject-api-key.js'
-// It modifies 'index.html' which is in the parent directory of 'scripts'
+// Define the path to your index.html file.
+// __dirname refers to the directory of the current script (scripts/).
+// '..' moves up one level to the project root.
+// 'index.html' points to the target file.
 const filePath = path.join(__dirname, '..', 'index.html');
-let content = fs.readFileSync(filePath, 'utf8');
 
-// Get the API key from Vercel's environment variable.
-// Using a plain name (FIREBASE_API_KEY) for better compatibility with generic Node.js builds.
-const apiKey = process.env.FIREBASE_API_KEY; 
+try {
+    // Read the content of index.html
+    let content = fs.readFileSync(filePath, 'utf8');
 
-if (!apiKey) {
-    console.error('ERROR: FIREBASE_API_KEY environment variable is not set! Build will fail.');
-    process.exit(1); // Exit with an error if key is missing, to ensure build fails clearly
-}
+    // Define the placeholder string that needs to be replaced.
+    const placeholder = '___FIREBASE_API_KEY_PLACEHOLDER___';
 
-// This placeholder must exactly match the one in index.html
-const placeholder = '___FIREBASE_API_KEY_PLACEHOLDER___';
+    // Define the name of the Vercel environment variable that holds the API key.
+    // This is the new variable name you created: FIREBASE_UNRESTRICTED_API_KEY.
+    const newApiKeyEnvVar = process.env.FIREBASE_UNRESTRICTED_API_KEY;
 
-if (content.includes(placeholder)) {
-    // Perform the replacement
-    content = content.replace(placeholder, apiKey);
+    // Check if the environment variable is set. If not, log a warning and exit.
+    if (!newApiKeyEnvVar) {
+        console.warn('WARNING: FIREBASE_UNRESTRICTED_API_KEY environment variable is not set. The Firebase API key will not be injected.');
+        process.exit(0); // Exit gracefully to allow the build to proceed, but warn.
+    }
+
+    // Replace the placeholder with the actual API key value from the environment variable.
+    content = content.replace(placeholder, newApiKeyEnvVar);
+
     // Write the modified content back to index.html
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log('SUCCESS: Firebase API Key injected into index.html');
-} else {
-    // This warning suggests a mismatch if the placeholder is expected but not found
-    console.warn('WARNING: Firebase API Key placeholder not found in index.html. API Key might not be injected.');
-    // Consider exiting with error here if finding placeholder is critical: process.exit(1);
+
+    console.log('SUCCESS: Firebase API key injected into index.html using FIREBASE_UNRESTRICTED_API_KEY.');
+
+} catch (error) {
+    console.error('ERROR: Failed to inject Firebase API key into index.html:', error);
+    process.exit(1); // Exit with an error code to indicate build failure.
 }
