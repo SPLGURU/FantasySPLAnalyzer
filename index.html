@@ -362,12 +362,12 @@
         // --- Your Firebase Configuration ---
         // The API Key will be injected by a build script during deployment.
         const firebaseConfig = {
-            apiKey: "___FIREBASE_API_KEY_PLACEHOLDER___", 
+            apiKey: "___FIREBASE_API_KEY_PLACEHOLDER___", // UPDATED API KEY HERE
             authDomain: "spl-control-room-v2.firebaseapp.com",
             projectId: "spl-control-room-v2",
             storageBucket: "spl-control-room-v2.firebasestorage.app",
             messagingSenderId: "968811717140",
-            appId: "1:968811717140:web:534392050bc5b3845e7d01"
+            appId: "1:968811717140:web:534392050bc5b3845e7d01" 
         };
         // ------------------------------------
 
@@ -377,7 +377,7 @@
         const db = getFirestore(app);
 
         // --- GLOBAL FLAG to prevent onAuthStateChanged interference during active auth processes ---
-        let isProcessingAuth = false; // NEW GLOBAL FLAG
+        let isProcessingAuth = false; 
         
         // --- DOM Element References ---
         const mainLogo = document.getElementById('mainLogo');
@@ -416,18 +416,17 @@
         // --- Helper Functions ---
         function showMessage(message, type = 'info') {
             // Ensure message box is visible and clear previous text
-            messageBox.textContent = ''; // Clear previous text first
-            messageBox.className = `message-box ${type}`; // Set class for styling
-            messageBox.textContent = message; // Set new message text
-            messageBox.style.display = 'block'; // Ensure it's displayed
-            // Messages will now stay indefinitely for debugging, no setTimeout.
+            messageBox.textContent = ''; 
+            messageBox.className = `message-box ${type}`; 
+            messageBox.textContent = message; 
+            messageBox.style.display = 'block'; 
         }
 
         function hideAllContent() {
             authSection.style.display = 'none';
             loggedInContent.style.display = 'none';
-            messageBox.style.display = 'none'; // Ensure message box is hidden when switching views
-            messageBox.textContent = ''; // Also clear text when hidden
+            messageBox.style.display = 'none'; 
+            messageBox.textContent = ''; 
         }
 
         function convertArabicToWesternNumerals(input) {
@@ -564,12 +563,11 @@
 
         // Handle Self-Registration (Manager)
         signupButton.addEventListener('click', async () => {
-            messageBox.textContent = ''; // Clear existing message immediately on click
+            messageBox.textContent = ''; 
             messageBox.className = '';
-            messageBox.style.display = 'none'; // Ensure it starts hidden
+            messageBox.style.display = 'none'; 
 
-            // Set flag to indicate auth process is active
-            isProcessingAuth = true; // NEW: Set flag at start of auth process
+            isProcessingAuth = true; 
 
             const email = signupEmailInput.value;
             const password = signupPasswordInput.value;
@@ -578,22 +576,21 @@
 
             if (password !== confirmPassword) {
                 showMessage("Passwords do not match.", "error");
-                isProcessingAuth = false; // NEW: Clear flag on early exit
+                isProcessingAuth = false; 
                 return;
             }
             if (password.length < 6) {
                 showMessage("Password must be at least 6 characters long.", "error");
-                isProcessingAuth = false; // NEW: Clear flag on early exit
+                isProcessingAuth = false; 
                 return;
             }
             if (!/^\d+$/.test(managerId)) {
                 showMessage("SPL Manager ID is required and must be a valid number.", "error");
-                isProcessingAuth = false; // NEW: Clear flag on early exit
+                isProcessingAuth = false; 
                 return;
             }
 
             try {
-                // Display the "Registering..." message
                 showMessage("Registering your account...", "info");
 
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -610,11 +607,8 @@
                     emailVerified: false 
                 });
 
-                // Crucial step: Sign out the user immediately after sending verification email
-                // This prevents them from being "signed in" to the app before verification.
-                await signOut(auth); // NEW: Sign out user immediately after signup
+                await signOut(auth); 
 
-                // Display the final success message, which will overwrite the "Registering..." one
                 showMessage("Account created! Please verify your email and then log in.", "success");
                 console.log("DEBUG: Firestore document creation attempt completed.");
 
@@ -639,22 +633,19 @@
                 } else if (error.message) { 
                     friendlyMessage = `An unexpected error occurred: ${error.message}`;
                 }
-                // Display the error message
                 showMessage(friendlyMessage, "error");
             } finally {
-                // Ensure the flag is cleared after the process, whether success or failure
-                isProcessingAuth = false; // NEW: Clear flag in finally block
+                isProcessingAuth = false; 
             }
         });
 
         // Handle Login
         loginButton.addEventListener('click', async () => {
-            messageBox.textContent = ''; // Clear existing message immediately on click
+            messageBox.textContent = ''; 
             messageBox.className = '';
-            messageBox.style.display = 'none'; // Ensure it starts hidden
+            messageBox.style.display = 'none'; 
 
-            // Set flag to indicate auth process is active
-            isProcessingAuth = true; // NEW: Set flag at start of auth process
+            isProcessingAuth = true; 
 
             const email = loginEmailInput.value;
             const password = loginPasswordInput.value;
@@ -663,12 +654,11 @@
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Reload user properties from Firebase Auth to get latest emailVerified status
                 await reload(user); 
 
                 if (!user.emailVerified) {
-                    await signOut(auth); // Correct: Sign out if attempting to LOG IN with unverified email
-                    showMessage("Please verify your email address before logging in.", "info"); // This message will now stay
+                    await signOut(auth); 
+                    showMessage("Please verify your email address before logging in.", "info"); 
                     return;
                 }
                 
@@ -679,11 +669,10 @@
                         const userData = userDocSnap.data();
                         console.log("DEBUG: User data from Firestore on login:", userData);
 
-                        // Check if Firestore's emailVerified needs updating based on Auth's status
                         if (!userData.emailVerified && user.emailVerified) {
-                            console.log("DEBUG: Updating Firestore emailVerified status to true for UID:", user.uid);
+                            console.log("DEBUG: onAuthStateChanged: Updating Firestore emailVerified status to true for UID:", user.uid);
                             await updateDoc(userDocRef, { emailVerified: true });
-                            userData.emailVerified = true; // Update local userData for immediate use
+                            userData.emailVerified = true; 
                         }
                     
                     loggedInUserName.textContent = user.email; 
@@ -692,9 +681,8 @@
                     displayRole.textContent = userData.role || 'N/A';
                     displaySplManagerId.textContent = userData.splManagerId || 'N/A';
                     
-                    showMessage("Successfully logged in!", "success"); // This message will now stay
+                    showMessage("Successfully logged in!", "success"); 
 
-                    // Call functions to calculate and display both ranks
                     if (userData.role === 'manager' && userData.createdAt) {
                         await calculateAndDisplayQueueNumber(user.uid, userData);
                     } else {
@@ -709,7 +697,7 @@
 
                 } else {
                     console.warn("DEBUG: Firestore user document not found for UID:", user.uid, ". Logging out.");
-                    showMessage("Login successful, but user data not found. Please contact support. Logging out.", "error"); // This message will now stay
+                    showMessage("Login successful, but user data not found. Please contact support. Logging out.", "error"); 
                     await signOut(auth);
                 }
                 loginPasswordInput.value = ''; 
@@ -724,10 +712,9 @@
                 } else if (error.code === 'auth/wrong-password') {
                     friendlyMessage = "Invalid password.";
                 }
-                showMessage(friendlyMessage, "error"); // This message will now stay
+                showMessage(friendlyMessage, "error"); 
             } finally {
-                // Ensure the flag is cleared after the process, whether success or failure
-                isProcessingAuth = false; // NEW: Clear flag in finally block
+                isProcessingAuth = false; 
             }
         });
 
@@ -735,10 +722,10 @@
         logoutButton.addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                showMessage("Logged out successfully.", "info"); // This message will now stay
+                showMessage("Logged out successfully.", "info"); 
             } catch (error) {
                 console.error("DEBUG: Logout error:", error);
-                showMessage("Failed to logout. Please try again.", "error"); // This message will now stay
+                showMessage("Failed to logout. Please try again.", "error"); 
             }
         });
 
@@ -747,36 +734,32 @@
             e.preventDefault();
             loginForm.style.display = 'none';
             signupForm.style.display = 'block';
-            messageBox.style.display = 'none'; // Ensure message box is hidden when switching forms
-            messageBox.textContent = ''; // Clear message text when switching forms
+            messageBox.style.display = 'none'; 
+            messageBox.textContent = ''; 
         });
 
         showLoginLink.addEventListener('click', (e) => {
             e.preventDefault();
             loginForm.style.display = 'block';
             signupForm.style.display = 'none';
-            messageBox.style.display = 'none'; // Ensure message box is hidden when switching forms
-            messageBox.textContent = ''; // Clear message text when switching forms
+            messageBox.style.display = 'none'; 
+            messageBox.textContent = ''; 
         });
 
 
         // --- Authentication State Listener (Core UI Logic) ---
         onAuthStateChanged(auth, async (user) => {
-            // CRITICAL: If an auth process is actively being handled by a button click, exit immediately.
-            // This prevents race conditions and conflicting UI updates during signup/login.
-            if (isProcessingAuth) { // NEW: Check flag
+            if (isProcessingAuth) { 
                 console.log("DEBUG: onAuthStateChanged deferred due to active auth process.");
                 return; 
             }
 
-            hideAllContent(); // Hide everything first (including message box)
+            hideAllContent(); 
 
             if (user) {
-                // User is signed in
                 await reload(user); 
 
                 if (user.emailVerified) {
-                    // User is verified, display logged-in content
                     const userDocRef = doc(db, "users", user.uid);
                     const userDocSnap = await getDoc(userDocRef);
 
@@ -784,7 +767,6 @@
                         const userData = userDocSnap.data();
                         console.log(`DEBUG: User logged in: ${user.email}, UID: ${user.uid}, Role: ${userData.role || 'N/A'}`);
                         
-                        // Update Firestore emailVerified status if needed (should already be true here)
                         if (!userData.emailVerified && user.emailVerified) {
                             console.log("DEBUG: onAuthStateChanged: Updating Firestore emailVerified status to true for UID:", user.uid);
                             await updateDoc(userDocRef, { emailVerified: true });
@@ -811,20 +793,16 @@
                         }
 
                     } else {
-                        // User is in Auth but not Firestore, likely a failed signup. Log out.
                         console.warn("DEBUG: Firestore document for user does not exist. Logging out.");
                         await signOut(auth); 
                     }
                 } else {
-                    // User is signed in but email not verified (e.g., just signed up, or refreshed page after signup)
                     console.log("DEBUG: User is signed in but email not verified:", user.uid);
                     authSection.style.display = 'block';
                     loginForm.style.display = 'block'; 
                     signupForm.style.display = 'none'; 
-                    // No showMessage here: the signup flow handles it. This path is for page loads after signup.
                 }
             } else {
-                // User is signed out: show authentication forms.
                 console.log("DEBUG: User is signed out.");
                 authSection.style.display = 'block'; 
                 loginForm.style.display = 'block'; 
@@ -835,19 +813,17 @@
 
         // --- Initial Load & Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Set theme on load
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
                 setTheme(savedTheme);
             } else {
-                setTheme('light'); // Default to light mode
+                setTheme('light'); 
             }
 
             darkModeToggle.addEventListener('change', (e) => {
                 setTheme(e.target.checked ? 'dark' : 'light');
             });
 
-            // Add listener for managerId input to ensure Arabic numeral conversion
             signupManagerIdInput.addEventListener('input', function() {
                 this.value = convertArabicToWesternNumerals(this.value);
             });
