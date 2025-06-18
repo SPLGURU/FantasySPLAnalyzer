@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Control Room V2</title>
+    <title>Fantasy SPL Analyzer</title>
     <!-- Firebase SDK - Core -->
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-    <!-- Firebase SDK - Auth -->
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
     <!-- Firebase SDK - Firestore -->
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
@@ -38,21 +36,20 @@
             font-family: 'Roboto', sans-serif;
             background-color: var(--spl-light-bg);
             color: var(--spl-text-dark);
-            margin: 0; /* Remove default body margin */
-            padding: 10px; /* Reduce overall padding */
+            margin: 0;
+            padding: 10px;
             line-height: 1.6;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: unset; /* Allow content to naturally sit at the top */
-            height: auto; /* Ensure content height is natural */
+            min-height: 100vh; /* Ensure body takes full viewport height */
             box-sizing: border-box;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         #logo-container {
             text-align: center;
-            margin-bottom: 10px; /* Reduced margin */
+            margin-bottom: 20px;
             width: 100%;
         }
 
@@ -68,8 +65,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-top: 5px; /* Added slight top margin */
-            margin-bottom: 15px; /* Reduced margin */
+            margin-top: 10px;
+            margin-bottom: 30px;
             gap: 10px;
             color: var(--spl-text-dark);
             font-size: 0.95em;
@@ -149,120 +146,34 @@
             transition: background-color 0.3s ease, box-shadow 0.3s ease;
         }
 
-        h1, h2, h3 {
-            font-family: 'Oswald', sans-serif;
-            color: var(--spl-primary-accent);
-            text-align: center;
-            margin-top: 0;
-            margin-bottom: 20px;
-            transition: color 0.3s ease;
-        }
-        
-        .input-group {
-            margin-bottom: 15px;
-        }
-        input[type="email"],
-        input[type="password"],
-        input[type="text"] {
-            width: calc(100% - 20px);
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid var(--spl-border-light);
-            border-radius: 8px;
-            font-size: 1em;
-            background-color: var(--spl-container-bg);
-            color: var(--spl-text-dark);
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-        button:hover {
-            background-color: #0056b3;
-            transform: translateY(-1px);
-        }
-        #logoutButton {
-            background-color: #DC3545;
-            margin-top: 20px;
-        }
-        #logoutButton:hover {
-            background-color: #C82333;
-        }
-
-        .message-box {
-            text-align: center;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            font-weight: bold;
-            /* Messages now stay indefinitely for debugging, no setTimeout. */
-            display: none; 
-        }
-        .message-box.success { background-color: #d4edda; color: #155724; }
-        .message-box.error { background-color: #f8d7da; color: #721c24; }
-        .message-box.info { background-color: #d1ecf1; color: #0c5460; }
-
-        /* Styles for the logged-in dashboard content */
-        #loggedInContent {
+        /* Styles for the main analyzer content area */
+        #analyzerContent {
             text-align: center;
             padding: 20px;
             width: 100%;
-            max-width: 600px;
+            max-width: 600px; /* Adjust max-width as needed for your analyzer content */
+            margin-bottom: 20px;
+            background-color: var(--spl-container-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 8px var(--spl-shadow);
+            color: var(--spl-text-dark);
         }
-        #loggedInContent h2 {
+        #analyzerContent h2 {
             font-size: 2em;
             color: var(--spl-primary-accent);
             margin-bottom: 15px;
         }
-        #loggedInContent p {
+        #analyzerContent p {
             font-size: 1.1em;
-            color: var(--spl-text-dark);
             margin-bottom: 8px;
         }
-        #splOverallRankDisplay, #queueNumberDisplay {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: var(--spl-primary-accent);
-            margin: 20px 0 10px 0;
-        }
-        .rank-card {
-            background-color: var(--spl-container-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 8px var(--spl-shadow);
-            padding: 25px;
-            margin: 15px auto;
-            max-width: 300px;
-        }
-        .rank-card h3 {
-            font-size: 1.5em;
-            margin-bottom: 10px;
-        }
-        .rank-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-        @media (min-width: 768px) {
-            .rank-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
+
         @media (max-width: 600px) {
             body { padding: 10px; }
             .container { padding: 20px; }
             h1 { font-size: 1.8em; }
             h2 { font-size: 1.5em; }
             #mainLogo { max-width: 150px; }
-            #splOverallRankDisplay, #queueNumberDisplay { font-size: 2em; }
         }
     </style>
 </head>
@@ -279,90 +190,21 @@
         <em class="theme-label">Dark Mode</em>
     </div>
 
-    <div class="container">
-        <h1>Control Room V2</h1>
-
-        <!-- Authentication Section -->
-        <div id="authSection">
-            <div id="loginForm">
-                <h2>Login</h2>
-                <div class="input-group">
-                    <input type="email" id="loginEmail" placeholder="Email Address">
-                    <input type="password" id="loginPassword" placeholder="Password">
-                </div>
-                <button id="loginButton">Login</button>
-                <p>Don't have an account? <a href="#" id="showSignupLink">Sign Up</a></p>
-            </div>
-
-            <div id="signupForm" style="display: none;">
-                <h2>Sign Up</h2>
-                <div class="input-group">
-                    <input type="email" id="signupEmail" placeholder="Email Address">
-                    <input type="password" id="signupPassword" placeholder="Password">
-                    <input type="password" id="signupConfirmPassword" placeholder="Confirm Password">
-                    <input type="text" id="signupManagerId" placeholder="Your SPL Manager ID">
-                </div>
-                <button id="signupButton">Sign Up</button>
-                <p>Already have an account? <a href="#" id="showLoginLink">Login</a></p>
-            </div>
-            
-            <div id="messageBox" class="message-box"></div>
-        </div>
-
-        <!-- Logged In Content Section -->
-        <div id="loggedInContent" style="display: none;">
-            <h2>Welcome, <span id="loggedInUserName"></span>!</h2>
-            
-            <div class="rank-grid">
-                <div class="rank-card">
-                    <h3>Your SPL Overall Rank</h3>
-                    <p id="splOverallRankDisplay">Loading...</p> 
-                    <p class="small-text">Based on SPL Fantasy data</p>
-                </div>
-                <div class="rank-card">
-                    <h3>Your Queue Number</h3>
-                    <p id="queueNumberDisplay">Loading...</p>
-                    <p class="small-text">First registered Managers get lower numbers</p>
-                </div>
-            </div>
-
-            <p>Your UID: <span id="displayUid"></span></p>
-            <p>Your Email: <span id="displayEmail"></span></p>
-            <p>Your Role: <span id="displayRole"></span></p>
-            <p>Your SPL Manager ID: <span id="displaySplManagerId"></span></p>
-            <button id="logoutButton">Logout</button>
-        </div>
+    <div class="container" id="analyzerContent">
+        <h2>Welcome to Fantasy SPL Analyzer</h2>
+        <p>This is where your original Fantasy SPL Analyzer content would go.</p>
+        <p>You can re-integrate your rank display and other features here, adapting them if they previously relied on user login.</p>
+        <!-- Your original analyzer content elements can be placed here -->
     </div>
 
     <script type="module">
-        // Import Firebase modules
+        // Import Firebase App and Firestore (kept if original analyzer used Firestore for data)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { 
-            getAuth, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            sendEmailVerification, 
-            onAuthStateChanged, 
-            signOut,
-            reload // Needed for reloading user properties from Auth
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            getDoc,
-            collection, 
-            query,      
-            where,      
-            getDocs,    
-            serverTimestamp,
-            updateDoc // Needed for updating Firestore document
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- Your Firebase Configuration ---
-        // The API Key will be injected by a build script during deployment.
         const firebaseConfig = {
-            apiKey: "___FIREBASE_API_KEY_PLACEHOLDER___", // UPDATED API KEY HERE
+            apiKey: "___FIREBASE_API_KEY_PLACEHOLDER___", // Placeholder for Vercel injection
             authDomain: "spl-control-room-v2.firebaseapp.com",
             projectId: "spl-control-room-v2",
             storageBucket: "spl-control-room-v2.firebasestorage.app",
@@ -371,75 +213,17 @@
         };
         // ------------------------------------
 
-        // Initialize Firebase
+        // Initialize Firebase App and Firestore
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        const db = getFirestore(app); 
 
-        // --- GLOBAL FLAG to prevent onAuthStateChanged interference during active auth processes ---
-        let isProcessingAuth = false; 
-        
-        // --- DOM Element References ---
+        // --- DOM Element References (only general UI elements remain) ---
         const mainLogo = document.getElementById('mainLogo');
         const darkModeToggle = document.getElementById('darkModeToggle');
         const lightModeLogoSrc = 'unnamed.jpg'; 
         const darkModeLogoSrc = 'dark mode logo.png'; 
 
-        const authSection = document.getElementById('authSection');
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-        const messageBox = document.getElementById('messageBox');
-
-        const loginEmailInput = document.getElementById('loginEmail');
-        const loginPasswordInput = document.getElementById('loginPassword');
-        const loginButton = document.getElementById('loginButton');
-        const showSignupLink = document.getElementById('showSignupLink');
-
-        const signupEmailInput = document.getElementById('signupEmail');
-        const signupPasswordInput = document.getElementById('signupPassword');
-        const signupConfirmPasswordInput = document.getElementById('signupConfirmPassword');
-        const signupManagerIdInput = document.getElementById('signupManagerId');
-        const signupButton = document.getElementById('signupButton');
-        const showLoginLink = document.getElementById('showLoginLink');
-
-        const loggedInContent = document.getElementById('loggedInContent');
-        const loggedInUserName = document.getElementById('loggedInUserName');
-        const splOverallRankDisplay = document.getElementById('splOverallRankDisplay');
-        const queueNumberDisplay = document.getElementById('queueNumberDisplay');
-        const displayUid = document.getElementById('displayUid');
-        const displayEmail = document.getElementById('displayEmail');
-        const displayRole = document.getElementById('displayRole');
-        const displaySplManagerId = document.getElementById('displaySplManagerId');
-        const logoutButton = document.getElementById('logoutButton');
-
-
-        // --- Helper Functions ---
-        function showMessage(message, type = 'info') {
-            // Ensure message box is visible and clear previous text
-            messageBox.textContent = ''; 
-            messageBox.className = `message-box ${type}`; 
-            messageBox.textContent = message; 
-            messageBox.style.display = 'block'; 
-        }
-
-        function hideAllContent() {
-            authSection.style.display = 'none';
-            loggedInContent.style.display = 'none';
-            messageBox.style.display = 'none'; 
-            messageBox.textContent = ''; 
-        }
-
-        function convertArabicToWesternNumerals(input) {
-            const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-            const westernNumerals = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-            let convertedInput = input;
-            for (let i = 0; i < arabicNumerals.length; i++) {
-                const regex = new RegExp(arabicNumerals[i], 'g');
-                convertedInput = convertedInput.replace(regex, westernNumerals[i]);
-            }
-            return convertedInput;
-        }
-
+        // --- Helper Functions (only theme related remains) ---
         function setTheme(theme) {
             if (theme === 'dark') {
                 document.body.classList.add('dark-mode');
@@ -453,380 +237,23 @@
             localStorage.setItem('theme', theme);
         }
 
-        /**
-         * Calculates and displays the user's queue number by fetching filtered data and sorting client-side.
-         * @param {string} currentUserUid The UID of the currently logged-in user.
-         * @param {object} currentUserData The Firestore document data of the current user.
-         */
-        async function calculateAndDisplayQueueNumber(currentUserUid, currentUserData) {
-            queueNumberDisplay.textContent = 'Loading...'; 
-            console.log("DEBUG: Attempting to calculate queue number by client-side sorting.");
-
-            try {
-                if (currentUserData.role !== 'manager' || !currentUserData.createdAt) {
-                    queueNumberDisplay.textContent = 'N/A (Not a Manager or missing data)';
-                    console.log("DEBUG: User not a manager or missing createdAt for queue number calculation.");
-                    return;
-                }
-
-                const managersRef = collection(db, "users");
-                // Fetch all managers filtered by role and emailVerified. NO ORDER BY here.
-                const q = query(
-                    managersRef,
-                    where("role", "==", "manager"),
-                    where("emailVerified", "==", true) 
-                );
-
-                const querySnapshot = await getDocs(q);
-                
-                // Convert snapshot to array and sort client-side
-                const allManagers = querySnapshot.docs.map(docSnapshot => ({
-                    id: docSnapshot.id,
-                    ...docSnapshot.data()
-                }));
-
-                // Sort the managers array by createdAt timestamp
-                const sortedManagers = allManagers.sort((a, b) => {
-                    // Convert Firestore Timestamps to Date objects for comparison
-                    const dateA = a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0;
-                    const dateB = b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0;
-                    return dateA - dateB;
-                });
-
-                let rankFound = false;
-                let rank = 1;
-
-                // Iterate through the sorted list to find the current user's position
-                for (const manager of sortedManagers) {
-                    if (manager.id === currentUserUid) {
-                        queueNumberDisplay.textContent = `#${rank}`;
-                        rankFound = true;
-                        break; 
-                    }
-                    rank++;
-                }
-
-                if (!rankFound) {
-                    queueNumberDisplay.textContent = 'N/A (Not found in queue)';
-                    console.warn("DEBUG: Current user not found in manager queue query results (after client-side sort).");
-                }
-                console.log("DEBUG: Queue number calculation completed via client-side sorting.");
-
-            } catch (error) {
-                console.error("DEBUG: Error calculating queue number:", error);
-                queueNumberDisplay.textContent = 'Error loading queue #';
-                showMessage(`Failed to load queue number: ${error.message}`, "error");
-            }
-        }
-
-        /**
-         * Fetches and displays the user's SPL Overall Rank from the Vercel Function.
-         * This function expects the Vercel function to be located at /api/fetch-spl-data
-         * @param {string} splManagerId The SPL Manager ID of the current user.
-         */
-        async function fetchAndDisplaySPLOverallRank(splManagerId) {
-            splOverallRankDisplay.textContent = 'Loading...';
-            console.log(`DEBUG: Attempting to fetch SPL Overall Rank for ID: ${splManagerId}`);
-
-            try {
-                if (!splManagerId || !/^\d+$/.test(splManagerId)) {
-                    splOverallRankDisplay.textContent = 'N/A (Invalid SPL ID)';
-                    console.warn("DEBUG: Invalid SPL Manager ID provided for rank fetch.");
-                    return;
-                }
-
-                // Call the Vercel Function (which in turn calls the SPL API)
-                const response = await fetch(`/api/fetch-spl-data?id=${splManagerId}`);
-                const data = await response.json();
-                console.log('DEBUG: SPL API fetch response received:', data);
-
-                if (response.ok) {
-                    if (data.overallRank && data.overallRank !== 'N/A') {
-                        splOverallRankDisplay.textContent = `${data.overallRank} 🌏`; 
-                    } else {
-                        splOverallRankDisplay.textContent = 'N/A (Rank not available)';
-                    }
-                } else {
-                    splOverallRankDisplay.textContent = 'Error fetching SPL Rank';
-                    console.error("DEBUG: SPL API Vercel Function returned an error:", data.error || response.statusText);
-                    showMessage(`Failed to fetch SPL Rank: ${data.error || response.statusText}`, "error");
-                }
-            } catch (error) {
-                console.error("DEBUG: Critical error fetching SPL Overall Rank:", error);
-                splOverallRankDisplay.textContent = 'Error fetching SPL Rank';
-                showMessage(`Failed to load SPL Rank: ${error.message}. Network or API issue.`, "error");
-            }
-        }
-
-
-        // --- Authentication Logic ---
-
-        // Handle Self-Registration (Manager)
-        signupButton.addEventListener('click', async () => {
-            messageBox.textContent = ''; 
-            messageBox.className = '';
-            messageBox.style.display = 'none'; 
-
-            isProcessingAuth = true; 
-
-            const email = signupEmailInput.value;
-            const password = signupPasswordInput.value;
-            const confirmPassword = signupConfirmPasswordInput.value;
-            const managerId = convertArabicToWesternNumerals(signupManagerIdInput.value);
-
-            if (password !== confirmPassword) {
-                showMessage("Passwords do not match.", "error");
-                isProcessingAuth = false; 
-                return;
-            }
-            if (password.length < 6) {
-                showMessage("Password must be at least 6 characters long.", "error");
-                isProcessingAuth = false; 
-                return;
-            }
-            if (!/^\d+$/.test(managerId)) {
-                showMessage("SPL Manager ID is required and must be a valid number.", "error");
-                isProcessingAuth = false; 
-                return;
-            }
-
-            try {
-                showMessage("Registering your account...", "info");
-
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                await sendEmailVerification(user); 
-
-                console.log("DEBUG: Attempting setDoc for new user profile in Firestore.");
-                await setDoc(doc(db, "users", user.uid), {
-                    email: user.email,
-                    splManagerId: managerId,
-                    role: 'manager', 
-                    createdAt: serverTimestamp(), 
-                    emailVerified: false 
-                });
-
-                await signOut(auth); 
-
-                showMessage("Account created! Please verify your email and then log in.", "success");
-                console.log("DEBUG: Firestore document creation attempt completed.");
-
-                signupEmailInput.value = '';
-                signupPasswordInput.value = '';
-                signupConfirmPasswordInput.value = '';
-                signupManagerIdInput.value = '';
-                loginForm.style.display = 'block';
-                signupForm.style.display = 'none';
-
-            } catch (error) {
-                console.error("DEBUG: Signup / Firestore setDoc failed:", error); 
-                let friendlyMessage = "Failed to create account.";
-                if (error.code === 'auth/email-already-in-use') {
-                    friendlyMessage = "That email address is already in use.";
-                } else if (error.code === 'auth/invalid-email') {
-                    friendlyMessage = "Please enter a valid email address.";
-                } else if (error.code === 'auth/weak-password') {
-                    friendlyMessage = "Password is too weak.";
-                } else if (error.code === 'permission-denied') { 
-                    friendlyMessage = `Failed to save user data due to permissions. Check Firebase Console. Error: ${error.message}`;
-                } else if (error.message) { 
-                    friendlyMessage = `An unexpected error occurred: ${error.message}`;
-                }
-                showMessage(friendlyMessage, "error");
-            } finally {
-                isProcessingAuth = false; 
-            }
-        });
-
-        // Handle Login
-        loginButton.addEventListener('click', async () => {
-            messageBox.textContent = ''; 
-            messageBox.className = '';
-            messageBox.style.display = 'none'; 
-
-            isProcessingAuth = true; 
-
-            const email = loginEmailInput.value;
-            const password = loginPasswordInput.value;
-
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                await reload(user); 
-
-                if (!user.emailVerified) {
-                    await signOut(auth); 
-                    showMessage("Please verify your email address before logging in.", "info"); 
-                    return;
-                }
-                
-                const userDocRef = doc(db, "users", user.uid);
-                    const userDocSnap = await getDoc(userDocRef);
-
-                    if (userDocSnap.exists()) {
-                        const userData = userDocSnap.data();
-                        console.log("DEBUG: User data from Firestore on login:", userData);
-
-                        if (!userData.emailVerified && user.emailVerified) {
-                            console.log("DEBUG: onAuthStateChanged: Updating Firestore emailVerified status to true for UID:", user.uid);
-                            await updateDoc(userDocRef, { emailVerified: true });
-                            userData.emailVerified = true; 
-                        }
-                    
-                    loggedInUserName.textContent = user.email; 
-                    displayUid.textContent = user.uid;
-                    displayEmail.textContent = user.email;
-                    displayRole.textContent = userData.role || 'N/A';
-                    displaySplManagerId.textContent = userData.splManagerId || 'N/A';
-                    
-                    showMessage("Successfully logged in!", "success"); 
-
-                    if (userData.role === 'manager' && userData.createdAt) {
-                        await calculateAndDisplayQueueNumber(user.uid, userData);
-                    } else {
-                        queueNumberDisplay.textContent = 'N/A (Only for Managers)';
-                    }
-                    
-                    if (userData.splManagerId) {
-                        await fetchAndDisplaySPLOverallRank(userData.splManagerId);
-                    } else {
-                        splOverallRankDisplay.textContent = 'N/A (No SPL ID)';
-                    }
-
-                } else {
-                    console.warn("DEBUG: Firestore user document not found for UID:", user.uid, ". Logging out.");
-                    showMessage("Login successful, but user data not found. Please contact support. Logging out.", "error"); 
-                    await signOut(auth);
-                }
-                loginPasswordInput.value = ''; 
-
-            } catch (error) {
-                console.error("DEBUG: Login failed:", error);
-                let friendlyMessage = "Login failed. Please check your email and password.";
-                if (error.code === 'auth/invalid-credential') { 
-                    friendlyMessage = "Invalid email or password.";
-                } else if (error.code === 'auth/user-not-found') {
-                    friendlyMessage = "No user found with this email.";
-                } else if (error.code === 'auth/wrong-password') {
-                    friendlyMessage = "Invalid password.";
-                }
-                showMessage(friendlyMessage, "error"); 
-            } finally {
-                isProcessingAuth = false; 
-            }
-        });
-
-        // Handle Logout
-        logoutButton.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                showMessage("Logged out successfully.", "info"); 
-            } catch (error) {
-                console.error("DEBUG: Logout error:", error);
-                showMessage("Failed to logout. Please try again.", "error"); 
-            }
-        });
-
-        // Toggle between Login and Signup forms
-        showSignupLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginForm.style.display = 'none';
-            signupForm.style.display = 'block';
-            messageBox.style.display = 'none'; 
-            messageBox.textContent = ''; 
-        });
-
-        showLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginForm.style.display = 'block';
-            signupForm.style.display = 'none';
-            messageBox.style.display = 'none'; 
-            messageBox.textContent = ''; 
-        });
-
-
-        // --- Authentication State Listener (Core UI Logic) ---
-        onAuthStateChanged(auth, async (user) => {
-            if (isProcessingAuth) { 
-                console.log("DEBUG: onAuthStateChanged deferred due to active auth process.");
-                return; 
-            }
-
-            hideAllContent(); 
-
-            if (user) {
-                await reload(user); 
-
-                if (user.emailVerified) {
-                    const userDocRef = doc(db, "users", user.uid);
-                    const userDocSnap = await getDoc(userDocRef);
-
-                    if (userDocSnap.exists()) {
-                        const userData = userDocSnap.data();
-                        console.log(`DEBUG: User logged in: ${user.email}, UID: ${user.uid}, Role: ${userData.role || 'N/A'}`);
-                        
-                        if (!userData.emailVerified && user.emailVerified) {
-                            console.log("DEBUG: onAuthStateChanged: Updating Firestore emailVerified status to true for UID:", user.uid);
-                            await updateDoc(userDocRef, { emailVerified: true });
-                            userData.emailVerified = true; 
-                        }
-
-                        loggedInContent.style.display = 'block'; 
-                        loggedInUserName.textContent = user.email; 
-                        displayUid.textContent = user.uid;
-                        displayEmail.textContent = user.email;
-                        displayRole.textContent = userData.role || 'N/A';
-                        displaySplManagerId.textContent = userData.splManagerId || 'N/A';
-
-                        if (userData.role === 'manager' && userData.createdAt) {
-                            await calculateAndDisplayQueueNumber(user.uid, userData);
-                        } else {
-                            queueNumberDisplay.textContent = 'N/A (Only for Managers)';
-                        }
-                        
-                        if (userData.splManagerId) {
-                            await fetchAndDisplaySPLOverallRank(userData.splManagerId);
-                        } else {
-                            splOverallRankDisplay.textContent = 'N/A (No SPL ID)';
-                        }
-
-                    } else {
-                        console.warn("DEBUG: Firestore document for user does not exist. Logging out.");
-                        await signOut(auth); 
-                    }
-                } else {
-                    console.log("DEBUG: User is signed in but email not verified:", user.uid);
-                    authSection.style.display = 'block';
-                    loginForm.style.display = 'block'; 
-                    signupForm.style.display = 'none'; 
-                }
-            } else {
-                console.log("DEBUG: User is signed out.");
-                authSection.style.display = 'block'; 
-                loginForm.style.display = 'block'; 
-                signupForm.style.display = 'none';
-            }
-        });
-
-
         // --- Initial Load & Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
+            // Set theme on load
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
                 setTheme(savedTheme);
             } else {
-                setTheme('light'); 
+                setTheme('light'); // Default to light mode
             }
 
             darkModeToggle.addEventListener('change', (e) => {
                 setTheme(e.target.checked ? 'dark' : 'light');
             });
 
-            signupManagerIdInput.addEventListener('input', function() {
-                this.value = convertArabicToWesternNumerals(this.value);
-            });
+            // Any original analyzer-specific JavaScript or data fetching would be initialized here
+            // Example: If you had a function to fetch SPL ranks and display them without auth:
+            // fetchAndDisplaySPLData(); 
         });
     </script>
 </body>
