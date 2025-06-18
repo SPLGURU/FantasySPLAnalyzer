@@ -3,12 +3,10 @@
 // It's designed to be deployed as a Vercel Serverless Function.
 
 // Require node-fetch for making HTTP requests
-// Note: For Vercel, node-fetch is often available globally, but explicit require is safer.
 const fetch = require('node-fetch');
 
 module.exports = async (request, response) => {
     // Set CORS headers to allow requests from your frontend on any domain.
-    // This is crucial for local development and deployment.
     response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -20,7 +18,6 @@ module.exports = async (request, response) => {
 
     try {
         // Extract the manager ID from the query parameters
-        // Vercel functions receive request query parameters directly via request.query
         const managerId = request.query.id;
 
         if (!managerId) {
@@ -30,21 +27,12 @@ module.exports = async (request, response) => {
 
         console.log(`Vercel Function: Fetching SPL data for ID: ${managerId}`);
 
-        // Construct the URL for the external SPL API
-        // If your SPL API needs a key, it should be set as a Vercel Environment Variable for this function.
-        // It's accessed via process.env.SPL_API_KEY
-        const splApiKey = process.env.SPL_API_KEY || ''; 
+        // Construct the URL for the external SPL API directly.
+        // As per your clarification, this public API does NOT require an API key or authorization header.
         const apiUrl = `https://www.fantasy-spl.com/api/rank/${managerId}`; 
-
-        const fetchOptions = {};
-        if (splApiKey) {
-            fetchOptions.headers = {
-                'Authorization': `Bearer ${splApiKey}` 
-            };
-        }
-
-        // Make the request to the external SPL API
-        const splResponse = await fetch(apiUrl, fetchOptions);
+        
+        // Make the request to the external SPL API without any authorization headers
+        const splResponse = await fetch(apiUrl); // Removed fetchOptions as no headers are needed
 
         if (!splResponse.ok) {
             const errorText = await splResponse.text();
