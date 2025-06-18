@@ -25,37 +25,46 @@ module.exports = async (request, response) => {
             return response.status(400).json({ error: 'Manager ID is required.' });
         }
 
-        console.log(`Vercel Function: Fetching SPL data for ID: ${managerId}`);
+        console.log(`Vercel Function: Attempting to fetch SPL data for ID: ${managerId}`);
 
-        // Construct the URL for the external SPL API directly.
-        // As per your clarification, this public API does NOT require an API key or authorization header.
-        const apiUrl = `https://www.fantasy-spl.com/api/rank/${managerId}`; 
+        // CONTAINS THE CRITICAL FIX: Corrected the external SPL API domain.
+        // Assuming the path remains /api/rank/ for manager ID. If this path changes for the new domain,
+        // please provide a full example URL from the new domain.
+        const apiUrl = `https://en.fantasy.spl.com.sa/api/rank/${managerId}`; 
+        console.log(`Vercel Function: Calling external SPL API URL: ${apiUrl}`);
+
+        const splResponse = await fetch(apiUrl);
+        console.log(`Vercel Function: External SPL API Response Status: ${splResponse.status}`);
+        console.log(`Vercel Function: External SPL API Response StatusText: ${splResponse.statusText}`);
         
-        // Make the request to the external SPL API without any authorization headers
-        const splResponse = await fetch(apiUrl); // Removed fetchOptions as no headers are needed
+        const responseHeaders = {};
+        splResponse.headers.forEach((value, name) => {
+            responseHeaders[name] = value;
+        });
+        console.log("Vercel Function: External SPL API Response Headers:", responseHeaders);
 
         if (!splResponse.ok) {
             const errorText = await splResponse.text();
-            console.error(`Vercel Function Error: External SPL API responded with status ${splResponse.status}: ${errorText}`);
+            console.error(`Vercel Function Error: External SPL API responded with non-OK status ${splResponse.status}: ${errorText}`);
             return response.status(splResponse.status).json({
-                error: `Failed to fetch SPL data from external API: ${splResponse.statusText}`,
-                details: errorText
+                error: `Failed to fetch SPL data from external API: ${splResponse.statusText || 'Unknown Status'}`,
+                details: errorText 
             });
         }
 
         const splData = await splResponse.json();
+        console.log("Vercel Function: Raw SPL Data received:", splData); 
 
         // Extract the overall rank (adjust this based on actual SPL API response structure)
         const overallRank = splData.overallRank !== undefined ? splData.overallRank : 'N/A';
 
-        console.log(`Vercel Function: Successfully fetched rank for ${managerId}: ${overallRank}`);
+        console.log(`Vercel Function: Successfully extracted rank for ${managerId}: ${overallRank}`);
 
         // Send the rank back to the client
         response.status(200).json({ overallRank });
 
     } catch (error) {
         console.error('Vercel Function Error: Catch block caught an exception:', error);
-        // Send a generic error response to the client
         response.status(500).json({ error: 'Internal Server Error processing request.', details: error.message });
     }
 };
