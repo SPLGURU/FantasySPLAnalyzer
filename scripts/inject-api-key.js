@@ -6,9 +6,6 @@ const fs = require('fs');
 const path = require('path');
 
 // Define the path to your index.html file.
-// __dirname refers to the directory of the current script (scripts/).
-// '..' moves up one level to the project root.
-// 'index.html' points to the target file.
 const filePath = path.join(__dirname, '..', 'index.html');
 
 try {
@@ -20,7 +17,7 @@ try {
 
     // Define the name of the Vercel environment variable that holds the API key.
     // This is the variable name for your main, public-facing Firebase API Key.
-    const apiKeyEnvVar = process.env.FIREBASE_API_KEY; // Using FIREBASE_API_KEY as the env var name
+    const apiKeyEnvVar = process.env.FIREBASE_API_KEY; 
 
     // Check if the environment variable is set. If not, log a warning and exit.
     if (!apiKeyEnvVar) {

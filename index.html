@@ -167,6 +167,46 @@
             font-size: 1.1em;
             margin-bottom: 8px;
         }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--spl-border-light);
+            border-radius: 8px;
+            font-size: 1em;
+            background-color: var(--spl-container-bg);
+            color: var(--spl-text-dark);
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        .message-box {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none; 
+        }
+        .message-box.success { background-color: #d4edda; color: #155724; }
+        .message-box.error { background-color: #f8d7da; color: #721c24; }
+        .message-box.info { background-color: #d1ecf1; color: #0c5460; }
+
 
         @media (max-width: 600px) {
             body { padding: 10px; }
@@ -191,14 +231,27 @@
     </div>
 
     <div class="container" id="analyzerContent">
-        <h2>Welcome to Fantasy SPL Analyzer</h2>
-        <p>This is where your original Fantasy SPL Analyzer content would go.</p>
-        <p>You can re-integrate your rank display and other features here, adapting them if they previously relied on user login.</p>
-        <!-- Your original analyzer content elements can be placed here -->
+        <h2>Fantasy SPL Analyzer</h2>
+        <p>Enter an SPL Manager ID to get their overall rank and other details.</p>
+        
+        <div class="input-group">
+            <input type="text" id="managerIdInput" placeholder="Enter SPL Manager ID">
+            <button id="analyzeButton">Analyze Manager</button>
+        </div>
+
+        <div id="messageBox" class="message-box"></div>
+
+        <div id="reportOutput" style="margin-top: 20px; text-align: left; display: none;">
+            <h3>Analysis Report:</h3>
+            <p><strong>Manager ID:</strong> <span id="displayManagerId"></span></p>
+            <p><strong>Overall Rank:</strong> <span id="displayOverallRank">N/A</span></p>
+            <!-- Add more report details here as needed based on your API response -->
+        </div>
+
     </div>
 
     <script type="module">
-        // Import Firebase App and Firestore (kept if original analyzer used Firestore for data)
+        // Import Firebase App and Firestore (Firestore is kept if analyzer needs to store/fetch public data)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -217,13 +270,39 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app); 
 
-        // --- DOM Element References (only general UI elements remain) ---
+        // --- DOM Element References ---
         const mainLogo = document.getElementById('mainLogo');
         const darkModeToggle = document.getElementById('darkModeToggle');
         const lightModeLogoSrc = 'unnamed.jpg'; 
         const darkModeLogoSrc = 'dark mode logo.png'; 
 
-        // --- Helper Functions (only theme related remains) ---
+        const managerIdInput = document.getElementById('managerIdInput');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const messageBox = document.getElementById('messageBox');
+        const reportOutput = document.getElementById('reportOutput');
+        const displayManagerId = document.getElementById('displayManagerId');
+        const displayOverallRank = document.getElementById('displayOverallRank');
+
+
+        // --- Helper Functions ---
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = ''; 
+            messageBox.className = `message-box ${type}`; 
+            messageBox.textContent = message; 
+            messageBox.style.display = 'block'; 
+        }
+
+        function convertArabicToWesternNumerals(input) {
+            const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+            const westernNumerals = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            let convertedInput = input;
+            for (let i = 0; i < arabicNumerals.length; i++) {
+                const regex = new RegExp(arabicNumerals[i], 'g');
+                convertedInput = convertedInput.replace(regex, westernNumerals[i]);
+            }
+            return convertedInput;
+        }
+
         function setTheme(theme) {
             if (theme === 'dark') {
                 document.body.classList.add('dark-mode');
@@ -237,23 +316,86 @@
             localStorage.setItem('theme', theme);
         }
 
-        // --- Initial Load & Event Listeners ---
+        /**
+         * Fetches and displays the user's SPL Overall Rank from the Vercel Function.
+         * This function expects the Vercel function to be located at /api/fetch-spl-data
+         * @param {string} splManagerId The SPL Manager ID to fetch data for.
+         */
+        async function fetchAndDisplaySPLOverallRank(splManagerId) {
+            displayOverallRank.textContent = 'Loading...';
+            reportOutput.style.display = 'none'; // Hide report while loading
+            messageBox.style.display = 'none'; // Hide messages while new request is processing
+            messageBox.textContent = '';
+
+            console.log(`DEBUG: Attempting to fetch SPL Overall Rank for ID: ${splManagerId}`);
+
+            try {
+                if (!splManagerId || !/^\d+$/.test(splManagerId)) {
+                    showMessage("Please enter a valid numeric SPL Manager ID.", "error");
+                    displayOverallRank.textContent = 'N/A';
+                    return;
+                }
+
+                // Call the Vercel Function (which in turn calls the SPL API)
+                // Using window.location.origin to ensure an absolute URL to the Vercel function
+                const response = await fetch(`${window.location.origin}/api/fetch-spl-data?id=${splManagerId}`);
+                const data = await response.json();
+                console.log('DEBUG: SPL API fetch response received:', data);
+
+                if (response.ok) {
+                    displayManagerId.textContent = splManagerId; // Display the ID that was analyzed
+                    if (data.overallRank && data.overallRank !== 'N/A') {
+                        displayOverallRank.textContent = `${data.overallRank} 🌏`; 
+                    } else {
+                        displayOverallRank.textContent = 'N/A (Rank not available)';
+                    }
+                    reportOutput.style.display = 'block'; // Show the report output section
+                    showMessage("Analysis complete!", "success");
+
+                } else {
+                    displayOverallRank.textContent = 'Error';
+                    reportOutput.style.display = 'none'; // Hide report on error
+                    console.error("DEBUG: SPL API Vercel Function returned an error:", data.error || response.statusText);
+                    showMessage(`Failed to fetch SPL Rank: ${data.error || response.statusText}. Please check the ID.`, "error");
+                }
+            } catch (error) {
+                displayOverallRank.textContent = 'Error';
+                reportOutput.style.display = 'none'; // Hide report on error
+                console.error("DEBUG: Critical error fetching SPL Overall Rank:", error);
+                showMessage(`Failed to load SPL Rank: ${error.message}. Network or API issue.`, "error");
+            }
+        }
+
+        // --- Event Listeners ---
+        analyzeButton.addEventListener('click', () => {
+            const managerId = convertArabicToWesternNumerals(managerIdInput.value);
+            fetchAndDisplaySPLOverallRank(managerId);
+        });
+
+        // Allow pressing Enter key to trigger analysis
+        managerIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                analyzeButton.click(); // Programmatically click the analyze button
+            }
+        });
+
+        // Add listener for managerId input to ensure Arabic numeral conversion
+        managerIdInput.addEventListener('input', function() {
+            this.value = convertArabicToWesternNumerals(this.value);
+        });
+
+        // --- Initial Load & Theme ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Set theme on load
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
                 setTheme(savedTheme);
             } else {
-                setTheme('light'); // Default to light mode
+                setTheme('light'); 
             }
 
             darkModeToggle.addEventListener('change', (e) => {
                 setTheme(e.target.checked ? 'dark' : 'light');
             });
-
-            // Any original analyzer-specific JavaScript or data fetching would be initialized here
-            // Example: If you had a function to fetch SPL ranks and display them without auth:
-            // fetchAndDisplaySPLData(); 
         });
     </script>
 </body>
