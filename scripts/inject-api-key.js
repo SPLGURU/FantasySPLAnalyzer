@@ -16,7 +16,6 @@ try {
     const placeholder = '___FIREBASE_API_KEY_PLACEHOLDER___';
 
     // Define the name of the Vercel environment variable that holds the API key.
-    // This is the variable name for your main, public-facing Firebase API Key.
     const apiKeyEnvVar = process.env.FIREBASE_API_KEY; 
 
     // Check if the environment variable is set. If not, log a warning and exit.
