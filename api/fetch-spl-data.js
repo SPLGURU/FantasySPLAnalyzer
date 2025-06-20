@@ -15,7 +15,8 @@ function sleep(ms) {
 }
 
 // Helper function to fetch data with retries and exponential backoff
-async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 200) {
+// Increased baseDelayMs to be more conservative with external API.
+async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 500) { // Increased baseDelayMs
     let retries = 0;
     while (retries < maxRetries) {
         try {
@@ -24,20 +25,20 @@ async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 200) {
             if (response.ok) { // Status 200-299
                 return response;
             } else if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
-                const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100;
+                // Exponential backoff with jitter
+                const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 500; // Increased jitter range
                 console.warn(`Attempt ${retries + 1}/${maxRetries} failed for ${url} with status ${response.status}. Retrying in ${delay.toFixed(0)}ms...`);
                 await sleep(delay);
                 retries++;
             } else {
-                // For non-OK responses that are not 429/5xx, throw immediately
                 throw new Error(`Failed to fetch ${url}: HTTP status ${response.status} - ${response.statusText}`);
             }
         } catch (error) {
             console.error(`Fetch error for ${url} (attempt ${retries + 1}/${maxRetries}):`, error.message);
             if (retries === maxRetries - 1) {
-                throw error; // Re-throw if max retries reached
+                throw error;
             }
-            const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100;
+            const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 500; // Increased jitter range
             console.warn(`Retrying in ${delay.toFixed(0)}ms...`);
             retries++;
         }
@@ -48,7 +49,7 @@ async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 200) {
 
 // Helper function to fetch player names and create a map
 async function getPlayerNameMap() {
-    const url = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/'; // Corrected domain
+    const url = 'https://en.fantasy.spl.com.sa/api/bootstrap-static/';
     try {
         const response = await fetchWithRetry(url);
         const data = await response.json();
@@ -66,24 +67,24 @@ async function getPlayerNameMap() {
 
 // Dedicated function to fetch manager basic data: chips, current event, and last_deadline_total_transfers
 async function getManagerBasicData(managerId) { 
-    const managerEntryUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/`; // Corrected domain
+    const managerEntryUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/`;
     try {
         const entryRes = await fetchWithRetry(managerEntryUrl);
         const managerEntryData = await entryRes.json();
         
-        console.log('--- Inside getManagerBasicData ---'); 
-        console.log('Full managerEntryData object (for basic data):', JSON.stringify(managerEntryData, null, 2)); 
+        console.log('--- Inside getManagerBasicData ---');
+        console.log('Full managerEntryData object (for basic data):', JSON.stringify(managerEntryData, null, 2));
 
-        const chips = managerEntryData.chips || []; 
-        const currentEvent = managerEntryData.current_event || 34; 
+        const chips = managerEntryData.chips || [];
+        const currentEvent = managerEntryData.current_event || 34;
         const lastDeadlineTotalTransfers = managerEntryData.last_deadline_total_transfers || 'N/A';
-        const managerName = managerEntryData.name || `Manager ID: ${managerId}`; 
+        const managerName = managerEntryData.name || `Manager ID: ${managerId}`;
 
-        console.log('Chips extracted by getManagerBasicData:', chips); 
-        console.log('Current Event extracted by getManagerBasicData:', currentEvent); 
-        console.log('last_deadline_total_transfers extracted by getManagerBasicData:', lastDeadlineTotalTransfers); 
-        console.log('Manager Name extracted by getManagerBasicData:', managerName); 
-        console.log('--- End getManagerBasicData ---'); 
+        console.log('Chips extracted by getManagerBasicData:', chips);
+        console.log('Current Event extracted by getManagerBasicData:', currentEvent);
+        console.log('last_deadline_total_transfers extracted by getManagerBasicData:', lastDeadlineTotalTransfers);
+        console.log('Manager Name extracted by getManagerBasicData:', managerName);
+        console.log('--- End getManagerBasicData ---');
 
         return { 
             chips, 
@@ -93,7 +94,7 @@ async function getManagerBasicData(managerId) {
         };
     } catch (error) {
         console.error(`ERROR: Failed to fetch manager basic data for ${managerId}:`, error.message);
-        return { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', managerName: `Manager ID: ${managerId}` }; 
+        return { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', managerName: `Manager ID: ${managerId}` };
     }
 }
 
@@ -115,7 +116,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     let greenArrowsCount = 0;
     let redArrowsCount = 0;
 
-    const maxRounds = 34; // Total number of rounds in the season
+    const maxRounds = 34;
 
     const overallRankHistory = [];
 
@@ -131,7 +132,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     // Fetch all transfers data once at the beginning of this function
     let transfersRawData = [];
     try {
-        const transfersApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/transfers/`; // Corrected domain
+        const transfersApiUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/transfers/`;
         const transfersResponse = await fetchWithRetry(transfersApiUrl);
         transfersRawData = await transfersResponse.json();
         console.log(`Fetched transfersRawData for manager ${managerId}. Total records: ${transfersRawData.length}`);
@@ -139,31 +140,30 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         console.error(`Error fetching transfersRawData for manager ${managerId}:`, error.message);
     }
 
+    // CRITICAL FIX: Fetch data for each round SEQUENTIALLY with a delay
+    // This will prevent hitting the API's rate limits
+    const managerPicksDataCollected = [];
+    const DELAY_BETWEEN_ROUNDS_MS = 1000; // 1 second delay between each round fetch
+    console.log(`Starting sequential fetch for ${maxRounds} rounds with ${DELAY_BETWEEN_ROUNDS_MS}ms delay...`);
 
-    // Fetch data for all rounds for the given manager concurrently with retries
-    const managerPicksPromises = [];
     for (let round = 1; round <= maxRounds; round++) {
-        const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`; // Corrected domain
-        managerPicksPromises.push(
-            (async () => {
-                try {
-                    const res = await fetchWithRetry(picksUrl);
-                    return { round, data: await res.json() }; 
-                } catch (error) {
-                    console.warn(`Skipping round ${round} for manager ${managerId} due to persistent fetch error: ${error.message}`);
-                    return { round, data: null };
-                }
-            })()
-        );
+        const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`;
+        try {
+            console.log(`Fetching picks for round ${round}...`);
+            const res = await fetchWithRetry(picksUrl);
+            managerPicksDataCollected.push({ round, data: await res.json() });
+        } catch (error) {
+            console.warn(`Skipping round ${round} for manager ${managerId} due to persistent fetch error: ${error.message}`);
+        }
+        if (round < maxRounds) { // Don't delay after the last round
+            await sleep(DELAY_BETWEEN_ROUNDS_MS); // Pause between requests
+        }
     }
-    const allManagerPicksResults = await Promise.allSettled(managerPicksPromises);
-    console.log(`All Manager Picks Results (status of each round fetch):`, allManagerPicksResults.map(r => r.status));
+    console.log(`Finished sequential fetch. Collected data for ${managerPicksDataCollected.length} rounds.`);
 
 
     // Sort results by round number to ensure correct order for history
-    const sortedManagerPicksData = allManagerPicksResults
-        .filter(result => result.status === 'fulfilled' && result.value.data !== null)
-        .map(result => result.value)
+    const sortedManagerPicksData = managerPicksDataCollected
         .sort((a, b) => a.round - b.round);
     console.log(`Sorted Manager Picks Data (after filtering):`, sortedManagerPicksData.length > 0 ? `Contains data for ${sortedManagerPicksData.length} rounds.` : `Is EMPTY!`);
 
@@ -294,28 +294,29 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
                 const playerOutId = transfer.element_out;
 
                 // Fetch player summary for IN and OUT players to get their points in this specific round
-                const playerInSummaryPromise = fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerInId}/`); // Corrected domain
-                const playerOutSummaryPromise = fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerOutId}/`); // Corrected domain
-
-                const [playerInRes, playerOutRes] = await Promise.allSettled([playerInSummaryPromise, playerOutSummaryPromise]);
-
+                // CRITICAL FIX: Fetch player summaries SEQUENTIALLY to avoid rate limits here too
                 let playerInPoints = 0;
-                if (playerInRes.status === 'fulfilled' && playerInRes.value.ok) {
-                    const playerInSummary = await playerInRes.value.json();
+                try {
+                    const playerInSummaryRes = await fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerInId}/`);
+                    const playerInSummary = await playerInSummaryRes.json();
                     const inHistory = playerInSummary.history.find(h => h.round === round);
                     playerInPoints = inHistory ? inHistory.total_points : 0;
-                } else {
-                    console.warn(`Could not get points for Player IN ID ${playerInId} in Round ${round}.`);
+                } catch (error) {
+                    console.warn(`Could not get points for Player IN ID ${playerInId} in Round ${round}. Error: ${error.message}`);
                 }
+                await sleep(DELAY_BETWEEN_ROUNDS_MS / 2); // Shorter delay for player summaries
 
                 let playerOutPoints = 0;
-                if (playerOutRes.status === 'fulfilled' && playerOutRes.value.ok) {
-                    const playerOutSummary = await playerOutRes.value.json();
+                try {
+                    const playerOutSummaryRes = await fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerOutId}/`);
+                    const playerOutSummary = await playerOutSummaryRes.json();
                     const outHistory = playerOutSummary.history.find(h => h.round === round);
                     playerOutPoints = outHistory ? outHistory.total_points : 0;
-                } else {
-                    console.warn(`Could not get points for Player OUT ID ${playerOutId} in Round ${round}.`);
+                } catch (error) {
+                    console.warn(`Could not get points for Player OUT ID ${playerOutId} in Round ${round}. Error: ${error.message}`);
                 }
+                await sleep(DELAY_BETWEEN_ROUNDS_MS / 2); // Shorter delay for player summaries
+
 
                 const profitLoss = playerInPoints - playerOutPoints;
 
@@ -339,7 +340,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
     for (const [captainIdStr, timesCaptained] of sortedCaptains) {
         const captainId = parseInt(captainIdStr);
-        const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${captainId}/`; // Corrected domain
+        const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${captainId}/`;
         let playerSummary = null;
         try {
             const res = await fetchWithRetry(playerSummaryUrl);
@@ -347,6 +348,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         } catch (error) {
             console.warn(`Could not fetch summary for captain ${captainId} due to persistent error: ${error.message}`);
         }
+        await sleep(DELAY_BETWEEN_ROUNDS_MS / 2); // Add delay for captain summaries
 
         const playerHistory = playerSummary ? playerSummary.history : [];
 
@@ -378,18 +380,18 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         });
     }
 
-    const allPlayerSummaryPromises = Array.from(uniquePlayerIdsInSquad).map(async playerId => {
+    // CRITICAL FIX: Fetch player summaries for unique players SEQUENTIALLY
+    const allPlayerSummariesMap = new Map();
+    for (const playerId of Array.from(uniquePlayerIdsInSquad)) {
         try {
-            const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${playerId}/`; // Corrected domain
+            const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${playerId}/`;
             const response = await fetchWithRetry(playerSummaryUrl);
-            return { playerId: parseInt(playerId), summary: await response.json() };
+            allPlayerSummariesMap.set(parseInt(playerId), await response.json());
         } catch (error) {
             console.warn(`Could not fetch summary for player ${playerId} due to persistent error: ${error.message}`);
-            return { playerId: parseInt(playerId), summary: null };
         }
-    });
-    const allPlayerSummariesResults = await Promise.all(allPlayerSummaryPromises);
-    const allPlayerSummariesMap = new Map(allPlayerSummariesResults.filter(p => p.summary).map(p => [p.playerId, p.summary]));
+        await sleep(DELAY_BETWEEN_ROUNDS_MS / 2); // Add delay between player summaries
+    }
 
 
     for (const playerId of uniquePlayerIdsInSquad) {
@@ -496,7 +498,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
 
 // --- Simplified getTransfersData function (no longer used for main calculations as data is in getManagerHistoryAndCaptains) ---
-// This function name is misleading as it now just retrieves summary totals already calculated.
 async function getTransfersData(managerId, managerBasicData, managerStats) { 
     const totalTransfersCount = managerBasicData.lastDeadlineTotalTransfers;
     const totalHitsPoints = managerStats.totalHitsPoints; 
@@ -511,7 +512,7 @@ async function getTransfersData(managerId, managerBasicData, managerStats) {
 
 
 // --- Vercel Function Handler (Main entry point) ---
-module.exports = async (request, response) => { // Changed exports.handler to module.exports for Vercel Serverless
+module.exports = async (request, response) => { 
     // Set CORS headers to allow requests from your frontend on any domain.
     response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -529,6 +530,10 @@ module.exports = async (request, response) => { // Changed exports.handler to mo
         console.error('Invalid managerId received:', managerId);
         return response.status(400).json({ error: 'Manager ID is required and must be a valid number.' });
     }
+
+    // CRITICAL: Reset global counters for each new request
+    captainCounts = {};
+    captainedRoundsTracker = {};
 
     try {
         const playerMap = await getPlayerNameMap();
@@ -574,7 +579,6 @@ module.exports = async (request, response) => { // Changed exports.handler to mo
 
         let transfersData = {};
         try {
-            // This function call is simplified as totalTransfersCount and totalHitsPoints are now derived from managerStats
             transfersData = await getTransfersData(managerId, managerBasicData, managerStats); 
             console.log('Transfers Data retrieved successfully.');
         } catch (error) {
