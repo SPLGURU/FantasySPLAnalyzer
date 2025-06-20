@@ -1,10 +1,7 @@
-// Vercel Serverless Function: api/fetch-spl-data.js
-// This function fetches SPL Fantasy League data based on a manager ID.
-// It's designed to be deployed as a Vercel Serverless Function.
-
+// netlify/functions/fetch-spl-data.js
 const fetch = require('node-fetch');
 
-// --- GLOBAL VARIABLES (reset per invocation) ---
+// --- GLOBAL VARIABLES ---
 let captainCounts = {};
 let captainedRoundsTracker = {};
 // --- END GLOBAL VARIABLES ---
@@ -15,8 +12,7 @@ function sleep(ms) {
 }
 
 // Helper function to fetch data with retries and exponential backoff
-// Increased baseDelayMs to be more conservative with external API.
-async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 500) { // Increased baseDelayMs
+async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 200) {
     let retries = 0;
     while (retries < maxRetries) {
         try {
@@ -25,20 +21,20 @@ async function fetchWithRetry(url, maxRetries = 5, baseDelayMs = 500) { // Incre
             if (response.ok) { // Status 200-299
                 return response;
             } else if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
-                // Exponential backoff with jitter
-                const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 500; // Increased jitter range
+                const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100;
                 console.warn(`Attempt ${retries + 1}/${maxRetries} failed for ${url} with status ${response.status}. Retrying in ${delay.toFixed(0)}ms...`);
                 await sleep(delay);
                 retries++;
             } else {
+                // For non-OK responses that are not 429/5xx, throw immediately
                 throw new Error(`Failed to fetch ${url}: HTTP status ${response.status} - ${response.statusText}`);
             }
         } catch (error) {
             console.error(`Fetch error for ${url} (attempt ${retries + 1}/${maxRetries}):`, error.message);
             if (retries === maxRetries - 1) {
-                throw error;
+                throw error; // Re-throw if max retries reached
             }
-            const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 500; // Increased jitter range
+            const delay = baseDelayMs * Math.pow(2, retries) + Math.random() * 100;
             console.warn(`Retrying in ${delay.toFixed(0)}ms...`);
             retries++;
         }
@@ -66,35 +62,36 @@ async function getPlayerNameMap() {
 }
 
 // Dedicated function to fetch manager basic data: chips, current event, and last_deadline_total_transfers
-async function getManagerBasicData(managerId) { 
+async function getManagerBasicData(managerId) { // Renamed for clarity
     const managerEntryUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/`;
     try {
         const entryRes = await fetchWithRetry(managerEntryUrl);
         const managerEntryData = await entryRes.json();
         
-        console.log('--- Inside getManagerBasicData ---');
-        console.log('Full managerEntryData object (for basic data):', JSON.stringify(managerEntryData, null, 2));
+        console.log('--- Inside getManagerBasicData ---'); // Debug Marker
+        console.log('Full managerEntryData object (for basic data):', JSON.stringify(managerEntryData, null, 2)); // DEBUG LOG: Full object
 
-        const chips = managerEntryData.chips || [];
-        const currentEvent = managerEntryData.current_event || 34;
+        // Directly extract essential data
+        const chips = managerEntryData.chips || []; // Chips might be missing sometimes
+        const currentEvent = managerEntryData.current_event || 34; // Fallback to 34
         const lastDeadlineTotalTransfers = managerEntryData.last_deadline_total_transfers || 'N/A';
-        const managerName = managerEntryData.name || `Manager ID: ${managerId}`;
+        const managerName = managerEntryData.name || `Manager ID: ${managerId}`; // Get manager's team name
 
-        console.log('Chips extracted by getManagerBasicData:', chips);
-        console.log('Current Event extracted by getManagerBasicData:', currentEvent);
-        console.log('last_deadline_total_transfers extracted by getManagerBasicData:', lastDeadlineTotalTransfers);
-        console.log('Manager Name extracted by getManagerBasicData:', managerName);
-        console.log('--- End getManagerBasicData ---');
+        console.log('Chips extracted by getManagerBasicData:', chips); // DEBUG LOG
+        console.log('Current Event extracted by getManagerBasicData:', currentEvent); // DEBUG LOG
+        console.log('last_deadline_total_transfers extracted by getManagerBasicData:', lastDeadlineTotalTransfers); // DEBUG LOG
+        console.log('Manager Name extracted by getManagerBasicData:', managerName); // DEBUG LOG
+        console.log('--- End getManagerBasicData ---'); // Debug Marker
 
         return { 
             chips, 
             currentEvent,
             lastDeadlineTotalTransfers,
-            managerName 
+            managerName // Include managerName in the returned object
         };
     } catch (error) {
         console.error(`ERROR: Failed to fetch manager basic data for ${managerId}:`, error.message);
-        return { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', managerName: `Manager ID: ${managerId}` };
+        return { chips: [], currentEvent: 34, lastDeadlineTotalTransfers: 'N/A', managerName: `Manager ID: ${managerId}` }; // Return defaults on failure
     }
 }
 
@@ -111,22 +108,27 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
     let maxOverallRankRound = 'N/A';
     let totalPointsSum = 0;
     let roundsProcessed = 0;
-    let totalTransfersCost = 0; 
+    let totalTransfersCost = 0; // Initialize total transfers cost for hits calculation
     
+    // NEW: Initialize green/red arrow counts
     let greenArrowsCount = 0;
     let redArrowsCount = 0;
 
-    const maxRounds = 34;
+    const maxRounds = 34; // Total number of rounds in the season
 
+    // Array to store overall rank for each round, now including points and transfers cost
     const overallRankHistory = [];
 
+    // Initialize these sets/objects
     const missedPointsInstances = []; 
     const playerSeasonStats = {}; 
     const uniquePlayerIdsInSquad = new Set(); 
 
+    // Use chips and currentEvent from managerBasicData passed from handler
     const managerChips = managerBasicData?.chips || []; 
     const currentEvent = managerBasicData?.currentEvent || maxRounds;
 
+    // Array to store all transfers with calculated profit/loss
     const allTransfersAnalysis = [];
 
     // Fetch all transfers data once at the beginning of this function
@@ -140,30 +142,32 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         console.error(`Error fetching transfersRawData for manager ${managerId}:`, error.message);
     }
 
-    // CRITICAL FIX: Fetch data for each round SEQUENTIALLY with a delay
-    // This will prevent hitting the API's rate limits
-    const managerPicksDataCollected = [];
-    const DELAY_BETWEEN_ROUNDS_MS = 1000; // 1 second delay between each round fetch
-    console.log(`Starting sequential fetch for ${maxRounds} rounds with ${DELAY_BETWEEN_ROUNDS_MS}ms delay...`);
 
+    // Fetch data for all rounds for the given manager concurrently with retries
+    const managerPicksPromises = [];
     for (let round = 1; round <= maxRounds; round++) {
         const picksUrl = `https://en.fantasy.spl.com.sa/api/entry/${managerId}/event/${round}/picks`;
-        try {
-            console.log(`Fetching picks for round ${round}...`);
-            const res = await fetchWithRetry(picksUrl);
-            managerPicksDataCollected.push({ round, data: await res.json() });
-        } catch (error) {
-            console.warn(`Skipping round ${round} for manager ${managerId} due to persistent fetch error: ${error.message}`);
-        }
-        if (round < maxRounds) { // Don't delay after the last round
-            await sleep(DELAY_BETWEEN_ROUNDS_MS); // Pause between requests
-        }
+        managerPicksPromises.push(
+            (async () => {
+                try {
+                    const res = await fetchWithRetry(picksUrl);
+                    return { round, data: await res.json() }; // Return round number with data
+                } catch (error) {
+                    console.warn(`Skipping round ${round} for manager ${managerId} due to persistent fetch error: ${error.message}`);
+                    return { round, data: null };
+                }
+            })()
+        );
     }
-    console.log(`Finished sequential fetch. Collected data for ${managerPicksDataCollected.length} rounds.`);
+    // Use Promise.allSettled to ensure all promises are handled, even if some fail
+    const allManagerPicksResults = await Promise.allSettled(managerPicksPromises);
+    console.log(`All Manager Picks Results (status of each round fetch):`, allManagerPicksResults.map(r => r.status));
 
 
     // Sort results by round number to ensure correct order for history
-    const sortedManagerPicksData = managerPicksDataCollected
+    const sortedManagerPicksData = allManagerPicksResults
+        .filter(result => result.status === 'fulfilled' && result.value.data !== null)
+        .map(result => result.value)
         .sort((a, b) => a.round - b.round);
     console.log(`Sorted Manager Picks Data (after filtering):`, sortedManagerPicksData.length > 0 ? `Contains data for ${sortedManagerPicksData.length} rounds.` : `Is EMPTY!`);
 
@@ -178,7 +182,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
     // Process collected manager picks data to populate overall stats and identify all unique players
     let latestOverallRank = 'N/A';
-    let previousOverallRank = null; 
+    let previousOverallRank = null; // To track for green/red arrows
     for (const { round, data } of sortedManagerPicksData) {
         roundsProcessed++;
 
@@ -188,8 +192,10 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         const currentRoundTransfersCost = data.entry_history.event_transfers_cost || 0; 
         const transfersMadeInRound = data.entry_history.event_transfers || 0; 
 
+        // Calculate total hits by summing 'event_transfers_cost' from each round's entry_history
         totalTransfersCost += currentRoundTransfersCost;
 
+        // Store overall rank, points, and transfers cost for this round
         overallRankHistory.push({ 
             round: round, 
             rank: currentOverallRank,
@@ -215,7 +221,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
         if (currentOverallRank !== null && currentOverallRank !== undefined) {
             // Calculate Green/Red Arrows
-            if (previousOverallRank !== null) { 
+            if (previousOverallRank !== null) { // Ensure there's a previous rank to compare
                 if (currentOverallRank < previousOverallRank) {
                     greenArrowsCount++;
                 } else if (currentOverallRank > previousOverallRank) {
@@ -223,7 +229,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
                 }
             }
             latestOverallRank = currentOverallRank;
-            previousOverallRank = currentOverallRank; 
+            previousOverallRank = currentOverallRank; // Update previous rank for next iteration
 
             if (currentOverallRank < minOverallRank) {
                 minOverallRank = currentOverallRank;
@@ -287,6 +293,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         // Collect and analyze transfers for "Most Profitable/Loss-making Transfers"
         if (transfersMadeInRound > 0) {
             const transfersForThisRound = transfersRawData.filter(t => t.event === round);
+            // Take only the number of transfers that 'counted' for this round's TM
             const actualTransfersToProcess = transfersForThisRound.slice(0, transfersMadeInRound);
 
             for (const transfer of actualTransfersToProcess) {
@@ -294,30 +301,30 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
                 const playerOutId = transfer.element_out;
 
                 // Fetch player summary for IN and OUT players to get their points in this specific round
-                // CRITICAL FIX: Fetch player summaries SEQUENTIALLY to avoid rate limits here too
+                const playerInSummaryPromise = fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerInId}/`);
+                const playerOutSummaryPromise = fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerOutId}/`);
+
+                const [playerInRes, playerOutRes] = await Promise.allSettled([playerInSummaryPromise, playerOutSummaryPromise]);
+
                 let playerInPoints = 0;
-                try {
-                    const playerInSummaryRes = await fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerInId}/`);
-                    const playerInSummary = await playerInSummaryRes.json();
+                if (playerInRes.status === 'fulfilled' && playerInRes.value.ok) {
+                    const playerInSummary = await playerInRes.value.json();
                     const inHistory = playerInSummary.history.find(h => h.round === round);
                     playerInPoints = inHistory ? inHistory.total_points : 0;
-                } catch (error) {
-                    console.warn(`Could not get points for Player IN ID ${playerInId} in Round ${round}. Error: ${error.message}`);
+                } else {
+                    console.warn(`Could not get points for Player IN ID ${playerInId} in Round ${round}.`);
                 }
-                await sleep(DELAY_BETWEEN_ROUNDS_MS / 2); // Shorter delay for player summaries
 
                 let playerOutPoints = 0;
-                try {
-                    const playerOutSummaryRes = await fetchWithRetry(`https://en.fantasy.spl.com.sa/api/element-summary/${playerOutId}/`);
-                    const playerOutSummary = await playerOutSummaryRes.json();
+                if (playerOutRes.status === 'fulfilled' && playerOutRes.value.ok) {
+                    const playerOutSummary = await playerOutRes.value.json();
                     const outHistory = playerOutSummary.history.find(h => h.round === round);
                     playerOutPoints = outHistory ? outHistory.total_points : 0;
-                } catch (error) {
-                    console.warn(`Could not get points for Player OUT ID ${playerOutId} in Round ${round}. Error: ${error.message}`);
+                } else {
+                    console.warn(`Could not get points for Player OUT ID ${playerOutId} in Round ${round}.`);
                 }
-                await sleep(DELAY_BETWEEN_ROUNDS_MS / 2); // Shorter delay for player summaries
 
-
+                // Calculate Profit/Loss - Now (Player_in_Score minus Player_out_Score)
                 const profitLoss = playerInPoints - playerOutPoints;
 
                 allTransfersAnalysis.push({
@@ -335,7 +342,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 
     const top3CaptainsStats = [];
     const sortedCaptains = Object.entries(captainCounts)
-        .sort(([, countA], [, countB]) => countB - countA) 
+        .sort(([, countA], [, countB]) => countB - countA) // Sort by times captained
         .slice(0, 3);
 
     for (const [captainIdStr, timesCaptained] of sortedCaptains) {
@@ -348,7 +355,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         } catch (error) {
             console.warn(`Could not fetch summary for captain ${captainId} due to persistent error: ${error.message}`);
         }
-        await sleep(DELAY_BETWEEN_ROUNDS_MS / 2); // Add delay for captain summaries
 
         const playerHistory = playerSummary ? playerSummary.history : [];
 
@@ -380,18 +386,18 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         });
     }
 
-    // CRITICAL FIX: Fetch player summaries for unique players SEQUENTIALLY
-    const allPlayerSummariesMap = new Map();
-    for (const playerId of Array.from(uniquePlayerIdsInSquad)) {
+    const allPlayerSummaryPromises = Array.from(uniquePlayerIdsInSquad).map(async playerId => {
         try {
             const playerSummaryUrl = `https://en.fantasy.spl.com.sa/api/element-summary/${playerId}/`;
             const response = await fetchWithRetry(playerSummaryUrl);
-            allPlayerSummariesMap.set(parseInt(playerId), await response.json());
+            return { playerId: parseInt(playerId), summary: await response.json() };
         } catch (error) {
             console.warn(`Could not fetch summary for player ${playerId} due to persistent error: ${error.message}`);
+            return { playerId: parseInt(playerId), summary: null };
         }
-        await sleep(DELAY_BETWEEN_ROUNDS_MS / 2); // Add delay between player summaries
-    }
+    });
+    const allPlayerSummariesResults = await Promise.all(allPlayerSummaryPromises);
+    const allPlayerSummariesMap = new Map(allPlayerSummariesResults.filter(p => p.summary).map(p => [p.playerId, p.summary]));
 
 
     for (const playerId of uniquePlayerIdsInSquad) {
@@ -480,7 +486,6 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
         totalHitsPoints: totalTransfersCost * -1, 
         top5ProfitableTransfers: top5ProfitableTransfers, 
         top5LossMakingTransfers: top5LossMakingTransfers,
-        managerName: managerBasicData.managerName,
         bestRound: {
             points: bestRoundPoints !== -Infinity ? bestRoundPoints : 'N/A',
             deductions: bestRoundDeductions,
@@ -497,7 +502,7 @@ async function getManagerHistoryAndCaptains(managerId, playerNameMap, managerBas
 }
 
 
-// --- Simplified getTransfersData function (no longer used for main calculations as data is in getManagerHistoryAndCaptains) ---
+// --- Simplified getTransfersData function (no longer used for main calculations) ---
 async function getTransfersData(managerId, managerBasicData, managerStats) { 
     const totalTransfersCount = managerBasicData.lastDeadlineTotalTransfers;
     const totalHitsPoints = managerStats.totalHitsPoints; 
@@ -511,29 +516,19 @@ async function getTransfersData(managerId, managerBasicData, managerStats) {
 }
 
 
-// --- Vercel Function Handler (Main entry point) ---
-module.exports = async (request, response) => { 
-    // Set CORS headers to allow requests from your frontend on any domain.
-    response.setHeader('Access-Control-Allow-Origin', '*');
-    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    // Handle preflight requests (OPTIONS method)
-    if (request.method === 'OPTIONS') {
-        return response.status(200).send();
-    }
-
-    const managerId = request.query.id;
+// --- Netlify Function Handler (Main entry point) ---
+exports.handler = async function(event, context) {
+    const managerId = event.queryStringParameters.id;
     console.log(`Received request for managerId: ${managerId}`);
 
     if (!managerId || typeof managerId !== 'string' || !/^\d+$/.test(managerId)) {
         console.error('Invalid managerId received:', managerId);
-        return response.status(400).json({ error: 'Manager ID is required and must be a valid number.' });
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Manager ID is required and must be a valid number.' }),
+            headers: { "Content-Type": "application/json" }
+        };
     }
-
-    // CRITICAL: Reset global counters for each new request
-    captainCounts = {};
-    captainedRoundsTracker = {};
 
     try {
         const playerMap = await getPlayerNameMap();
@@ -589,7 +584,7 @@ module.exports = async (request, response) => {
             };
         }
 
-        const averagePointsFor1stPlace = 75; // This seems like a static placeholder
+        const averagePointsFor1stPlace = 75;
 
         const finalResponse = {
             overallRankHistory: managerStats.overallRankHistory,
